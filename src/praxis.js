@@ -51,7 +51,7 @@ const UEBUNGEN=[
   s:"Nimm dir eine Woche lang jeden Tag eine eigene Schublade oder ein Fach in deinem Zimmer vor. Räum es aus und leg nur zurück, was du benutzt. Gemeinsame Schubladen der Familie räumst du nur nach Absprache auf." },
 
 { id:"u07", cat:"wo", t:"Reparieren vor Ersetzen", d:14,
-  x:"Such ein Gerät oder Ding im Haushalt heraus, das kaputt ist oder nicht mehr richtig funktioniert. Finde in zwei Wochen heraus, ob man es reparieren kann. Ein Reparatur-Café, eine Anleitung im Netz oder ein Fachbetrieb können helfen.",
+  x:"Such ein kaputtes Ding im Haushalt heraus und finde in zwei Wochen heraus, ob man es reparieren kann. Ein Reparatur-Café, eine Anleitung oder ein Fachbetrieb können helfen. Geräte mit Netzstrom oder Lithium-Akku nur stromlos öffnen. Akkus und Netzteile reparieren Fachleute.",
   steps:["Wähl ein kaputtes Ding aus, das du eigentlich ersetzen wolltest.","Schreib genau auf, was nicht mehr geht.","Such nach einem Reparatur-Café in deiner Nähe oder nach einer Anleitung.","Probier die Reparatur oder lass sie machen.","Gib das Ding zum Recyclinghof, wenn es wirklich nicht zu retten ist."],
   wenn:"Wenn ich den Gedanken habe, etwas Kaputtes neu zu kaufen, dann suche ich zuerst zehn Minuten nach einer Reparaturmöglichkeit.",
   warum:"Bei Handys und Notebooks steckt ein großer Teil der Klimalast schon in der Herstellung, darum zählt dort jedes Jahr, das ein Gerät länger hält.",
@@ -101,10 +101,11 @@ const UEBUNGEN=[
 
 { id:"u13", cat:"pa", t:"Ein Monat Fotos am Abend", d:14,
   x:"Geh zwei Wochen lang jeden Abend die Fotos eines Monats auf deinem Handy durch. Lösch Doppelte, unscharfe Bilder und Bildschirmfotos, die du nicht mehr brauchst. Markier pro Monat deine liebsten Bilder als Favoriten.",
-  steps:["Fang mit dem ältesten Monat auf deinem Handy an.","Lösch Serien bis auf das beste Bild.","Lösch Bildschirmfotos, die erledigt sind.","Markier pro Monat höchstens zehn Lieblingsbilder.","Sichere die Lieblingsbilder an einem zweiten Ort."],
-  wenn:"Wenn ich abends ins Bett gehe und das Handy noch in der Hand habe, dann sortiere ich zuerst einen Monat Fotos.",
+  steps:["Sichere zuerst alle Fotos an einem zweiten Ort, etwa auf einem Computer oder einer Festplatte.","Fang mit dem ältesten Monat auf deinem Handy an.","Lösch Serien bis auf das beste Bild.","Lösch Bildschirmfotos, die erledigt sind.","Markier pro Monat höchstens zehn Lieblingsbilder."],
+  wenn:"Wenn ich nach dem Abendessen den Tisch abgeräumt habe, dann sortiere ich einen Monat Fotos.",
   warum:"An schöne Zeiten zu denken, kann nach der Nostalgieforschung guttun, und das gelingt leichter, wenn die guten Bilder nicht zwischen Tausenden anderen verschwinden.",
-  imp:"i33" },
+  imp:"i33",
+  s:"Geh zwei Wochen lang jeden Abend die Fotos eines Monats auf deinem Handy durch. Fotos liegen oft in einem Familienkonto oder werden mit anderen geteilt. Frag deshalb vorher, ob gelöschte Bilder auch bei anderen verschwinden, und sichere sie zuerst an einem zweiten Ort." },
 
 { id:"u14", cat:"pa", t:"Erst schauen, dann ein Foto", d:2,
   x:"Mach an zwei Tagen, an denen du etwas Besonderes erlebst, ein kleines Experiment. Du schaust zuerst eine Minute lang genau hin, bevor du das Handy herausholst. Danach machst du höchstens ein Foto pro Ort.",
@@ -145,17 +146,17 @@ const UEBUNGEN=[
   imp:"i33" },
 
 { id:"u19", cat:"er", t:"Ein Geschenk, das nicht zu dir passt", d:7,
-  x:"Such ein Geschenk heraus, das du nie benutzt und nur aus Pflichtgefühl behältst. Schreib eine Woche lang jeden Tag einen Satz dazu auf, was die schenkende Person dir zeigen wollte. Danach gibst du das Ding an jemanden weiter, der es benutzt.",
-  steps:["Such ein Geschenk heraus, das du nie benutzt.","Schreib auf, was die Person dir damit sagen wollte.","Trenn in Gedanken die Zuneigung von dem Ding.","Überleg, wer das Ding wirklich gebrauchen kann.","Gib es weiter oder leg es in die Vielleicht-Kiste."],
-  wenn:"Wenn ich beim Weggeben eines Geschenks ein schlechtes Gewissen bekomme, dann sage ich mir, dass die Zuneigung bleibt, auch wenn das Ding weitergeht.",
-  warum:"Dinge können sich wie ein Teil von uns oder von einem anderen Menschen anfühlen, und diese Idee erklärt, warum Weggeben manchmal so schwerfällt.",
-  imp:"i16",
+  x:"Such ein Geschenk heraus, das du nie benutzt und nur aus Pflichtgefühl behältst. Schreib eine Woche lang jeden Tag einen Satz dazu auf, was die schenkende Person dir zeigen wollte. Danach entscheidest du, ob es bleibt, weitergeht oder in die Vielleicht-Kiste kommt.",
+  steps:["Such ein Geschenk heraus, das du nie benutzt.","Schreib auf, was die Person dir damit sagen wollte.","Trenn in Gedanken die Zuneigung von dem Ding.","Überleg, ob jemand das Ding wirklich gebrauchen könnte.","Entscheide in Ruhe, ob es bleibt, weitergeht oder in die Vielleicht-Kiste kommt."],
+  wenn:"Wenn ich beim Gedanken ans Weitergeben ein schlechtes Gewissen bekomme, dann sage ich mir, dass die Zuneigung bleibt, egal wie ich mich entscheide.",
+  warum:"In Studien sahen Schenkende das Weitergeben eines Geschenks deutlich gelassener, als die Beschenkten vermuteten.",
+  imp:"i46",
   s:"Such ein eigenes Geschenk heraus, das du nie benutzt und nur aus Pflichtgefühl behältst. Schreib auf, was die Person dir damit zeigen wollte. Wenn es von jemandem aus der Familie ist, sprich mit deinen Eltern, bevor du es weitergibst." },
 
 { id:"u20", cat:"er", t:"Die besten Stücke einer Sammlung", d:21,
-  x:"Wähl eine Sammlung aus, zum Beispiel Bücher, Karten, Steine oder Figuren. Such in drei Wochen die zehn Stücke heraus, die dir am meisten bedeuten, und stell sie gut sichtbar auf. Für die anderen suchst du Menschen, die sie schätzen.",
-  steps:["Wähl eine Sammlung aus, die du schon lange hast.","Leg in der ersten Woche alles einmal vor dich hin.","Such in der zweiten Woche die zehn besten Stücke heraus.","Stell sie in der dritten Woche gut sichtbar auf.","Biete die übrigen Stücke anderen Sammlern oder Freunden an."],
-  wenn:"Wenn ich ein Stück nicht hergeben will, obwohl ich es nicht unter die besten zehn gewählt habe, dann frage ich mich, was ich dafür bezahlen würde, wenn es mir nicht gehören würde.",
+  x:"Wähl eine Sammlung aus, zum Beispiel Bücher, Karten, Steine oder Figuren. Such in drei Wochen die zehn Stücke heraus, die dir am meisten bedeuten, und stell sie gut sichtbar auf. Über die übrigen Stücke entscheidest du danach in Ruhe.",
+  steps:["Wähl eine Sammlung aus, die du schon lange hast.","Leg in der ersten Woche alles einmal vor dich hin.","Such in der zweiten Woche die zehn besten Stücke heraus.","Stell sie in der dritten Woche gut sichtbar auf.","Entscheide, ob die übrigen Stücke bleiben, in die Vielleicht-Kiste kommen oder zu Menschen gehen, die sie schätzen."],
+  wenn:"Wenn ich bei einem Stück außerhalb der besten zehn unsicher bin, dann frage ich mich, was ich dafür bezahlen würde, wenn es mir nicht gehören würde.",
   warum:"Was uns gehört, bewerten wir oft höher, als wir es von außen tun würden, und der Blick von außen hilft beim Auswählen.",
   imp:"i05" },
 
@@ -198,7 +199,31 @@ const UEBUNGEN=[
   wenn:"Wenn ich nach einem schlechten Tag einen Shop öffne, dann gehe ich zuerst zehn Minuten nach draußen oder rufe jemanden an.",
   warum:"Nach einer Studie lindert schon das Auswählen Traurigkeit kurz, weil es ein Gefühl von Kontrolle gibt, und die Übung sucht Wege, die das ohne Kauf schaffen.",
   imp:"i20",
-  s:"Achte eine Woche lang darauf, wann du aus schlechter Laune etwas kaufen oder dir wünschen willst. In diesem Moment machst du zehn Minuten etwas anderes, das dir guttut. Danach entscheidest du, ob du den Wunsch parkst." }
+  s:"Achte eine Woche lang darauf, wann du aus schlechter Laune etwas kaufen oder dir wünschen willst. In diesem Moment machst du zehn Minuten etwas anderes, das dir guttut. Danach entscheidest du, ob du den Wunsch parkst." },
+
+{ id:"u26", cat:"ko", t:"Werbung bei Influencern erkennen", d:7,
+  x:"Achte eine Woche lang bei Videos und Posts von Menschen, denen du folgst, darauf, wo Werbung steckt. Hinweise sind Wörter wie „Werbung“ oder „Anzeige“, Rabattcodes und Links zu Shops. Am Ende entscheidest du, wem du weiter folgen möchtest.",
+  steps:["Nimm dir vor, eine Woche lang bei jedem Post kurz auf Werbung zu achten.","Notiere, wenn du „Werbung“, „Anzeige“, einen Rabattcode oder einen Shop-Link siehst.","Schreib dazu, ob du danach etwas haben wolltest.","Schau am Ende, bei welchen Kanälen das am häufigsten vorkam.","Entscheide, ob du einem Kanal entfolgst, ihn stummschaltest oder weiter schaust."],
+  wenn:"Wenn ich in einem Video einen Rabattcode höre, dann parke ich den Wunsch, statt den Link zu öffnen.",
+  warum:"Bei Kindern ging mehr Werbung mit stärkeren Wünschen nach den beworbenen Dingen einher, und wer Werbung erkennt, kann leichter Abstand nehmen.",
+  imp:"i36",
+  s:"Achte eine Woche lang bei Videos und Posts, die du dir anschaust, darauf, wo Werbung steckt. Hinweise sind Wörter wie „Werbung“ oder „Anzeige“, Rabattcodes und Links zu Shops. Am Ende entscheidest du selbst, wem du weiter folgen möchtest." },
+
+{ id:"u27", cat:"ko", t:"In-Game-Käufe eine Woche beobachten", d:7,
+  x:"Beobachte eine Woche lang, wann dir ein Spiel etwas zum Kaufen anbietet, etwa Skins, Lootboxen oder Spielwährung. Kauf in dieser Woche nichts davon und notiere nur, was dich gereizt hätte. Danach legst du eine eigene Grenze für den nächsten Monat fest.",
+  steps:["Schau nach, wie viel du im letzten Monat in Spielen ausgegeben hast, falls du das sehen kannst.","Notiere eine Woche lang jedes Angebot, das dich gereizt hat, und wann es kam.","Kauf in dieser Woche nichts im Spiel.","Schau am Ende, welche Angebote nach ein paar Tagen noch wichtig waren.","Leg eine feste Grenze für den nächsten Monat fest, zum Beispiel einen Betrag oder eine Zahl von Käufen."],
+  wenn:"Wenn ein Spiel mir ein zeitlich begrenztes Angebot zeigt, dann schließe ich es und schreibe den Wunsch auf.",
+  warum:"Ein Plan, der eine konkrete Situation nennt, hilft nach vielen Studien, Vorsätze auch im Moment des Reizes umzusetzen.",
+  imp:"i24",
+  s:"Beobachte eine Woche lang, wann dir ein Spiel etwas zum Kaufen anbietet, etwa Skins, Lootboxen oder Spielwährung. Kauf in dieser Woche nichts davon und notiere, was dich gereizt hätte. Danach legst du eine Grenze fest, zusammen mit deinen Eltern, wenn deren Konto oder Karte im Spiel hinterlegt ist." },
+
+{ id:"u28", cat:"ko", t:"„Jetzt kaufen, später zahlen“ verstehen", d:3,
+  x:"Viele Shops bieten an, jetzt zu kaufen und erst später oder in Raten zu zahlen. Schau dir drei Tage lang an, wie das funktioniert, ohne etwas zu bestellen. Lies bei einem Angebot nach, wann gezahlt werden muss und was passiert, wenn eine Zahlung zu spät kommt.",
+  steps:["Such bei einem Shop, den du kennst, die Bezahlart „später zahlen“ oder „in Raten“.","Lies nach, bis wann gezahlt werden muss und wer das Geld eigentlich verleiht.","Such heraus, was bei verspäteter Zahlung passiert, etwa Mahngebühren oder Zinsen.","Überleg, wie viele solche Zahlungen man gleichzeitig im Blick behalten könnte.","Notiere in einem Satz, wann du diese Bezahlart für sinnvoll hältst und wann nicht."],
+  wenn:"Wenn mir ein Shop „später zahlen“ anbietet, dann frage ich mich, ob ich den Betrag heute schon hätte.",
+  warum:"Im aufgeregten Moment unterschätzen wir leicht, wie wir später über eine Ausgabe denken, und wer erst später zahlt, spürt die Kosten vielleicht erst dann.",
+  imp:"i23",
+  s:"Viele Shops bieten an, jetzt zu kaufen und später oder in Raten zu zahlen. Schau dir drei Tage lang an, wie das funktioniert, ohne etwas zu bestellen. Lies nach, wann gezahlt werden muss und was passiert, wenn eine Zahlung zu spät kommt." }
 ];
 
 const BEGRIFFE=[
@@ -255,7 +280,8 @@ const BEGRIFFE=[
   imp:"i42" },
 { id:"b14", t:"Rebound-Effekt",
   x:"Wenn etwas sparsamer oder billiger wird, nutzen Menschen es oft mehr. Dadurch wird ein Teil der Ersparnis wieder aufgezehrt. Manchmal verbraucht man am Ende sogar mehr als vorher.",
-  bsp:"Familie Kaya kauft ein Auto, das wenig Benzin verbraucht. Weil das Fahren jetzt günstiger ist, fahren sie viel öfter, und am Ende tanken sie kaum weniger als vorher." },
+  bsp:"Familie Kaya kauft ein Auto, das wenig Benzin verbraucht. Weil das Fahren jetzt günstiger ist, fahren sie viel öfter, und am Ende tanken sie kaum weniger als vorher.",
+  imp:"i43" },
 { id:"b15", t:"Suffizienz",
   x:"Die Frage nach dem richtigen Maß: Wie viel brauche ich eigentlich? Sie ergänzt die Frage nach Effizienz, also wie man etwas sparsamer herstellt. Suffizienz senkt den Verbrauch, indem man weniger braucht, nicht durch bessere Technik.",
   bsp:"Familie Roth braucht einen neuen Kühlschrank. Sie vergleicht nicht zuerst den Stromverbrauch großer Modelle, sondern merkt, dass ein kleiner Kühlschrank für ihren Alltag völlig reicht.",
@@ -279,7 +305,7 @@ const MONATE=[
 { t:"Kleidung beim Saisonwechsel", x:"Wenn die Wintersachen nach hinten wandern, ist ein guter Moment für einen Blick in den Schrank. Mit umgedrehten Bügeln siehst du nach 30 Tagen, was du wirklich trägst.", cat:"kl", u:"u02" },
 { t:"Frühjahrsputz in kleinen Schritten", x:"Im Frühling haben viele Lust, aufzuräumen. Eine Schublade am Tag hält diese Lust wach, ohne dass ein ganzes Wochenende dafür draufgeht.", cat:"wo", u:"u06" },
 { t:"Leihen für Garten und Balkon", x:"Im Mai braucht man für Garten, Balkon und Fahrrad oft Geräte, die man nur selten benutzt. Das ist eine gute Gelegenheit, das Leihen auszuprobieren.", cat:"ko", u:"u22" },
-{ t:"Urlaub als Erlebnis", x:"Vor dem Sommer planen viele ihren Urlaub. Die Vorfreude auf ein Erlebnis kann schon ein Teil davon sein, und es muss keine weite Reise sein.", cat:"ko", u:"u24" },
+{ t:"Urlaub als Erlebnis", x:"Vor dem Sommer planen viele ihren Urlaub. Die Vorfreude auf ein Erlebnis kann schon ein Teil davon sein. Es muss keine weite Reise sein, und nahe Ziele schonen das Klima.", cat:"ko", u:"u24" },
 { t:"Ferien mit offenen Augen", x:"In den Sommerferien entstehen viele Fotos. Wer zuerst schaut und dann fotografiert, hat am Ende weniger Bilder und vielleicht bessere Erinnerungen.", cat:"pa", u:"u14" },
 { t:"Schulanfang mit Einkaufszettel", x:"Vor dem Schulbeginn und nach dem Urlaub wird viel eingekauft. Ein Zettel hilft, nur zu kaufen, was wirklich fehlt.", cat:"ko", u:"u23" },
 { t:"Kleidung für den Herbst", x:"Wenn die warmen Sachen wieder nach vorn kommen, lohnt sich ein Test. Eine Woche mit der halben Kleiderstange zeigt, wie viel du für den Herbst brauchst.", cat:"kl", u:"u01" },

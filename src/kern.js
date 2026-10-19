@@ -42,7 +42,7 @@ const WEG=Object.fromEntries(WEGE.map(w=>[w.id,w]));
 /* Gründe, ein Ding bewusst zu behalten */
 const GRUENDE=[
   {id:"oft",n:"Ich nutze es oft",x:"Ein Ding, das viel gebraucht wird, verdient seinen Platz. Was lange hält und oft benutzt wird, muss nicht neu gekauft werden."},
-  {id:"kann",n:"Es macht mich fähig",x:"Werkzeuge und Dinge, mit denen du etwas selbst kannst, stärken Selbstständigkeit und Können.",imp:"i17"},
+  {id:"kann",n:"Es macht mich fähig",x:"Werkzeuge, Instrumente und Sportsachen, mit denen du etwas selbst kannst, stärken Selbstständigkeit und Können.",imp:"i45"},
   {id:"sinn",n:"Es trägt Bedeutung",x:"Manche Dinge halten Erinnerungen und Beziehungen fest. Wenige davon können viel geben.",imp:"i33"},
   {id:"gut",n:"Es tut mir gut",x:"Manches freut dich immer wieder, wenn du es siehst oder benutzt. Das ist ein guter Grund."}
 ];

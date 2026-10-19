@@ -38,7 +38,7 @@ body = (R("shell.html").replace("/*FONTS*/", fonts).replace("/*CSS*/", R("style.
 
 # Datenprüfung mit node: bricht den Build ab, wenn Verweise nicht stimmen
 chk = data + "\n" + R("../tests/datacheck.js")
-p = subprocess.run(["node", "-e", chk], capture_output=True, text=True)
+p = subprocess.run(["node", "-"], input=chk, capture_output=True, text=True)
 print(p.stdout.strip())
 if p.returncode != 0:
     print(p.stderr.strip()); sys.exit("Datenprüfung fehlgeschlagen")

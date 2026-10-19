@@ -8,7 +8,7 @@
   IMPULSE.forEach(i=>{
     if(!areas.has(i.cat)) err.push(i.id+": Bereich "+i.cat);
     if(!(i.ev>=0&&i.ev<=3)) err.push(i.id+": Belegstufe "+i.ev);
-    if(!["Experiment","Beobachtung","Übersicht","Idee"].includes(i.typ)) err.push(i.id+": Typ "+i.typ);
+    if(!["Experiment","Beobachtung","Übersicht","Idee","Empfehlung"].includes(i.typ)) err.push(i.id+": Typ "+i.typ);
     ["t","x","c","src","tip"].forEach(k=>{ if(!i[k]) err.push(i.id+": Feld "+k+" fehlt") });
     if(i.u && !/^https:\/\//.test(i.u)) err.push(i.id+": Link "+i.u);
     if(/"/.test(i.x+i.c+i.tip+(i.s||""))) warn.push(i.id+": gerade Anführungszeichen im Text");

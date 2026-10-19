@@ -20,7 +20,7 @@ const BEG=Object.fromEntries(BEGRIFFE.map(b=>[b.id,b]));
 /* ---------- Zustand ---------- */
 function fresh(){ return {gv:1,created:now(),settings:{theme:"system",vib:true,mode:null},seen:false,
   log:[],keep:[],wishes:[],box:[],ex:{},read:{},saved:{},quiz:{},lk:{},check:null,pr:[],mom:{},
-  hint:{day:"",key:"",later:"",off:{}},shown:null,rehDay:"",readRun:{day:"",n:0,t:0,warned:""},exported:0} }
+  hint:{day:"",key:"",later:"",off:{}},inflow:{},shown:null,rehDay:"",readRun:{day:"",n:0,t:0,warned:""},exported:0} }
 let S=fresh();
 function load(){
   try{ const raw=localStorage.getItem(KEY); if(raw){ const o=JSON.parse(raw); S=merge(fresh(),o) } }catch(e){}
@@ -224,6 +224,7 @@ function pickHint(){
   if(H.later===today) return null;
   if(H.day===today) return H.key&&!H.off[H.key]?hintDef(H.key):null;
   const d=new Date(now()), C=[];
+  const pm=prevMonth(); if(pm&&!askDue().length&&S.inflow[pm.k]==null&&!H.off["zufluss-"+pm.k]) C.push("zufluss-"+pm.k);
   const losToday=losE().filter(e=>dkey(e.ts)===today).length;
   const recentWish=S.wishes.some(w=>now()-w.ts<7*DAY);
   if(losToday>=3&&!recentWish) C.push("lizenz-"+today);
@@ -233,7 +234,12 @@ function pickHint(){
   const k=C.find(c=>!H.off[c]); if(!k) return null;
   H.day=today; H.key=k; save(); return hintDef(k);
 }
+const INF=[["0","Nichts"],["1","1 bis 3 Dinge"],["4","4 bis 10 Dinge"],["11","Mehr als 10"]];
+function prevMonth(){ const d=new Date(now()); const p=new Date(d.getFullYear(),d.getMonth()-1,1);
+  if(S.created>new Date(d.getFullYear(),d.getMonth(),1).getTime()-20*DAY) return null;
+  return {k:p.getFullYear()+"-"+String(p.getMonth()+1).padStart(2,"0"),n:p.toLocaleDateString("de-DE",{month:"long"})} }
 function hintDef(k){
+  if(k.startsWith("zufluss-")){ const pm=prevMonth(); if(!pm) return null; return {k,t:"Was kam im "+pm.n+" dazu?",x:"Zähl grob, was neu in deinen Besitz gekommen ist: Gekauftes, Geschenke, Gratisdinge. Verbrauchsgüter wie Essen zählen nicht. Die Antwort zeigt dir, wie viel hereinkommt, nicht nur, wie viel geht.",inf:pm.k} }
   if(k.startsWith("lizenz")) return {k,t:"Viel Platz gemacht",x:"Der größte Hebel ist, was gar nicht erst hereinkommt. Wenn du das nächste Mal etwas kaufen willst, parke es zuerst.",b:"Wunsch parken",a:"open",v:"wish"};
   if(k.startsWith("woche")){ const L=S.log.filter(e=>now()-e.ts<7*DAY), l=L.filter(e=>e.k==="los").length, w=L.filter(e=>e.k==="wunsch").length, t=L.filter(e=>e.k==="teil").length;
     const parts=[]; if(l) parts.push(l+" "+plural(l,"Eintrag","Einträge")+" losgelassen"); if(w) parts.push(w+" "+plural(w,"Wunsch","Wünsche")+" entschieden"); if(t) parts.push(t+"-mal statt neu");
@@ -242,7 +248,10 @@ function hintDef(k){
   if(k==="home") return {k,t:"Leg Lichtung auf den Home-Bildschirm",x:"Tipp in Safari auf Teilen und dann auf „Zum Home-Bildschirm“. Dann öffnet sich Lichtung wie eine App, und Safari löscht deine Daten nicht.",b:null};
   return null;
 }
-function hintHTML(h){ return `<section class="box" style="margin-top:14px" aria-label="Hinweis"><b>${esc(h.t)}</b><p class="small" style="margin:4px 0 8px">${esc(h.x)}</p>
+function hintHTML(h){ if(h.inf) return `<section class="box" style="margin-top:14px" aria-label="Frage zum Monat"><b>${esc(h.t)}</b><p class="small" style="margin:4px 0 10px">${esc(h.x)}</p>
+  <div class="chips">${INF.map(([v,n])=>`<button class="chip" data-a="inflow" data-v="${h.inf}" data-w="${v}">${n}</button>`).join("")}</div>
+  <div class="links"><button class="lnk" data-a="hint" data-v="off">Nicht beantworten</button></div></section>`;
+  return `<section class="box" style="margin-top:14px" aria-label="Hinweis"><b>${esc(h.t)}</b><p class="small" style="margin:4px 0 8px">${esc(h.x)}</p>
   <div class="links" style="margin-top:0">${h.b?`<button class="lnk" data-a="${h.a}" data-v="${h.v}">${esc(h.b)}</button>`:""}<button class="lnk" data-a="hint" data-v="off">Passt so</button><button class="lnk" data-a="hint" data-v="later">Später</button></div></section>` }
 
 /* ---------- Wissen ---------- */
@@ -291,6 +300,10 @@ function vWeg(){
     <button class="num" data-a="open" data-v="losstat"><b>${s.asked.length?s.missed.length+"<small> von </small>"+s.asked.length:"–"}</b><span>${s.asked.length?"nachgefragten Dingen vermisst":"Nach einem Monat fragt die App, ob du etwas vermisst"}</span></button>
     <button class="num" data-a="open" data-v="wishes"><b>${s.dec.length?s.lass+"<small> von </small>"+s.dec.length:waiting().length||"–"}</b><span>${s.dec.length?"entschiedenen Wünschen nicht gekauft":waiting().length?plural(waiting().length,"Wunsch wartet","Wünsche warten"):"Geparkte Wünsche erscheinen hier"}</span></button>
   </div>
+  ${(()=>{ const ks=Object.keys(S.inflow).sort().slice(-6); if(!ks.length) return "";
+    const lab={0:"nichts",1:"1 bis 3",4:"4 bis 10",11:"mehr als 10"};
+    return `<section class="sec"><div class="sec-h"><h2>Neu dazugekommen</h2><span class="meta">deine Schätzung</span></div><div class="list">${ks.map(k=>{ const [y,mo]=k.split("-"); const n=new Date(+y,+mo-1,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"}); const L=losE().filter(e=>dkey(e.ts).startsWith(k)), one=L.filter(e=>e.size===1).length, more=L.length-one;
+      return `<div class="row"><span class="t"><b style="font-weight:500">${esc(n)}</b><span>Losgelassen: ${one} ${plural(one,"Ding","Dinge")}${more?" und "+more+" "+plural(more,"Tüte oder Großes","Tüten oder Großes"):""}</span></span><span class="ui" style="font-weight:600">${lab[S.inflow[k]]} neu</span></div>` }).join("")}</div></section>` })()}
   <section class="sec"><div class="sec-h"><h2>Bewusst behalten</h2><span class="meta">${K.length} von ${MAXKEEP}</span></div>
   <div class="list">${K.length?K.map(k=>`<button class="row" data-a="open" data-v="keepview" data-w="${k.id}"><i class="dot ${k.cat}"></i><span class="t"><b>${esc(k.name)}</b><span>${esc(GRUND[k.why].n)}</span></span>${chev}</button>`).join(""):`<p class="empty">Noch nichts. Was du mit Grund behältst, steht als einzelner Baum in deiner Lichtung.</p>`}</div>
   <div class="links"><button class="lnk" data-a="open" data-v="keep">Etwas bewusst behalten</button></div></section>
@@ -454,7 +467,7 @@ function sheetHTML(){
   case "ev": return `${shTop("Wie Belege eingestuft werden")}
     <p>Nicht jeder Befund ist gleich sicher. Jeder Impuls bekommt deshalb eine von vier Stufen.</p>
     <div class="list">${EV.map((e,i)=>`<div class="row" style="align-items:flex-start"><span style="padding-top:5px">${evDots(i)}</span><span class="t"><b>${esc(e.n)}</b><span style="font-size:14.5px;color:var(--muted)">${esc(e.x)}</span></span></div>`).join("")}</div>
-    <p class="small" style="margin-top:14px">Dazu steht die Art des Befunds. Ein <b>Experiment</b> verändert gezielt etwas und vergleicht. Eine <b>Beobachtung</b> misst, was ohnehin passiert; sie zeigt Zusammenhänge, aber nicht sicher die Ursache. Eine <b>Übersicht</b> fasst viele Studien zusammen. Eine <b>Idee</b> ist eine Theorie oder ein Denkmodell.</p>
+    <p class="small" style="margin-top:14px">Dazu steht die Art des Befunds. Ein <b>Experiment</b> verändert gezielt etwas und vergleicht. Eine <b>Beobachtung</b> misst, was ohnehin passiert; sie zeigt Zusammenhänge, aber nicht sicher die Ursache. Eine <b>Übersicht</b> fasst viele Studien zusammen. Eine <b>Idee</b> ist eine Theorie oder ein Denkmodell. Eine <b>Empfehlung</b> stammt von einer Behörde oder Fachstelle.</p>
     <p class="small">Unter „Mythen“ stehen Zahlen, die oft zitiert werden, aber schlecht belegt sind.</p>`;
   case "quiz": return quizHTML();
   case "lk": return lkHTML();
@@ -565,8 +578,8 @@ function pruefResult(d){
   if(w.includes("kann")) why.push({t:"Dinge, mit denen du etwas selbst kannst, stärken Selbstständigkeit.",imp:KANN_IMP});
   return {k,n,x,why};
 }
-const GESCHENK={t:"Ein Geschenk hat seinen Zweck oft schon im Moment des Schenkens erfüllt. Behalten musst du es dafür nicht. Das ist ein Gedanke, kein Befund.",imp:null};
-const KANN_IMP="i17";
+const GESCHENK={t:"Ein Geschenk hat seinen Zweck oft schon im Moment des Schenkens erfüllt. Erste Studien mit gedachten Situationen deuten an: Schenkende sind weniger gekränkt, wenn ein Geschenk weitergeht, als Beschenkte glauben.",imp:"i46"};
+const KANN_IMP="i45";
 
 /* ---------- Impuls ---------- */
 function impHTML(){
@@ -596,8 +609,9 @@ function quizHTML(){
   if(!d.list.length) return shTop("Was stimmt?")+`<p class="empty">Noch keine Fragen.</p>`;
   if(d.i>=d.list.length) return `${shTop("Was stimmt?","Fertig")}<p class="lead">${d.score} von ${d.list.length} richtig.</p><p class="muted">${d.score===d.list.length?"Alles richtig.":"Falsch beantwortete Fragen kommen beim nächsten Mal wieder."}</p><div class="btns"><button class="btn" data-a="quiz-new">Neue Runde</button><button class="btn sec2" data-a="close">Schließen</button></div>`;
   const q=QUIZ.find(x=>x.id===d.list[d.i]), p=d.picked;
+  const ord=q.o.map((_,k)=>k).sort((a,b)=>hsh(q.id+"m"+a)-hsh(q.id+"m"+b));
   return `${shTop("Was stimmt?","Frage "+(d.i+1)+" von "+d.list.length)}${prog(d.i,d.list.length)}<h3 style="margin:6px 0 14px">${esc(q.q)}</h3>
-   <div class="opts">${q.o.map((o,k)=>`<button class="ans${p!=null&&k===q.r?" ok":""}${p===k&&k!==q.r?" no":""}${p===k?" on":""}" data-a="qans" data-v="${k}" ${p!=null?"disabled":""}>${p!=null&&k===q.r?"✓ ":p===k?"✕ ":""}${esc(o)}</button>`).join("")}</div>
+   <div class="opts">${ord.map(k=>[q.o[k],k]).map(([o,k])=>`<button class="ans${p!=null&&k===q.r?" ok":""}${p===k&&k!==q.r?" no":""}${p===k?" on":""}" data-a="qans" data-v="${k}" ${p!=null?"disabled":""}>${p!=null&&k===q.r?"✓ ":p===k?"✕ ":""}${esc(o)}</button>`).join("")}</div>
    ${p!=null?`<div class="box"><b>${p===q.r?"Richtig.":"Nicht ganz."}</b><p class="small" style="margin:4px 0 0">${esc(q.x)}</p>${q.imp&&IMP[q.imp]?`<button class="lnk" data-a="open" data-v="imp" data-w="${q.imp}">Zum Befund</button>`:""}</div><div class="btns"><button class="btn" data-a="qnext" data-autofocus>Weiter</button></div>`:""}`;
 }
 /* ---------- Begriffe mit Lernkasten ---------- */
@@ -816,6 +830,7 @@ const A={
   mode(el){ S.settings.mode=el.dataset.v; save(); if(SH) drawSheet(); else render(); toast(el.dataset.v==="school"?"Die Fassungen für die Schule sind aktiv.":"Die Fassungen für Erwachsene sind aktiv.") },
   theme(el){ S.settings.theme=el.dataset.v; save(); applyTheme(); render() },
   vib(){ S.settings.vib=S.settings.vib===false; save(); if(S.settings.vib) armHaptics(); else disarmHaptics(); render() },
+  inflow(el){ S.inflow[el.dataset.v]=+el.dataset.w; S.hint.key=""; save(); render(); toast("Gespeichert. Du siehst es unter „Dein Weg“.") },
   hint(el){ const k=S.hint.key; if(el.dataset.v==="off") S.hint.off[k]=true; else S.hint.later=dkey(); save(); render() },
   undo(){ const f=undoFn; undoFn=null; $("#toast").classList.remove("show"); if(SH&&SH.type==="moment") closeSheet(); if(f) f() },
   ics(el){ downloadICS(el.dataset.v,+el.dataset.w) },

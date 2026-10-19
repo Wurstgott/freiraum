@@ -176,6 +176,16 @@ with sync_playwright() as p:
     ok(not errs, "alter Stand: alle Reiter ohne Fehler")
     ctx.close()
 
+    # 12b. Monatsfrage nach Neuzugängen
+    ctx, pg, errs = new({"seen": True, "created": 1757000000000, "settings": {"theme": "system", "vib": True, "mode": None}}, t="2026-11-03T10:00:00")
+    ok(pg.locator('[data-a="inflow"]').count() == 4, "Monatsfrage erscheint Anfang November")
+    tap(pg, '[data-a="inflow"][data-w="4"]', 400)
+    ok(S(pg)["inflow"].get("2026-10") == 4, "Monatsantwort gespeichert")
+    tap(pg, '.tab[data-tab="weg"]')
+    ok("Neu dazugekommen" in pg.locator("#main").inner_text(), "Zufluss unter Dein Weg")
+    ok(not errs, "Monatsfrage ohne Fehler")
+    ctx.close()
+
     # 13. iPhone: Schalter in Tick-Elementen, nicht in Links
     ios = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
     ctx, pg, errs = new({"seen": True, "settings": {"theme": "system", "vib": True, "mode": None}}, ua=ios)
