@@ -2,7 +2,7 @@
 
 Eine helle Web-App, die beim Ausmisten hilft: Dinge gut weitergeben, Kaufwünsche warten lassen, bewusst behalten, kleine Aufgaben abhaken. Das Hauptbild ist ein Raum voller Kartons, der sich mit jedem losgelassenen Ding leert. Mit Wissen aus der Forschung, jede Aussage mit Quelle und Belegstufe. Kein Konto, kein Server, alles bleibt auf dem Gerät.
 
-Live: https://wurstgott.github.io/lichtung/
+Live: https://wurstgott.github.io/freiraum/
 
 ## Aufbau
 
