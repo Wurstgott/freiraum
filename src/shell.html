@@ -2,12 +2,12 @@
 /*CSS*/</style>
 <div id="app">
   <header class="top">
-    <button class="logo" id="logo" data-a="logo" aria-label="Zur Lichtung">
-      <svg viewBox="0 0 40 40" aria-hidden="true"><g class="lg-trees"><path d="M7 33V12M10 33V9M13 33V14M27 33V13M30 33V8M33 33V11"/></g><path class="lg-shaft" d="M18.6 12 16 33h8l-2.6-21z"/><path class="lg-floor" d="M14 33h12"/><circle class="lg-sun" cx="20" cy="9" r="2.8"/></svg>
+    <button class="logo" id="logo" data-a="logo" aria-label="Zum Raum">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><rect class="lg-bg" x="1" y="1" width="38" height="38" rx="11"/><rect class="lg-win" x="8" y="7" width="24" height="20" rx="1.5"/><g class="lg-glas"><rect x="10" y="9" width="8" height="5" rx=".5"/><rect x="22" y="9" width="8" height="5" rx=".5"/></g><path class="lg-bar" d="M19 7h2v20h-2zM8 15h24v2H8z"/><path class="lg-sun" d="M10 29h18l5 6H15z"/></svg>
     </button>
     <div class="brand">
-      <span class="wm" id="wm">Lichtung</span>
-      <span class="sub" id="sub">Platz für das, was bleibt</span>
+      <span class="wm" id="wm">Freiraum</span>
+      <span class="sub" id="sub">Mehr Luft, mehr Lieblingsdinge</span>
     </div>
     <button class="ibtn" data-a="share" data-v="app" aria-label="App teilen">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7.5h14V12"/></svg>
@@ -15,10 +15,10 @@
   </header>
   <main id="main" tabindex="-1"></main>
   <nav class="tabs" aria-label="Bereiche der App">
-    <button class="tab" data-tab="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V8M8 20V5M16 20V6M19 20V9M10 20h4M12 12v4"/></svg><span>Lichtung</span></button>
-    <button class="tab" data-tab="wissen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5c3-1 5.5-.6 8 1v13c-2.5-1.6-5-2-8-1zM20 5.5c-3-1-5.5-.6-8 1v13c2.5-1.6 5-2 8-1z"/></svg><span>Wissen</span></button>
-    <button class="tab" data-tab="ueben"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20v-7M12 13c0-3.5 2.5-5.5 6-5.5 0 3.5-2.5 5.5-6 5.5zM12 15.5c0-2.8-2-4.5-5-4.5 0 2.8 2 4.5 5 4.5zM8 20h8"/></svg><span>Üben</span></button>
-    <button class="tab" data-tab="weg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21c0-5 10-5 10-10S12 5 12 3"/><circle cx="12" cy="3" r=".6"/></svg><span>Dein Weg</span></button>
+    <button class="tab" data-tab="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M7 17h9l3 4H10z"/><rect x="5" y="3" width="14" height="12" rx="1.5"/><path d="M12 3v12M5 9h14"/></svg><span>Raum</span></button>
+    <button class="tab" data-tab="wissen"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 5.5C7 4.5 9.5 4.8 12 6.5v13c-2.5-1.7-5-2-8-1z"/><path d="M4 5.5C7 4.5 9.5 4.8 12 6.5c2.5-1.7 5-2 8-1v13c-3-1-5.5-.7-8 1-2.5-1.7-5-2-8-1z"/><path d="M12 6.5v13"/></svg><span>Wissen</span></button>
+    <button class="tab" data-tab="ueben"><svg viewBox="0 0 24 24" aria-hidden="true"><rect class="f" x="4" y="4" width="16" height="16" rx="4"/><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg><span>Üben</span></button>
+    <button class="tab" data-tab="weg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 16.8 8.8 14.2M11.5 13.6l1 .8M15.2 13.6l2.6-5.6"/><circle cx="5" cy="18" r="1.6"/><circle cx="10" cy="13" r="1.6"/><circle cx="14" cy="15" r="1.6"/><circle class="f" cx="19" cy="6" r="2.4"/><circle cx="19" cy="6" r="2.4"/></svg><span>Dein Weg</span></button>
     <i class="tabdot" aria-hidden="true"></i>
   </nav>
 </div>

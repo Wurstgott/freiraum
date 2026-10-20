@@ -1,4 +1,4 @@
-// Lichtung – Praxisinhalte: Übungen, Begriffe, Monatsthemen, Bestandsaufnahme
+// Freiraum – Praxisinhalte: Übungen, Begriffe, Monatsthemen, Bestandsaufnahme
 // Autor und Auftraggeber: Carlo Maximilian Engeländer. Alle Rechte vorbehalten.
 
 const UEBUNGEN=[
@@ -244,7 +244,7 @@ const BEGRIFFE=[
   bsp:"Jan gibt sein Erspartes nicht für eine neue Jacke aus, sondern für ein Wochenende Zelten mit seiner Schwester. Noch Jahre später erzählen beide davon.",
   imp:"i01" },
 { id:"b05", t:"Überhälter",
-  x:"Ein Wort aus der Forstsprache. Es meint einen Baum, den Förster beim Fällen oder Lichten eines Waldstücks bewusst stehen lassen. In dieser App steht das Wort für die wenigen Dinge, die du mit gutem Grund behältst.",
+  x:"Ein Wort aus der Forstsprache. Es meint einen Baum, den Förster beim Fällen oder Lichten eines Waldstücks bewusst stehen lassen. Übertragen passt es auf die wenigen Dinge, die du mit gutem Grund behältst.",
   bsp:"Im Wald wird eine Fläche gefällt. Eine alte, gesunde Eiche lassen die Förster mit Absicht allein stehen, damit sie Samen für den neuen Wald liefert." },
 { id:"b06", t:"Moralische Lizenz",
   x:"Nach einer guten Tat erlauben wir uns manchmal, danach weniger gut zu handeln. Die gute Tat fühlt sich an wie ein Guthaben. Wie stark dieser Effekt ist, ist nach neueren Wiederholungen umstritten.",

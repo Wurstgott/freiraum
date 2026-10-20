@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Setzt Lichtung zu einer einzigen HTML-Datei zusammen.
+"""Setzt Freiraum zu einer einzigen HTML-Datei zusammen.
 Ausgabe: ../repo/index.html (GitHub Pages, PWA) und ../dist/app.html (Artifact)."""
 import base64, datetime, json, os, re, subprocess, sys, zoneinfo
 
@@ -13,14 +13,13 @@ def face(fam, file, style="normal", weight="400"):
     return (f"@font-face{{font-family:'{fam}';src:url(data:font/woff;base64,{b}) format('woff');"
             f"font-style:{style};font-weight:{weight};font-display:swap}}")
 fonts = "\n".join([
-    face("Lora", "Lora-Variable.woff", "normal", "400 700"),
-    face("Lora", "Lora-Italic-Variable.woff", "italic", "400 700"),
+    face("Poppins", "Poppins-Medium.woff", "normal", "500"),
     face("Inter", "Inter-Regular.woff", "normal", "400"),
     face("Inter", "Inter-SemiBold.woff", "normal", "600"),
 ])
 
 # Inhalte: echte Dateien, fehlende Teile aus dem Platzhalter
-content = [f for f in ("wissen_a.js", "wissen_b.js", "praxis.js") if os.path.exists(f)]
+content = [f for f in ("wissen_a.js", "wissen_b.js", "praxis.js", "aufgaben.js") if os.path.exists(f)]
 data = R("kern.js") + "\n" + "\n".join(R(f) for f in content)
 stub = R("stub.js")
 blocks = re.split(r"\n(?=var [A-Z_]+=)", stub)
@@ -43,26 +42,26 @@ print(p.stdout.strip())
 if p.returncode != 0:
     print(p.stderr.strip()); sys.exit("Datenprüfung fehlgeschlagen")
 
-desc = "Weniger besitzen, besser behalten: Lichtung hilft Schritt für Schritt beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät."
+desc = "Weniger besitzen, besser behalten: Freiraum hilft Schritt für Schritt beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät."
 head = f"""<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Lichtung</title>
+<title>Freiraum</title>
 <meta name="description" content="{desc}">
 <meta name="author" content="Carlo Maximilian Engeländer">
 <meta name="copyright" content="© Carlo Maximilian Engeländer. Alle Rechte vorbehalten.">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#EDEFE7">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111A15">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2F4F2">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#222A42">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Lichtung">
+<meta name="apple-mobile-web-app-title" content="Freiraum">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta property="og:title" content="Lichtung">
+<meta property="og:title" content="Freiraum">
 <meta property="og:description" content="{desc}">
 <meta property="og:image" content="icon-512.png">
 <meta property="og:type" content="website">
@@ -76,8 +75,8 @@ ahead = re.sub(r'<link rel="(manifest|icon|apple-touch-icon)"[^>]*>\n', "", head
 ahead = re.sub(r'<meta property="og:image"[^>]*>\n', "", ahead)
 open("../dist/app.html", "w", encoding="utf-8").write(ahead + body + "\n</body>\n</html>\n")
 
-manifest = {"name": "Lichtung", "short_name": "Lichtung", "lang": "de", "start_url": "./", "scope": "./",
-            "display": "standalone", "background_color": "#EDEFE7", "theme_color": "#EDEFE7",
+manifest = {"name": "Freiraum", "short_name": "Freiraum", "lang": "de", "start_url": "./", "scope": "./",
+            "display": "standalone", "background_color": "#F2F4F2", "theme_color": "#F2F4F2",
             "description": desc,
             "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
                       {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},

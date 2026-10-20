@@ -1,6 +1,6 @@
-/* Lichtung – feste Kerndaten. ids ändern sich nie. */
-const APPNAME="Lichtung";
-const APPSUB="Platz für das, was bleibt";
+/* Freiraum – feste Kerndaten. ids ändern sich nie. */
+const APPNAME="Freiraum";
+const APPSUB="Mehr Luft, mehr Lieblingsdinge";
 
 const AREAS=[
   {id:"kl",n:"Kleidung",lang:"Kleidung, Schuhe, Taschen"},
@@ -13,16 +13,16 @@ const AREA=Object.fromEntries(AREAS.map(a=>[a.id,a]));
 
 /* Stufen: Name, Text und Bild sind deckungsgleich. Schwellen in „Weite“. */
 const STUFEN=[
-  {w:0,  n:"Dickicht",       x:"Der Wald steht dicht. Nur ein kleiner Lichtfleck erreicht den Boden."},
-  {w:1,  n:"Erste Lücke",    x:"Ein paar Bäume sind gegangen. Zwischen den Kronen öffnet sich eine Lücke."},
-  {w:5,  n:"Lichtschacht",   x:"Durch die Lücke fällt jetzt ein Lichtstrahl bis auf den Boden."},
-  {w:12, n:"Moosboden",      x:"Wo Licht hinkommt, wächst Moos. Der Boden der Lichtung wird grün."},
-  {w:24, n:"Farne",          x:"Am Rand der Lichtung breiten sich Farne aus."},
-  {w:44, n:"Baumstumpf",     x:"Ein alter Stumpf ist stehen geblieben. Er ist ein Platz zum Sitzen."},
-  {w:75, n:"Quelle",         x:"Eine kleine Quelle sammelt sich zu einem Tümpel. Der Himmel spiegelt sich darin."},
-  {w:115,n:"Wildblumen",     x:"Auf dem offenen Boden blühen Wildblumen in vielen Farben."},
-  {w:170,n:"Offener Himmel", x:"Über der Lichtung ist der Himmel weit. Man sieht Wolken."},
-  {w:250,n:"Weiter Blick",   x:"Am hinteren Rand öffnet sich der Wald. Man sieht bis zu den Hügeln."}
+  {w:0,  n:"Vollgestellt",   x:"Kartons, Kisten und Tüten stehen überall. Nur wenig Licht kommt durch das Fenster."},
+  {w:1,  n:"Erster Karton",  x:"Drei große Kartonstapel sind weg. Mitten im Raum wird es lichter."},
+  {w:5,  n:"Ein Stück Boden",x:"Vor dem Fenster ist ein Stück Boden frei. Man sieht die hellen Dielen."},
+  {w:12, n:"Fenster frei",   x:"Auf der Bank unter dem Fenster steht nichts mehr. Das Licht fällt bis auf den Boden."},
+  {w:24, n:"Freie Ecke",     x:"Der Boden in der linken Ecke ist frei. Auch an der Wand hängt weniger."},
+  {w:44, n:"Luft zum Atmen", x:"Mehr als die Hälfte der Kisten ist fort. Zwischen den Dingen ist überall Platz."},
+  {w:75, n:"Sonnenfleck",    x:"Der Lichtfleck vom Fenster ist ganz frei. Er leuchtet kräftig auf den Dielen."},
+  {w:115,n:"Klare Flächen",  x:"Die Bank und das Wandbord sind leer, bis auf das, was du behältst."},
+  {w:170,n:"Weiter Raum",    x:"Die Wände und das Regal sind leer. Auf dem Boden steht keine Kiste mehr."},
+  {w:250,n:"Lieblingsraum",  x:"Der Raum ist leer und hell. Auf Bank, Bord und Regal steht nur noch, was du gern hast und bewusst behältst."}
 ];
 
 const SIZES=[
@@ -69,7 +69,7 @@ const STATIONEN={
   std:[
     {n:"Hingeschaut",x:"Du hast den Bereich in der Bestandsaufnahme eingeschätzt oder ein Ding daraus geprüft."},
     {n:"Losgelassen",x:"Du hast drei Dinge oder Tüten aus diesem Bereich weitergegeben. Bei Erinnerungen zählt auch jede bewusste Entscheidung, ob ein Stück bleibt."},
-    {n:"Bewusst behalten",x:"Ein Ding aus diesem Bereich steht mit Grund in deiner Lichtung."},
+    {n:"Bewusst behalten",x:"Ein Ding aus diesem Bereich steht mit Grund in deinem Raum."},
     {n:"Geübt",x:"Du hast eine Übung aus diesem Bereich durchgezogen."},
     {n:"Nachgehalten",x:"Du hast eine Nachfrage beantwortet oder eine Vielleicht-Kiste aufgelöst."}
   ],

@@ -1,4 +1,4 @@
-"""Abläufe von Lichtung im iPhone-Profil durchspielen: python3 test_flows.py"""
+"""Abläufe von Freiraum im iPhone-Profil durchspielen: python3 test_flows.py"""
 import json, sys
 from playwright.sync_api import sync_playwright
 URL = "http://127.0.0.1:8765/index.html"
@@ -54,9 +54,14 @@ with sync_playwright() as p:
     # 2. Loslassen mit Rückgängig
     tap(pg, '.tile[data-v="los"]')
     ok(pg.locator('.btn[data-a="do-los"]').is_disabled(), "Eintragen erst nach Auswahl")
-    tap(pg, '#sheet .chip[data-v="kl"]'); tap(pg, '.opt[data-v="3"]'); tap(pg, '.chip[data-v="spe"]')
-    tap(pg, '.btn[data-a="do-los"]', 500)
+    tap(pg, '#sheet .chip[data-v="kl"]'); tap(pg, '#sheet .chip[data-v="kl"]')
+    ok(pg.evaluate("SH.d.cat") == "kl", "zweites Antippen hebt den Bereich nicht auf")
+    tap(pg, '.opt[data-v="3"]'); tap(pg, '.chip[data-v="spe"]')
+    pg.evaluate("document.querySelector('#sheet-in').scrollTop=9999"); pg.evaluate("scrollTo(0,600)")
+    tap(pg, '.btn[data-a="do-los"]', 1500)
     ok(W(pg) == 3, "Weite 3 nach Tüte")
+    ok(pg.evaluate("scrollY") == 0, "nach dem Eintrag zurück beim Bild: " + str(pg.evaluate("scrollY")))
+    ok(pg.locator("#toast.up").count() == 1, "Meldung steht oben")
     ok(pg.locator("#toast.show").count() == 1, "Meldung sichtbar")
     tap(pg, '#toast button[data-a="undo"]', 400)
     ok(W(pg) == 0, "Rückgängig setzt Weite zurück")
@@ -65,13 +70,13 @@ with sync_playwright() as p:
         tap(pg, '.tile[data-v="los"]'); tap(pg, '#sheet .chip[data-v="wo"]'); tap(pg, '.opt[data-v="1"]'); tap(pg, '.chip[data-v="ver"]'); tap(pg, '.btn[data-a="do-los"]', 300)
     ok(W(pg) == 5, "kleine Dinge höchstens fünfmal am Tag, Weite=" + str(W(pg)))
 
-    # 3. Behalten erscheint als Baum
+    # 3. Behalten erscheint als Ding im Raum
     tap(pg, '.tile[data-v="keep"]'); pg.fill("#f-name", "Akkuschrauber"); tap(pg, '#sheet .chip[data-v="wo"]'); tap(pg, '.opt[data-v="kann"]'); tap(pg, '.btn[data-a="do-keep"]', 900)
-    ok(pg.locator(".tree-hit").count() == 1, "Tippfläche für den behaltenen Baum")
+    ok(pg.locator(".ding-hit").count() == 1, "Tippfläche für das behaltene Ding")
     pg.wait_for_timeout(2500)
     if pg.locator("#layer:not([hidden])").count(): tap(pg, '#sheet .btn[data-a="close"]', 500)
-    tap(pg, ".tree-hit", 500)
-    ok("Akkuschrauber" in pg.locator("#sheet-in").inner_text(), "Baum öffnet das Ding")
+    tap(pg, ".ding-hit", 500)
+    ok("Akkuschrauber" in pg.locator("#sheet-in").inner_text(), "Tippfläche öffnet das Ding")
     print("hist", pg.evaluate("[history.length, JSON.stringify(history.state), !!SH]"))
     pg.go_back(); pg.wait_for_timeout(600)
     print("nach back", pg.evaluate("[history.length, JSON.stringify(history.state), !!SH]"))
@@ -174,6 +179,23 @@ with sync_playwright() as p:
     pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
     for t in ["wissen", "ueben", "weg", "home"]: tap(pg, f'.tab[data-tab="{t}"]', 250)
     ok(not errs, "alter Stand: alle Reiter ohne Fehler")
+    ctx.close()
+
+    # 12a. Kleine Aufgaben
+    ctx, pg, errs = new({"seen": True, "settings": {"theme": "system", "vib": True, "mode": None}})
+    n = pg.locator(".aufg").count()
+    ok(n == 6, "sechs Aufgaben-Felder auf der Startseite: " + str(n))
+    once = pg.evaluate("AUFGABEN.find(a=>a.art==='einmal'&&document.querySelector('.aufg[data-v=\"'+a.id+'\"]')).id")
+    w0 = W(pg); tap(pg, f'.aufg[data-v="{once}"]', 400)
+    ok(W(pg) > w0, "einmalige Aufgabe bringt Weite")
+    w1 = W(pg); pg.evaluate(f"A.aufg({{dataset:{{v:'{once}'}}}})"); ok(W(pg) == w1, "einmalige Aufgabe zählt nur einmal")
+    pg.evaluate("for(let i=0;i<12;i++) S.log.push({id:'z'+i,k:'aufg',ts:now(),aid:AUFGABEN.filter(a=>a.art==='oft'&&!a.zu)[i].id,cat:'wo'});save()")
+    ok(pg.evaluate("tally().parts.aufg") <= 6 + 3, "Tagesdeckel für Aufgaben")
+    pg.evaluate("openSheet('aufgaben')"); pg.wait_for_timeout(300)
+    pre = pg.evaluate("AUFGABEN.find(a=>a.art==='einmal'&&!aufDone(a.id)).id")
+    w2 = W(pg); tap(pg, f'[data-a="aufg-pre"][data-v="{pre}"]', 300)
+    ok(W(pg) == w2 and pg.evaluate(f"aufDone('{pre}')"), "„Hatte ich schon“ zählt keine Weite")
+    ok(not errs, "Aufgaben ohne Fehler: " + "; ".join(errs[:2]))
     ctx.close()
 
     # 12b. Monatsfrage nach Neuzugängen

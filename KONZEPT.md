@@ -1,10 +1,10 @@
-# Lichtung – Konzept (Arbeitstitel)
+# Freiraum – Konzept
 
 Autor und Auftraggeber: Carlo Maximilian Engeländer. Alle Rechte vorbehalten.
 
 ## Kernidee
 
-Eine Lichtung entsteht, wenn im dichten Wald Platz frei wird. Dann fällt Licht auf den Boden, und was dort bleibt, kann wachsen. Die App überträgt das auf Besitz: Wer Dinge gut weitergibt und weniger Neues hereinlässt, schafft Platz. Die wenigen Dinge, die man bewusst behält, stehen dann im Licht wie einzelne Bäume, die ein Förster beim Lichten stehen lässt (in der Forstsprache heißen sie „Überhälter“).
+Das Hauptbild ist ein Raum. Am Anfang ist er mit Kartons, Kisten und Tüten vollgestellt. Wer Dinge gut weitergibt und weniger Neues hereinlässt, schafft Platz: Der Raum wird leerer und heller, und Licht fällt auf freie Dielen. So entsteht Freiraum, im Zimmer und im Kopf. Die wenigen Dinge, die man bewusst behält, bekommen einen festen Platz auf Bank, Bord und Regal.
 
 Die App ist nicht gegen Besitz. Sie fragt, welcher Besitz einem dient. Werkzeuge, die selbstständig machen, Dinge, die man oft benutzt, und Dinge mit echter Bedeutung bekommen einen Ehrenplatz. Der Wissensteil erklärt mit Quellen, warum Loslassen schwerfällt und wo Besitz sinnvoll ist.
 
@@ -20,7 +20,7 @@ Zielgruppe: Erwachsene und Jugendliche ab etwa 14 Jahren. Alle Texte müssen fü
 
 ## Fünf Bereiche
 
-| id | Name | Farbe (Waldboden) |
+| id | Name | Farbe |
 |---|---|---|
 | kl | Kleidung | Heidekraut |
 | wo | Wohnen (Küche, Möbel, Geräte, Werkzeug, Hobby) | Rinde |
@@ -30,9 +30,9 @@ Zielgruppe: Erwachsene und Jugendliche ab etwa 14 Jahren. Alle Texte müssen fü
 
 ## Die vier Handlungen
 
-1. **Loslassen**: ein Ding oder eine Tüte weitergeben (verschenkt, gespendet, verkauft, verliehen, recycelt, entsorgt). Macht die Lichtung weiter. Nach 30 Tagen fragt die App einmal: „Hast du es vermisst?“ So sammelt man eigene Belege.
-2. **Behalten mit Grund**: ein Ding bewusst behalten, mit einem von vier Gründen (oft benutzt, macht mich fähig, trägt Bedeutung, tut mir gut). Es steht dann als einzelner Baum in der Lichtung. Höchstens zwölf. Nach 90 und 365 Tagen: „Stimmt der Grund noch?“
-3. **Wunsch parken**: einen Kaufwunsch notieren und 7, 30 oder 90 Tage warten. Er wächst als Keimling am Waldrand. Danach entscheidet man: lassen, leihen oder gebraucht, bewusst kaufen, weiter warten. Verblasste Wünsche werden zu Lichtpunkten.
+1. **Loslassen**: ein Ding oder eine Tüte weitergeben (verschenkt, gespendet, verkauft, verliehen, recycelt, entsorgt). Macht den Raum freier. Nach 30 Tagen fragt die App einmal: „Hast du es vermisst?“ So sammelt man eigene Belege.
+2. **Behalten mit Grund**: ein Ding bewusst behalten, mit einem von vier Gründen (oft benutzt, macht mich fähig, trägt Bedeutung, tut mir gut). Es bekommt dann einen festen Platz im Raum. Höchstens zwölf. Nach 90 und 365 Tagen: „Stimmt der Grund noch?“
+3. **Wunsch parken**: einen Kaufwunsch notieren und 7, 30 oder 90 Tage warten. Er wartet als gestrichelter Platzhalter vor der Tür. Danach entscheidet man: lassen, leihen oder gebraucht, bewusst kaufen, weiter warten. Verblasste Wünsche werden zu Lichtpunkten.
 4. **Vielleicht-Kiste**: Dinge, bei denen man unsicher ist, kommen für 30 Tage in eine Kiste. Was man nicht herausgeholt hat, kann man danach leichter gehen lassen.
 
 Dazu: **Ein Ding prüfen** (geführte Entscheidungshilfe mit fünf Fragen), **Übungen** (mehrtägige Experimente mit Wenn-dann-Plan), **Wissen** (Impulse mit Quellen und Belegstufe, Quiz, Begriffe), **Bestandsaufnahme** (zehn Fragen, ergibt die drei wichtigsten Bereiche).

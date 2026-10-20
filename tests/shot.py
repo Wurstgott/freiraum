@@ -3,7 +3,7 @@ Aktionen: tab:wissen  click:<css>  wait:<ms>  full  time:2026-10-19T10:00"""
 import json, sys, os
 from playwright.sync_api import sync_playwright
 URL = os.environ.get("URL", "http://127.0.0.1:8765/index.html")
-OUT = "/home/claude/lichtung/shots"
+OUT = os.environ.get("SHOTS","/home/claude/lichtung/shots")
 name = sys.argv[1]; theme = sys.argv[2] if len(sys.argv) > 2 else "light"
 state = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] != "-" else None
 acts = sys.argv[4:]

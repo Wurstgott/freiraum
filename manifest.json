@@ -1,13 +1,13 @@
 {
- "name": "Lichtung",
- "short_name": "Lichtung",
+ "name": "Freiraum",
+ "short_name": "Freiraum",
  "lang": "de",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
- "background_color": "#EDEFE7",
- "theme_color": "#EDEFE7",
- "description": "Weniger besitzen, besser behalten: Lichtung hilft Schritt für Schritt beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät.",
+ "background_color": "#F2F4F2",
+ "theme_color": "#F2F4F2",
+ "description": "Weniger besitzen, besser behalten: Freiraum hilft Schritt für Schritt beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät.",
  "icons": [
   {
    "src": "icon-192.png",

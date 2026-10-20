@@ -21,6 +21,7 @@
   if(MONATE.length!==12) err.push("MONATE: "+MONATE.length+" statt 12");
   MONATE.forEach((m,i)=>{ if(m.u&&!has(m.u,"u")) warn.push("Monat "+(i+1)+": Übung "+m.u+" fehlt") });
   CHECK.forEach(c=>{ if(!areas.has(c.cat)||!c.o||c.o.length!==4) err.push(c.id+": Bestandsaufnahme") });
+  AUFGABEN.forEach(a=>{ if(!areas.has(a.cat)||!["oft","einmal"].includes(a.art)||!(a.w>=1&&a.w<=5)||!a.t||!a.x) err.push(a.id+": Aufgabe"); if(a.imp&&!has(a.imp,"i")) err.push(a.id+": Verweis "+a.imp); if(ids.has(a.id)) err.push("doppelte id "+a.id) });
   GRUENDE.forEach(g=>{ if(g.imp&&!has(g.imp,"i")) warn.push("Grund "+g.id+": Verweis "+g.imp+" fehlt") });
   console.log("Daten: "+IMPULSE.length+" Impulse, "+QUIZ.length+" Quiz, "+UEBUNGEN.length+" Übungen, "+BEGRIFFE.length+" Begriffe");
   if(warn.length) console.log("Hinweise:\n  "+warn.join("\n  "));

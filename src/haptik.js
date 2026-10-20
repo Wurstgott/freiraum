@@ -4,10 +4,11 @@ const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* Familien: Aktion, Auswahl, Schalter, Logo. Navigation tickt nicht. */
 const FAM_ACT=".btn,.tile,.card[data-a],.act";
 const FAM_SEL=".chip,.opt,.scale>button,.ans";
+const FAM_TASK=".aufg";
 const FAM_TOG=".switch";
 const FAM_LOGO="#logo";
-const HAPSEL=[FAM_ACT,FAM_SEL,FAM_TOG,FAM_LOGO].join(",");
-const TAPSEL=HAPSEL+",.tab,.row,.lnk,summary,.chipx,.tree-hit";
+const HAPSEL=[FAM_ACT,FAM_SEL,FAM_TOG,FAM_LOGO,FAM_TASK].join(",");
+const TAPSEL=HAPSEL+",.tab,.row,.lnk,summary,.chipx,.ding-hit";
 const VIB={sel:10,act:12,tog:10,logo:12,ok:[10,60,14],err:[24,60,24]};
 let tapKind=null;
 function vibOn(){ return !S||!S.settings||S.settings.vib!==false }
