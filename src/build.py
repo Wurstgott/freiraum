@@ -13,7 +13,7 @@ def face(fam, file, style="normal", weight="400"):
     return (f"@font-face{{font-family:'{fam}';src:url(data:font/woff;base64,{b}) format('woff');"
             f"font-style:{style};font-weight:{weight};font-display:swap}}")
 fonts = "\n".join([
-    face("Poppins", "Poppins-Medium.woff", "normal", "500"),
+    face("TeX Gyre Schola", "Schola-Bold.woff", "normal", "700"),
     face("Inter", "Inter-Regular.woff", "normal", "400"),
     face("Inter", "Inter-SemiBold.woff", "normal", "600"),
 ])
@@ -42,18 +42,18 @@ print(p.stdout.strip())
 if p.returncode != 0:
     print(p.stderr.strip()); sys.exit("Datenprüfung fehlgeschlagen")
 
-desc = "Weniger besitzen, besser behalten: Freiraum hilft Schritt für Schritt beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät."
+desc = "Entscheiden, was bleibt: Freiraum hilft Stück für Stück beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät."
 head = f"""<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Freiraum</title>
+<title>Freiraum – Entscheiden, was bleibt</title>
 <meta name="description" content="{desc}">
 <meta name="author" content="Carlo Maximilian Engeländer">
 <meta name="copyright" content="© Carlo Maximilian Engeländer. Alle Rechte vorbehalten.">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2F4F2">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#222A42">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F4EF">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#24201F">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -76,11 +76,11 @@ ahead = re.sub(r'<meta property="og:image"[^>]*>\n', "", ahead)
 open("../dist/app.html", "w", encoding="utf-8").write(ahead + body + "\n</body>\n</html>\n")
 
 manifest = {"name": "Freiraum", "short_name": "Freiraum", "lang": "de", "start_url": "./", "scope": "./",
-            "display": "standalone", "background_color": "#F2F4F2", "theme_color": "#F2F4F2",
+            "display": "standalone", "background_color": "#F6F4EF", "theme_color": "#F6F4EF",
             "description": desc,
             "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
                       {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
-                      {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}
+                      {"src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}
 open(OUT + "/manifest.json", "w", encoding="utf-8").write(json.dumps(manifest, ensure_ascii=False, indent=1))
 open(OUT + "/sw.js", "w", encoding="utf-8").write(R("sw.js").replace("__BUILD__", stamp))
 size = os.path.getsize(OUT + "/index.html")

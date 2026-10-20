@@ -21,51 +21,74 @@ const AUF=Object.fromEntries(AUFGABEN.map(a=>[a.id,a]));
 const AUFCAP=6;
 
 /* ---------- Zustand ---------- */
-function fresh(){ return {gv:1,created:now(),settings:{theme:"system",vib:true,mode:null},seen:false,
+function fresh(){ return {gv:2,created:now(),settings:{theme:"system",vib:true,mode:null},seen:false,
   log:[],keep:[],wishes:[],box:[],ex:{},read:{},saved:{},quiz:{},lk:{},check:null,pr:[],mom:{},
   hint:{day:"",key:"",later:"",off:{}},inflow:{},pre:{},shown:null,rehDay:"",readRun:{day:"",n:0,t:0,warned:""},exported:0} }
 let S=fresh();
 function load(){
-  try{ const raw=localStorage.getItem(KEY); if(raw){ const o=JSON.parse(raw); S=merge(fresh(),o) } }catch(e){}
+  try{ const raw=localStorage.getItem(KEY); if(raw){ const o=JSON.parse(raw); S=merge(fresh(),o); S.gv=o.gv||1 } }catch(e){}
   migrate();
 }
 function merge(a,b){ for(const k in b){ if(b[k]&&typeof b[k]==="object"&&!Array.isArray(b[k])&&a[k]&&typeof a[k]==="object"&&!Array.isArray(a[k])) a[k]=merge(a[k],b[k]); else a[k]=b[k] } return a }
-function migrate(){ /* gv 1 ist die erste Fassung. Spätere Fassungen rechnen hier um, ohne dass etwas verloren geht. */ if(!S.gv) S.gv=1 }
+/* Fassungen des Speicherstands. gv 1: Einheit „Weite“, Schwellen 0/1/5/12/…, Tagesdeckel 12.
+   gv 2: Einheit „Handbreit“, langsamere Schwellen. Wer schon eine Stufe erreicht hatte, behält sie
+   als Untergrenze (S.stFloor), bis die neue Rechnung sie einholt. Es wird nie zurückgestuft. */
+const STUFEN_GV1=[0,1,5,12,24,44,75,115,170,250];
+function migrate(){
+  if(!S.gv) S.gv=1;
+  if(S.gv<2){
+    if(S.log&&S.log.length){ const W1=tally(12).W; let s=0; STUFEN_GV1.forEach((w,i)=>{ if(W1>=w) s=i }); S.stFloor=Math.max(S.stFloor||0,s) }
+    S.gv=2;
+  }
+}
 function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(S)) }catch(e){} }
 function save(){ persist() }
 const school=()=>S.settings.mode==="school";
 
-/* ---------- Weite: Platz, der entstanden ist ----------
-   Regeln: Größe zählt (1, 3, 5). Einzelne kleine Dinge zählen höchstens fünfmal am Tag.
-   Statt neu kaufen: 3, höchstens zweimal am Tag. Ein Wunsch, der seine Wartezeit bekommt: 1.
-   Ein Wunsch, den man lässt, leiht oder gebraucht holt: 3. Eine gelebte Übung: 2 bis 4. */
-const LOSCAP=12;
-function tally(){
+/* ---------- Handbreit: Platz, der entstanden ist ----------
+   Regeln: Größe zählt (Ding 1, Tüte 3, Karton 6, Möbel 10; alte Einträge „Etwas Großes“ 5).
+   Recyceltes und Entsorgtes zählt halb. Einzelne Dinge zählen höchstens fünfmal am Tag,
+   alles Losgelassene zusammen höchstens LOSCAP am Tag (ein Möbel und ein Karton).
+   Statt neu: 3, gebraucht gekauft 1, höchstens zweimal am Tag. Ein Wunsch, der seine volle
+   Wartezeit bekommt: 2, egal wie man danach entscheidet; gelassen, geliehen oder gebraucht: +2. Übung: 2 bis 4. */
+const LOSCAP=16;
+function tally(losCap){ const LC=losCap||LOSCAP;
   const parts={los:0,teil:0,wunsch:0,ueb:0,aufg:0}, cap={}, uebLast={}, aufOnce={};
   for(const e of S.log){
     const d=dkey(e.ts); let p=0;
     if(e.k==="los"){ let v=e.size;
       if(e.size===1){ cap["s"+d]=(cap["s"+d]||0)+1; if(cap["s"+d]>5) v=0 }
       if(e.weg==="mue"||e.weg==="rec") v=Math.ceil(v/2);
-      const used=cap["l"+d]||0; p=Math.max(0,Math.min(v,LOSCAP-used)); cap["l"+d]=used+p }
+      const used=cap["l"+d]||0; p=Math.max(0,Math.min(v,LC-used)); cap["l"+d]=used+p }
     else if(e.k==="teil"){ cap["t"+d]=(cap["t"+d]||0)+1; p=cap["t"+d]<=2?(e.how==="gebr"?1:3):0 }
     else if(e.k==="aufg"){ const a=AUF[e.aid]; if(a&&!S.pre[e.aid]){ const key=a.art==="einmal"?"once"+e.aid:"day"+e.aid+d;
         if(!aufOnce[key]){ aufOnce[key]=1;
           if(a.zu==="teil"){ cap["t"+d]=(cap["t"+d]||0)+1; p=cap["t"+d]<=2?a.w:0 }
           else { const used=cap["a"+d]||0; p=Math.max(0,Math.min(a.w,AUFCAP-used)); cap["a"+d]=used+p } } } }
-    else if(e.k==="wunsch"){ if((e.dec==="lass"||e.dec==="leih")&&e.waited){ cap["w"+d]=(cap["w"+d]||0)+1; p=cap["w"+d]<=2?4:0 } }
+    else if(e.k==="wunsch"){ if(e.waited&&e.dec!=="mehr"){ cap["w"+d]=(cap["w"+d]||0)+1; p=cap["w"+d]<=2?2+(e.dec==="lass"||e.dec==="leih"?2:0):0 } }
     else if(e.k==="ueb"){ const l=uebLast[e.uid]; p=(l==null||e.ts-l>=60*DAY)?(e.p||0):0; if(p) uebLast[e.uid]=e.ts }
     e._p=p; if(parts[e.k]!=null) parts[e.k]+=p;
   }
   return {W:parts.los+parts.teil+parts.wunsch+parts.ueb+parts.aufg,parts};
 }
-const weite=()=>tally().W;
-function stageOf(W){ let s=0; STUFEN.forEach((x,i)=>{ if(W>=x.w) s=i }); return s }
+const weite=()=>tally().W;            // Handbreit gesamt (Name aus der ersten Fassung)
+const handbreit=weite;
+function rawStage(W){ let s=0; STUFEN.forEach((x,i)=>{ if(W>=x.w) s=i }); return s }
+function stageOf(W){ return Math.max(rawStage(W),Math.min(9,S.stFloor||0)) }
+const sizeName=v=>(SIZES.find(s=>s.v===v)||{}).n||SIZE_ALT[v]||"Etwas";
+const hb=n=>n+"\u00a0Handbreit";
+/* Was ein Loslassen-Eintrag jetzt wirklich bringt (mit Halbierung und Tagesgrenzen) */
+function losGain(size,weg){ const w0=tally().W; S.log.push({id:"_probe",k:"los",ts:now(),size,weg,cat:"wo"}); const w1=tally().W; S.log.pop(); return w1-w0 }
 function rOf(W){ return 0.14+0.78*Math.pow(Math.min(W,300)/300,0.4) }
 
 /* ---------- Abgeleitete Listen ---------- */
 const losE=()=>S.log.filter(e=>e.k==="los");
 const pathN=()=>S.log.filter(e=>e.k==="teil"||(e.k==="aufg"&&AUF[e.aid]&&AUF[e.aid].zu==="teil")).length;
+/* Taschen an der Tür: Weitergegebenes für jemanden (30 Tage, mit Namen) und „Statt neu“ (ohne Namen) */
+function bagList(){
+  const named=losE().filter(e=>e.who&&WEG[e.weg]&&WEG[e.weg].g&&now()-e.ts<30*DAY).sort((a,b)=>b.ts-a.ts).map(e=>({n:e.who}));
+  return [...named,...Array.from({length:pathN()},()=>({n:""}))];
+}
 const aufDone=id=>S.log.some(e=>e.k==="aufg"&&e.aid===id)||!!S.pre[id];
 const aufToday=id=>S.log.some(e=>e.k==="aufg"&&e.aid===id&&dkey(e.ts)===dkey());
 const aufCount=id=>S.log.filter(e=>e.k==="aufg"&&e.aid===id).length;
@@ -146,7 +169,7 @@ function render(){
   if(top) scrollTo({top:0,behavior:RM()?"auto":"smooth"});
   else if(keep===TAB) scrollTo(0,y);
 }
-/* Nach einem Eintrag mit Weite: zurück zum Bild, dort spielt die Überblendung */
+/* Nach einem Eintrag mit Handbreit: zurück zum Bild, dort spielt die Überblendung */
 let goTop=false, FADE_DELAY=250;
 function moveDot(){ const t=document.querySelector('.tab[aria-current="page"]'), d=$(".tabdot"); if(!t||!d) return;
   const r=t.getBoundingClientRect(), n=$(".tabs").getBoundingClientRect(); d.style.transform=`translateX(${r.left-n.left+r.width/2-2.5}px)` }
@@ -156,97 +179,117 @@ function disarmTimers(){ timers.forEach(clearTimeout); timers=[] }
 function areaChips(sel,act,opt){ opt=opt||{};
   return `<div class="chips" role="group" aria-label="Bereich">${AREAS.map(a=>`<button class="chip${sel===a.id?" on":""}" aria-pressed="${sel===a.id}" data-a="${act}" data-v="${a.id}"><i class="dot ${a.id}"></i>${esc(a.n)}</button>`).join("")}</div>` }
 const SIZEICO={
-  1:`<svg viewBox="0 0 40 30" aria-hidden="true"><rect x="15" y="12" width="11" height="15" rx="2" fill="var(--box)"/></svg>`,
-  3:`<svg viewBox="0 0 40 30" aria-hidden="true"><rect x="7" y="9" width="26" height="18" rx="2" fill="var(--box)"/><rect x="18" y="9" width="4" height="9" fill="var(--box-l)"/></svg>`,
-  5:`<svg viewBox="0 0 40 30" aria-hidden="true"><rect x="3" y="4" width="34" height="18" rx="2" fill="var(--box)"/><rect x="6" y="22" width="4" height="6" fill="var(--box)"/><rect x="30" y="22" width="4" height="6" fill="var(--box)"/></svg>`};
+  1:`<svg viewBox="0 0 30 24" aria-hidden="true"><rect x="10" y="8" width="10" height="14" rx="1.5" fill="currentColor"/></svg>`,
+  3:`<svg viewBox="0 0 30 24" aria-hidden="true"><path d="M11 9l4-5 4 5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8" y="8" width="14" height="14" rx="2" fill="currentColor"/></svg>`,
+  6:`<svg viewBox="0 0 30 24" aria-hidden="true"><rect x="5" y="7" width="20" height="15" rx="1.5" fill="currentColor"/><rect x="13.5" y="7" width="3" height="7" fill="var(--surface)"/></svg>`,
+  10:`<svg viewBox="0 0 30 24" aria-hidden="true"><rect x="3" y="6" width="24" height="4" rx="1" fill="currentColor"/><rect x="5" y="10" width="3" height="12" fill="currentColor"/><rect x="22" y="10" width="3" height="12" fill="currentColor"/></svg>`};
+const WEGICO={
+  ver:`<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M12 9v11M4 13h16M12 9c-2-4-6-3-5-1s5 1 5 1 4 1 5-1-3-3-5 1"/></svg>`,
+  vk:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l8-8h7v7l-8 8z"/><circle cx="15.5" cy="8.5" r="1.3"/></svg>`,
+  spe:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10l1.5-5h9L18 10M5 10h14v10H5z"/><path d="M9.5 14h5"/></svg>`,
+  rec:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l3-3 3 3M10 4v8M17 17l-3 3-3-3M14 20v-8M4 15l2.5-4M20 9l-2.5 4"/></svg>`,
+  mue:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4.5h6V7M7 7l1 13h8l1-13"/></svg>`};
+const MARK=`<svg class="mark" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="11" width="12" height="2" rx="1" fill="currentColor"/><rect x="3" y="3" width="3" height="8" rx=".8" fill="currentColor"/><rect x="8" y="3.4" width="2.8" height="7.6" rx=".8" fill="currentColor" transform="rotate(-24 8 11)"/></svg>`;
 const evDots=n=>`<span class="ev" aria-label="Belegstufe: ${EV[n].n}">${[0,1,2].map(i=>`<i class="${i<n?"on":""}"></i>`).join("")}</span>`;
 const chev=`<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg>`;
 const ICON={
-  los:`<svg class="fx" viewBox="0 0 44 44" aria-hidden="true"><rect width="44" height="44" rx="12" fill="var(--bg)"/><path d="M11 19h22v15H11z" fill="var(--box)"/><path d="M11 19l4-6h14l4 6" fill="var(--box-l)"/><rect x="19.5" y="19" width="5" height="8" fill="var(--wood)"/></svg>`,
-  keep:`<svg class="fx" viewBox="0 0 44 44" aria-hidden="true"><rect width="44" height="44" rx="12" fill="var(--sun-soft)"/><path d="M20 9h4v6c6 2 6 15 3 18H17c-3-3-3-16 3-18z" fill="var(--c-er)"/><rect x="10" y="33" width="24" height="3" rx="1.5" fill="var(--wood)"/></svg>`,
-  wish:`<svg class="fx" viewBox="0 0 44 44" aria-hidden="true"><rect width="44" height="44" rx="12" fill="var(--bg)"/><rect x="13" y="25" width="18" height="8" rx="2" fill="var(--c-pa)" opacity=".35"/><rect x="12" y="14" width="20" height="20" rx="4" fill="none" stroke="var(--c-pa)" stroke-width="2" stroke-dasharray="4 3"/></svg>`,
-  teil:`<svg class="fx" viewBox="0 0 44 44" aria-hidden="true"><rect width="44" height="44" rx="12" fill="var(--bg)"/><rect x="7" y="9" width="30" height="5" rx="2" fill="var(--wood)"/><circle cx="16" cy="11.5" r="1.8" fill="var(--wood-d)"/><circle cx="28" cy="11.5" r="1.8" fill="var(--wood-d)"/><path d="M12.5 21l3.5-9 3.5 9" fill="none" stroke="var(--c-ko)" stroke-width="1.8"/><rect x="10" y="20" width="12" height="15" rx="2" fill="var(--c-ko)"/><path d="M24.5 21l3.5-9 3.5 9" fill="none" stroke="var(--c-ko)" stroke-width="1.8" opacity=".6"/><rect x="22" y="20" width="12" height="13" rx="2" fill="var(--c-ko)" opacity=".6"/></svg>`
+  los:`<svg class="fx" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--surface2)"/><path d="M15 15l5-6 5 6" fill="none" stroke="var(--c-ko)" stroke-width="2"/><rect x="11" y="14" width="18" height="18" rx="2.5" fill="var(--c-ko)"/><path d="M27 19l4 6" stroke="var(--ink)" stroke-width="1" opacity=".5"/><circle cx="31" cy="27.5" r="3.4" fill="var(--surface)" stroke="var(--ink)" stroke-opacity=".4"/></svg>`,
+  keep:`<svg class="fx" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--surface2)"/><ellipse cx="20" cy="30" rx="12" ry="2.6" fill="var(--surface)" stroke="var(--ink)" stroke-opacity=".45"/><rect x="14" y="13" width="10" height="15" rx="1.5" fill="var(--c-wo)" stroke="var(--ink)" stroke-opacity=".45"/><path d="M24 16.5a3.6 3.6 0 010 6" fill="none" stroke="var(--c-wo)" stroke-width="2"/></svg>`,
+  wish:`<svg class="fx" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--surface2)"/><rect x="11" y="22" width="18" height="9" rx="2" fill="var(--c-pa)" opacity=".3"/><rect x="11" y="13" width="18" height="18" rx="2.5" fill="none" stroke="var(--c-pa)" stroke-width="2" stroke-dasharray="3.5 2.6"/><path d="M20 13v5" stroke="var(--c-pa)" stroke-width="2"/></svg>`,
+  teil:`<svg class="fx" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--surface2)"/><path d="M12 22a8 8 0 0113.6-5.6M28 18a8 8 0 01-13.6 5.6" fill="none" stroke="var(--c-wo)" stroke-width="2" stroke-linecap="round"/><path d="M25.8 12.6l.2 4.4-4.4-.2M14.2 27.4l-.2-4.4 4.4.2" fill="none" stroke="var(--c-wo)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
 };
+const LEG={keep:`<svg viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="8" cy="13.5" rx="6.5" ry="1.6" fill="var(--surface)" stroke="var(--muted)" stroke-width="1"/><rect x="5" y="4" width="6" height="8.5" rx="1" fill="var(--c-wo)" stroke="var(--ink)" stroke-opacity=".5" stroke-width=".8"/></svg>`,
+  wish:`<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2" fill="none" stroke="var(--c-pa)" stroke-width="1.5" stroke-dasharray="2.6 1.8"/></svg>`,
+  bag:`<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 6.5L7.5 2.5 10 6.5" fill="none" stroke="var(--c-ko)" stroke-width="1.3"/><rect x="3" y="6" width="9" height="9" rx="1.5" fill="var(--c-ko)"/><circle cx="12.6" cy="11.6" r="2.6" fill="var(--surface)" stroke="var(--c-ko)" stroke-width="1"/></svg>`};
 
-function bildModel(W,keepL,o){
-  o=o||{}; const st=stageOf(W);
+function bildModel(W,keepL,bags){
+  const st=stageOf(W), B=bags||bagList();
   const faded=S.wishes.filter(w=>w.st==="lass"||w.st==="leih").length;
   const Wt=waiting();
-  return {r:rOf(W),w:W,stage:st,keep:keepL.map(k=>({id:k.id,cat:k.cat,why:k.why})),paths:pathN(),
-    seeds:Wt.length,wishes:Wt.map(w=>({cat:w.cat,p:Math.max(0,Math.min(1,(now()-w.ts)/Math.max(1,w.due-w.ts)))})),motes:faded,date:new Date(now())};
+  return {r:rOf(W),w:W,stage:st,keep:keepL.map(k=>Object.assign({id:k.id,cat:k.cat,why:k.why},k.motif?{motif:k.motif}:{})),paths:B.length,bags:B,
+    wishes:Wt.map(w=>({cat:w.cat,p:Math.max(0,Math.min(1,(now()-w.ts)/Math.max(1,w.due-w.ts)))})),motes:faded,date:new Date(now())};
 }
 function mountBild(){
   const cv=$("#bild"); if(!cv) return;
   const W=weite(), K=keepers(), st=stageOf(W);
-  const sig={w:W,k:K.map(k=>k.id).join(","),p:pathN(),s:waiting().length};
+  const BL=bagList(), sig={w:W,k:K.map(k=>k.id).join(","),p:BL.length,s:waiting().length};
   const sh=S.shown;
   let from=null;
   if(sh&&(sh.w!==W||sh.k!==sig.k||sh.p!==sig.p)){
     const oldK=K.filter(k=>sh.k.split(",").includes(k.id));
-    from=bildModel(Math.min(sh.w,W),oldK); from.stage=stageOf(Math.min(sh.w,W)); from.paths=Math.min(sh.p,sig.p);
+    from=bildModel(Math.min(sh.w,W),oldK,BL.slice(BL.length-Math.min(sh.p,sig.p))); from.stage=stageOf(Math.min(sh.w,W));
   }
-  const m=bildModel(W,K);
+  const m=bildModel(W,K,BL);
   const newK=from?K.filter(k=>!sh.k.split(",").includes(k.id)):[];
   if(from){ if(newK.length) m.ringKeep=newK[newK.length-1].id; else if(st>stageOf(sh.w)) m.ringStage=true }
   m.delay=FADE_DELAY; const info=Bild.mount(cv,m,from);
   // Tippflächen über den behaltenen Dingen
   const ov=$("#hits"); if(ov){ const Wc=cv.clientWidth, Hc=cv.clientHeight;
-    ov.innerHTML=info.hits.map(k=>`<button class="ding-hit" data-a="open" data-v="keepview" data-w="${k.id}" style="left:${k.hx/Wc*100}%;top:${k.hy/Hc*100}%;width:${Math.round(k.hr*2)}px;height:${Math.round(k.hr*2)}px" aria-label="${esc((S.keep.find(x=>x.id===k.id)||{}).name||"Behaltenes Ding")}, bewusst behalten"></button>`).join("") }
+    ov.innerHTML=info.hits.map(k=>{ const kk=S.keep.find(x=>x.id===k.id)||{};
+      return `<button class="ding-hit" data-a="open" data-v="keepview" data-w="${k.id}" style="left:${k.hx/Wc*100}%;top:${k.hy/Hc*100}%;width:${Math.round(k.hr*2)}px;height:${Math.round(k.hr*2)}px" aria-label="${esc(kk.name||k.ding||"Behaltenes Ding")}, ${esc(AREA[k.cat]?AREA[k.cat].n:"")}, ${esc(GRUND[k.why]?GRUND[k.why].n:"bewusst behalten")}"></button>` }).join("") }
   const stUp=sh&&st>stageOf(sh.w);
   S.shown=sig; save();
   later(()=>maybeMoment(),from?(stUp?2600:1500)+FADE_DELAY-250:700);
 }
 
+let NXALT=0;
+function roomStep(st){ const s=SCHRITTE[st]||SCHRITTE[0]; return {m:"Im Zimmer",t:s[0],x:s[1],min:s[2],a:"open",v:"timer",w:String(s[2]),b:"Los",step:1} }
 function vHome(){
-  const W=weite(), st=stageOf(W), nx=nextStep(), S1=STUFEN[st], S2=STUFEN[st+1];
+  const W=weite(), st=stageOf(W), S1=STUFEN[st], S2=STUFEN[st+1];
   const pct=S2?Math.round((W-S1.w)/(S2.w-S1.w)*100):100;
-  const imp=impOfDay(), readToday=imp&&S.read[imp.id]&&dkey(S.read[imp.id])===dkey();
+  const eng=nextStep(), alts=[eng,roomStep(st)], nx=alts[NXALT%alts.length];
   const hint=pickHint();
   const box=boxIn().length;
-  const nK=keepers().length, nW=waiting().length, nP=Math.min(6,pathN());
-  const leg=[nK&&`<span class="lg-b"><i></i>${nK} behalten</span>`,nW&&`<span class="lg-w"><i></i>${nW} ${plural(nW,"Wunsch wartet","Wünsche warten")}</span>`,nP&&`<span class="lg-t"><i></i>${nP} geteilt</span>`].filter(Boolean).join("");
+  const nK=keepers().length, nW=waiting().length, nP=bagList().length;
+  const leg=[nK&&`<span>${LEG.keep}${nK} behalten</span>`,nW&&`<span>${LEG.wish}${nW} ${plural(nW,"Wunsch wartet","Wünsche warten")}</span>`,nP&&`<span>${LEG.bag}${nP} geteilt</span>`].filter(Boolean).join("");
   return `<h1 class="sr">Freiraum</h1>
-  <div class="stage"><canvas id="bild" role="img" aria-label="Dein Raum, Stufe ${st+1} von 10: ${esc(S1.n)}. ${esc(S1.x)}"></canvas>
-    <button class="img-hit" data-a="open" data-v="bild" aria-label="Was in deinem Raum zu sehen ist"></button><div id="hits"></div></div>
+  <div class="stage"><canvas id="bild" role="img" aria-label="Dein Zimmer, Stufe ${st+1} von 10: ${esc(S1.n)}. ${esc(S1.x)}"></canvas>
+    <button class="img-hit" data-a="open" data-v="bild" aria-label="Was in deinem Zimmer zu sehen ist"></button><div id="hits"></div></div>
   ${leg?`<div class="legende" aria-hidden="true">${leg}</div>`:""}
-  <button class="stufe" data-a="open" data-v="stufen" aria-label="Stufe ${st+1} von 10: ${esc(S1.n)}, ${W} Weite. Alle Stufen ansehen">
-    <span class="stufe-kopf"><span class="stufe-n"><b>${esc(S1.n)}</b><small>Stufe ${st+1} von 10</small></span><span class="weite">${W} Weite</span></span>
-    <span class="raster" aria-hidden="true">${STUFEN.map((x,i)=>`<i class="${i<st?"v":i===st?(S2?"j":"v"):""}"${i===st&&S2?` style="--p:${Math.max(8,pct)}%"`:""}></i>`).join("")}</span></button>
-  <p class="stufe-p">${S2?`${W<12?"Weite ist der Platz, den du geschaffen hast. ":""}Noch <b>${S2.w-W} Weite</b> bis „${esc(S2.n)}“.`:"Dein Raum ist ganz frei. Was du jetzt tust, hält ihn frei."}</p>
+  <button class="stufe" data-a="open" data-v="stufen" aria-label="Stufe ${st+1} von 10: ${esc(S1.n)}, ${W} Handbreit. Alle Stufen ansehen">
+    <span class="stufe-kopf"><span class="stufe-n"><small>Stufe ${st+1} von 10</small><b>${esc(S1.n)}</b></span><span class="weite"><b>${W}</b> Handbreit</span></span>
+    <span class="raster" aria-hidden="true">${STUFEN.map((x,i)=>`<i class="${i<=st?"v":i===st+1?"j":""}"${i===st+1?` style="--p:${Math.max(0,Math.min(100,pct))}%"`:""}></i>`).join("")}</span></button>
+  <p class="stufe-p">${esc(S1.x)} ${S2?`${W<8?"Eine Handbreit ist der Platz, den ein Ding im Regal braucht. ":""}Noch <b>${hb(S2.w-W)}</b> bis „${esc(S2.n)}“.`:"Was du jetzt tust, hält es so."}</p>
+  <button class="zehn" data-a="open" data-v="timer" data-w="10"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M10 2.8h4"/></svg><span><b>10 Minuten aufräumen</b><small>Eine Stelle, ein Wecker, dann ist Schluss</small></span>${chev}</button>
   <section class="next" aria-labelledby="nx-t">
-    <div class="next-h">Dein nächster Schritt${nx.m?" · "+esc(nx.m):""}</div>
+    <div class="next-h">${MARK}Dein nächster Schritt${nx.m?" · "+esc(nx.m):""}</div>
     <h3 id="nx-t">${esc(nx.t)}</h3><p>${esc(nx.x)}</p>
-    <button class="btn" data-a="${nx.a}" data-v="${nx.v}" data-w="${esc(nx.w||"")}">${esc(nx.b)}</button>
+    <div class="next-b"><button class="btn" data-a="${nx.a}" data-v="${nx.v}" data-w="${esc(nx.w||"")}"${nx.step?' data-step="1"':""}>${esc(nx.b)}${nx.min?`<small>· ${nx.min}\u00a0Min.</small>`:""}</button><button class="btn quiet" data-a="nxalt">Anderer Vorschlag</button></div>
   </section>
-  <h2 class="acts-h">Was tust du heute?</h2>
+  ${hint?hintHTML(hint):""}
+  <h2 class="acts-h">Was hast du gemacht?</h2>
   <div class="acts">
-    <button class="tile" data-a="open" data-v="los">${ICON.los}<div><b>Loslassen</b><span>Weitergeben, was du nicht brauchst</span></div></button>
-    <button class="tile" data-a="open" data-v="keep">${ICON.keep}<div><b>Behalten</b><span>Was bleibt, hat einen Grund</span></div></button>
+    <button class="tile" data-a="open" data-v="los">${ICON.los}<div><b>Loslassen</b><span>Weitergeben, verschenken, verkaufen</span></div></button>
+    <button class="tile" data-a="open" data-v="keep">${ICON.keep}<div><b>Behalten</b><span>Was bleibt, bekommt einen Grund</span></div></button>
     <button class="tile" data-a="open" data-v="wish">${ICON.wish}<div><b>Wunsch parken</b><span>Erst warten, dann entscheiden</span></div></button>
     <button class="tile" data-a="open" data-v="teil">${ICON.teil}<div><b>Statt neu</b><span>Geliehen, gebraucht, repariert</span></div></button>
   </div>
-  ${hint?hintHTML(hint):""}
   <div class="links"><button class="lnk" data-a="open" data-v="pruef">Ein Ding prüfen</button><button class="lnk" data-a="open" data-v="kiste">Vielleicht-Kiste${box?" ("+box+")":""}</button>${waiting().length?`<button class="lnk" data-a="open" data-v="wishes">Geparkte Wünsche (${waiting().length})</button>`:""}</div>
-  ${aufgSection()}
-  ${imp?`<section class="sec"><div class="sec-h"><h2>${readToday?"Gelesen":"Impuls des Tages"}</h2></div>
-    <button class="card" data-a="open" data-v="imp" data-w="${imp.id}"><div class="meta"><i class="dot ${imp.cat}"></i>${esc(AREA[imp.cat].n)}${imp.myth?' <span class="tag myth">Oft gehört, schlecht belegt</span>':""}</div><h3>${esc(imp.t)}</h3>${readToday?"":`<p>${esc(school()&&imp.s?imp.s:imp.tip)}</p><p class="meta" style="margin-top:8px">Weiterlesen, mit Quelle</p>`}</button></section>`:""}
-  ${monthCard()}`;
+  ${aufgSection()}`;
 }
+/* Kleine Aufgaben auf der Startseite: drei, zuerst neutrale Aufräum-Aufgaben, keine Konsum-Aufgaben vorn */
+const AUF_RAUM=["a31","a06","a30","a15","a33","a05","a32","a29","a03","a04","a19","a10","a16","a17","a18"];
+const AUF_KONSUM=["a08","a09","a11","a12","a13","a14","a22","a23","a24","a28"];
+const AUF_N=3;
 function aufgPick(){
   const order=areaOrder(), today=dkey();
   const open=AUFGABEN.filter(a=>a.art==="oft"||!aufDone(a.id));
   const doneToday=open.filter(a=>a.art==="oft"&&aufToday(a.id));
-  const rest=open.filter(a=>!doneToday.includes(a)).map(a=>[order.indexOf(a.cat)*1000+(a.art==="einmal"?0:300)+hsh(a.id+today)%300,a]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
-  const out=[]; const per={};
-  for(const a of rest){ if(out.length>=6-Math.min(2,doneToday.length)) break; if((per[a.cat]||0)>=2) continue; per[a.cat]=(per[a.cat]||0)+1; out.push(a) }
-  return [...doneToday.slice(0,2),...out];
+  const ri=a=>AUF_RAUM.indexOf(a.id);
+  const score=a=>(AUF_KONSUM.includes(a.id)?5000:0)+(ri(a)<0?2000:ri(a)*25)+order.indexOf(a.cat)*10+hsh(a.id+today)%90;
+  const rest=open.filter(a=>!doneToday.includes(a)).map(a=>[score(a),a]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+  const n=AUF_N-Math.min(1,doneToday.length), out=[], per={};
+  for(const a of rest){ if(out.length>=n) break; if(per[a.cat]) continue; per[a.cat]=1; out.push(a) }
+  // Eine der drei verändert etwas dauerhaft (einmalige Aufgabe), wenn es noch eine gibt
+  if(!out.some(a=>a.art==="einmal")){ const e=rest.find(a=>a.art==="einmal"&&!out.includes(a)&&!AUF_KONSUM.includes(a.id)); if(e&&out.length) out[out.length-1]=e }
+  return [...doneToday.slice(0,1),...out];
 }
 function aufgTile(a){ const today=a.art==="oft"&&aufToday(a.id), done=a.art==="einmal"&&aufDone(a.id), n=aufCount(a.id);
-  return `<button class="aufg${today||done?" done":""}" data-a="aufg" data-v="${a.id}" aria-pressed="${today||done}" aria-label="${esc(a.t)}${today?", heute erledigt":done?", erledigt":""}"><span class="aufg-t">${esc(a.t)}</span><span class="aufg-ok" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg></span><span class="aufg-m"><i class="dot ${a.cat}"></i>${today?"Heute erledigt":done?"Erledigt":a.art==="einmal"?"einmalig · +"+a.w:"+"+a.w+(n?" · schon "+n+"×":" · wiederholbar")}</span></button>` }
+  return `<button class="aufg${today||done?" done":""}" data-a="aufg" data-v="${a.id}" aria-pressed="${today||done}" aria-label="${esc(a.t)}${today?", heute erledigt":done?", erledigt":""}"><span class="aufg-tx"><span class="aufg-t">${esc(a.t)}</span><span class="aufg-m"><i class="dot ${a.cat}"></i>${esc(AREA[a.cat].n)} · ${today?"heute erledigt":done?"erledigt":a.art==="einmal"?"einmalig · +"+a.w:"wiederholbar · +"+a.w+(n?", schon "+n+"×":"")}</span></span><span class="aufg-ok" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg></span></button>` }
 function aufgSection(){ const L=aufgPick(); if(!L.length) return "";
-  return `<section class="sec"><div class="sec-h"><h2>Kleine Aufgaben</h2><button class="lnk" data-a="open" data-v="aufgaben">Alle ${AUFGABEN.length}</button></div>
-  <p class="small muted" style="margin:-4px 0 12px">Antippen, wenn erledigt. Nichts verfällt.</p>
-  <div class="aufg-grid">${L.map(aufgTile).join("")}</div></section>` }
+  return `<section class="sec"><div class="sec-h"><h2>Kleine Aufgaben</h2><button class="lnk nowrap" data-a="open" data-v="aufgaben">Alle\u00a0${AUFGABEN.length}</button></div>
+  <div class="aufg-list">${L.map(aufgTile).join("")}</div>
+  <p class="muted small" style="margin:8px 2px 0">Antippen, wenn erledigt. Nichts verfällt.</p></section>` }
 function firstSentence(t){ const m=String(t).match(/^.+?[.!?](\s|$)/); return m?m[0].trim():t }
 function monthCard(){ const M=MONATE[new Date(now()).getMonth()]; if(!M) return ""; const u=UEB[M.u];
   return `<section class="sec"><div class="sec-h"><h2>Gerade dran</h2><span class="meta">${new Date(now()).toLocaleDateString("de-DE",{month:"long"})}</span></div>
@@ -268,7 +311,6 @@ function pickHint(){
   const recentWish=S.wishes.some(w=>now()-w.ts<7*DAY);
   if(losToday>=3&&!recentWish) C.push("lizenz-"+today);
   if(d.getDay()===0&&S.log.some(e=>now()-e.ts<7*DAY)) C.push("woche-"+today);
-  if(now()-S.created>21*DAY&&!S.exported&&S.log.length>=5) C.push("sichern");
   if(IOS&&/Safari/.test(navigator.userAgent)&&!/CriOS|FxiOS/.test(navigator.userAgent)&&navigator.standalone===false&&now()-S.created>2*DAY) C.push("home");
   const k=C.find(c=>!H.off[c]); if(!k) return null;
   H.day=today; H.key=k; save(); return hintDef(k);
@@ -296,24 +338,27 @@ function hintHTML(h){ if(h.inf) return `<section class="box" style="margin-top:1
 /* ---------- Wissen ---------- */
 let WF="all";
 function vWissen(){
-  const L=IMPULSE.filter(i=>WF==="all"||(WF==="myth"?i.myth:WF==="saved"?S.saved[i.id]:i.cat===WF));
+  const L=IMPULSE.filter(i=>WF==="all"||(WF==="myth"?i.myth:WF==="beleg"?(!i.myth&&i.ev>=2):WF==="saved"?S.saved[i.id]:i.cat===WF));
   const due=lkDue().length, qn=QUIZ.filter(q=>!S.quiz[q.id]).length;
   const f=(v,n)=>`<button class="chipx${WF===v?" on":""}" aria-pressed="${WF===v}" data-a="wf" data-v="${v}">${n}</button>`;
-  return `<h1 class="sr">Freiraum</h1><h2 style="margin-top:12px">Wissen</h2>
+  const imp=impOfDay(), readToday=imp&&S.read[imp.id]&&dkey(S.read[imp.id])===dkey();
+  return `<h1 class="sr">Freiraum</h1><h2 class="tab-h">Wissen</h2>
   <p class="muted" style="margin:6px 0 14px">Was die Forschung über Besitz, Kaufen und Loslassen weiß. Jeder Impuls nennt Quelle und Belegstufe.</p>
+  ${imp&&WF==="all"?`<button class="card" style="margin-bottom:14px" data-a="open" data-v="imp" data-w="${imp.id}"><div class="meta"><i class="dot ${imp.cat}"></i>${readToday?"Heute gelesen":"Impuls des Tages"} · ${esc(AREA[imp.cat].n)}${imp.myth?' <span class="tag myth">Oft gehört, schlecht belegt</span>':""}</div><h3>${esc(imp.t)}</h3>${readToday?"":`<p>${esc(school()&&imp.s?imp.s:imp.tip)}</p>`}</button>`:""}
   <div class="acts" style="margin-top:0">
     <button class="tile" data-a="open" data-v="quiz"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 7h18v14H15l-5 4v-4H7z"/><path d="M14 12a2.5 2.5 0 1 1 3 2.4V16M16 18.6v.2"/></svg><div><b>Was stimmt?</b><span>${qn?qn+" Fragen offen":"Fragen wiederholen"}</span></div></button>
     <button class="tile" data-a="open" data-v="lk"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 9h14v16H6zM10 9V6h16v16h-6"/><path d="M9 14h8M9 18h6"/></svg><div><b>Begriffe</b><span>${due?due+" zum Wiederholen":BEGRIFFE.some(b=>!S.lk[b.id])?"Neue Begriffe lernen":"Alles sitzt gerade"}</span></div></button>
   </div>
-  <div class="chips" style="margin:22px 0 10px;gap:6px">${f("all","Alle")}${AREAS.map(a=>f(a.id,esc(a.n))).join("")}${f("myth","Mythen")}${f("saved","Gemerkt")}</div>
+  <div class="chips" style="margin:22px 0 10px;gap:6px">${f("all","Alle")}${f("beleg","Gut belegt und solide")}${f("myth","Mythen")}${AREAS.map(a=>f(a.id,`<i class="dot ${a.id}"></i>${esc(a.n)}`)).join("")}${f("saved","Gemerkt")}</div>
   <div class="list">${L.length?L.map(i=>`<button class="row${S.read[i.id]?" read":""}" data-a="open" data-v="imp" data-w="${i.id}"><i class="dot ${i.cat}"></i><span class="t"><b>${esc(i.t)}</b><span>${i.myth?"Oft gehört, schlecht belegt":esc(i.evn||EV[i.ev].n)+", "+esc(i.typ)}${S.saved[i.id]?", gemerkt":""}</span></span>${chev}</button>`).join(""):`<p class="empty">${WF==="saved"?"Du hast noch nichts gemerkt. Im Impuls tippst du dafür auf „Merken“.":"Hier ist nichts."}</p>`}</div>
   <div class="links" style="margin-top:14px"><button class="lnk" data-a="open" data-v="ev">Wie Belege eingestuft werden</button><button class="lnk" data-a="open" data-v="begriffe">Alle Begriffe</button></div>`;
 }
 /* ---------- Üben ---------- */
 function vUeben(){
   const run=exRun(), sug=suggestUeb();
-  return `<h1 class="sr">Freiraum</h1><h2 style="margin-top:12px">Üben</h2>
+  return `<h1 class="sr">Freiraum</h1><h2 class="tab-h">Üben</h2>
   <p class="muted" style="margin:6px 0 4px">Kleine Experimente im Alltag. Du planst, probierst und schaust danach ehrlich zurück. Höchstens zwei laufen gleichzeitig.</p>
+  ${monthCard()}
   ${run.length?`<section class="sec"><h2>Läuft gerade</h2>${run.map(([id,e])=>exCard(id,e)).join("")}</section>`:""}
   ${sug.length?`<section class="sec"><h2>Passt gerade zu dir</h2>${sug.map(u=>`<button class="card" data-a="open" data-v="ueb" data-w="${u.id}"><div class="meta"><i class="dot ${u.cat}"></i>${esc(AREA[u.cat].n)}, ${u.d===1?"1 Tag":u.d+" Tage"}</div><h3>${esc(u.t)}</h3><p>${esc(uebX(u))}</p></button>`).join("")}</section>`:""}
   ${(()=>{ const D=Object.entries(S.ex).filter(([id,e])=>e.st==="done"&&UEB[id]).sort((a,b)=>b[1].end-a[1].end); return D.length?`<section class="sec"><h2>Abgeschlossen</h2><div class="list">${D.map(([id,e])=>`<button class="row" data-a="open" data-v="ueb" data-w="${id}"><i class="dot ${UEB[id].cat}"></i><span class="t"><b>${esc(UEB[id].t)}</b><span>${fdate(e.end)}, ${e.daysDone} von ${UEB[id].d} Tagen${e.note?", „"+esc(e.note)+"“":""}</span></span>${chev}</button>`).join("")}</div></section>`:"" })()}
@@ -331,25 +376,25 @@ function exCard(id,e){ const u=UEB[id], dn=exDay(e), over=exEvalDue().some(([x])
 /* ---------- Dein Weg ---------- */
 function vWeg(){
   const T=tally(), s=stats(), K=keepers();
-  return `<h1 class="sr">Freiraum</h1><h2 style="margin-top:12px">Dein Weg</h2>
+  return `<h1 class="sr">Freiraum</h1><h2 class="tab-h">Dein Weg</h2>
   ${S.log.length||K.length?"":`<p class="muted" style="margin:6px 0 0">Hier sammelt sich, was du tust. Fang mit einem Ding an. Es muss nichts Großes sein.</p>`}
   <div class="nums" style="margin-top:16px">
-    <button class="num" data-a="open" data-v="weite"><b class="gold">${T.W}</b><span>Weite: Platz, der entstanden ist</span></button>
+    <button class="num" data-a="open" data-v="handbreit"><b class="gold">${T.W}</b><span>Handbreit: Platz, der entstanden ist</span></button>
     <button class="num" data-a="open" data-v="losstat"><b>${s.L.length}</b><span>${plural(s.L.length,"Eintrag","Einträge")} losgelassen${s.L.length?", "+Math.round(s.given/s.L.length*100)+"\u00a0% weitergegeben":""}</span></button>
     <button class="num" data-a="open" data-v="losstat"><b>${s.asked.length?s.missed.length+"<small> von </small>"+s.asked.length:"–"}</b><span>${s.asked.length?"nachgefragten Dingen vermisst":"Nach einem Monat fragt die App, ob du etwas vermisst"}</span></button>
-    <button class="num" data-a="open" data-v="wishes"><b>${s.dec.length?s.lass+"<small> von </small>"+s.dec.length:waiting().length||"–"}</b><span>${s.dec.length?"entschiedenen Wünschen nicht gekauft":waiting().length?plural(waiting().length,"Wunsch wartet","Wünsche warten"):"Geparkte Wünsche erscheinen hier"}</span></button>
+    <button class="num" data-a="open" data-v="wishes"><b>${s.dec.length?s.dec.filter(w=>w.waited).length+"<small> von </small>"+s.dec.length:waiting().length||"–"}</b><span>${s.dec.length?"Wünschen nach voller Wartezeit entschieden":waiting().length?plural(waiting().length,"Wunsch wartet","Wünsche warten"):"Geparkte Wünsche erscheinen hier"}</span></button>
   </div>
   ${(()=>{ const ks=Object.keys(S.inflow).sort().slice(-6); if(!ks.length) return "";
     const lab={0:"nichts",1:"1 bis 3",4:"4 bis 10",11:"mehr als 10"};
     return `<section class="sec"><div class="sec-h"><h2>Neu dazugekommen</h2><span class="meta">deine Schätzung</span></div><div class="list">${ks.map(k=>{ const [y,mo]=k.split("-"); const n=new Date(+y,+mo-1,1).toLocaleDateString("de-DE",{month:"long",year:"numeric"}); const L=losE().filter(e=>dkey(e.ts).startsWith(k)), one=L.filter(e=>e.size===1).length, more=L.length-one;
       return `<div class="row"><span class="t"><b style="font-weight:500">${esc(n)}</b><span>Losgelassen: ${one} ${plural(one,"Ding","Dinge")}${more?" und "+more+" "+plural(more,"Tüte oder Großes","Tüten oder Großes"):""}</span></span><span class="ui" style="font-weight:600">${lab[S.inflow[k]]} neu</span></div>` }).join("")}</div></section>` })()}
   <section class="sec"><div class="sec-h"><h2>Bewusst behalten</h2><span class="meta">${K.length} von ${MAXKEEP}</span></div>
-  <div class="list">${K.length?K.map(k=>`<button class="row" data-a="open" data-v="keepview" data-w="${k.id}"><i class="dot ${k.cat}"></i><span class="t"><b>${esc(k.name)}</b><span>${esc(GRUND[k.why].n)}</span></span>${chev}</button>`).join(""):`<p class="empty">Noch nichts. Was du mit Grund behältst, bekommt einen eigenen Platz in deinem Raum.</p>`}</div>
+  <div class="list">${K.length?K.map(k=>`<button class="row" data-a="open" data-v="keepview" data-w="${k.id}"><i class="dot ${k.cat}"></i><span class="t"><b>${esc(k.name)}</b><span>${esc(GRUND[k.why].n)}</span></span>${chev}</button>`).join(""):`<p class="empty">Noch nichts. Was du mit Grund behältst, bekommt einen eigenen Platz in deinem Zimmer.</p>`}</div>
   <div class="links"><button class="lnk" data-a="open" data-v="keep">Etwas bewusst behalten</button></div></section>
   <section class="sec"><h2>Wege durch die Bereiche</h2><p class="small muted" style="margin:-4px 0 8px">Jeder Bereich hat fünf Stationen. Sie verlangen jeweils eine andere Art von Handlung.</p>
   <div class="wege">${areaOrder().map(a=>{ const st=stations(a); return `<button class="weg" data-a="open" data-v="area" data-w="${a}"><b><i class="dot ${a}"></i>${esc(AREA[a].n)}</b><span class="st" aria-label="${st.filter(Boolean).length} von 5 Stationen">${st.map(x=>`<i class="${x?"on":""}"></i>`).join("")}</span></button>` }).join("")}</div></section>
   <section class="sec"><h2>Mehr</h2><div class="list">
-   <button class="row" data-a="open" data-v="stufen"><span class="t"><b>Die zehn Stufen deines Raums</b><span>Stufe ${stageOf(T.W)+1}: ${esc(STUFEN[stageOf(T.W)].n)}</span></span>${chev}</button>
+   <button class="row" data-a="open" data-v="stufen"><span class="t"><b>Die zehn Stufen deines Zimmers</b><span>Stufe ${stageOf(T.W)+1}: ${esc(STUFEN[stageOf(T.W)].n)}</span></span>${chev}</button>
    <button class="row" data-a="open" data-v="verlauf"><span class="t"><b>Verlauf</b><span>${S.log.length?S.log.length+" "+plural(S.log.length,"Eintrag","Einträge"):"Noch leer"}</span></span>${chev}</button>
    <button class="row" data-a="open" data-v="check"><span class="t"><b>Bestandsaufnahme</b><span>${S.check?"Zuletzt am "+fdateY(S.check.ts)+(now()-S.check.ts>90*DAY?". Zeit für eine neue Messung.":""):"Noch nicht gemacht"}</span></span>${chev}</button>
    <button class="row" data-a="open" data-v="hilfe"><span class="t"><b>Wenn es schwer wird</b><span>Hilfe bei Horten, Kaufdruck und Sorgen</span></span>${chev}</button>
@@ -360,7 +405,7 @@ function vWeg(){
    <div class="set" style="display:block"><b>Darstellung</b><div class="chips" style="margin-top:10px">${[["system","Automatisch"],["light","Hell"],["dark","Dunkel"]].map(([v,n])=>`<button class="chip${S.settings.theme===v?" on":""}" aria-pressed="${S.settings.theme===v}" data-a="theme" data-v="${v}">${n}</button>`).join("")}</div></div>
    <div class="set"><div><b>Vibration</b><span>Ein kurzer Tick bei Berührung</span></div><button class="switch" role="switch" aria-checked="${S.settings.vib!==false}" aria-label="Vibration" data-a="vib"></button></div>
    <div class="list" style="border-top:0">
-    <button class="row" data-a="open" data-v="daten"><span class="t"><b>Daten sichern und laden</b><span>Alles bleibt auf deinem Gerät</span></span>${chev}</button>
+    <button class="row" data-a="open" data-v="daten"><span class="t"><b>Daten sichern und laden</b><span>${S.exported?"Zuletzt gesichert am "+fdateY(S.exported):S.log.length>=5?"Noch nie gesichert. Alles liegt nur auf diesem Gerät.":"Alles bleibt auf deinem Gerät"}</span></span>${chev}</button>
     <button class="row" data-a="open" data-v="about"><span class="t"><b>Über Freiraum</b><span>Version vom ${esc(BUILD)}</span></span>${chev}</button>
     <button class="row" data-a="open" data-v="reset"><span class="t"><b>Neu beginnen</b><span>Löscht alle Einträge auf diesem Gerät</span></span>${chev}</button>
    </div></section>`;
@@ -375,9 +420,15 @@ function openSheet(type,arg,data){
   if(!wasOpen){ try{ history.pushState({lsh:1},"") }catch(e){} document.documentElement.style.overflow="hidden" }
   drawSheet(true);
 }
+/* Kleine Kacheln mit allen Figuren aus dem Bild; vorgeschlagen nach Name, sonst nach Bereich und Grund */
+function motifPicker(sel,cat,act,guess,bare){
+  return `<div class="fld mot"${bare?' style="margin-top:8px"':""}>${bare?"":`<span>Im Bild als <small class="muted" style="font-weight:400">(freiwillig${guess?", vorgeschlagen":""})</small></span>`}<div class="mot-g" role="group" aria-label="Figur im Bild">${Bild.MOTIVE.map(([m])=>`<button class="mot-b${m===sel?" on":""}" aria-pressed="${m===sel}" data-a="${act}" data-v="${esc(m)}" aria-label="${esc(m)}" title="${esc(m)}"><canvas data-motif="${esc(m)}" data-cat="${cat||"wo"}" aria-hidden="true"></canvas><small>${esc(m).replace(/^(Bilder|Wander|Trink|Näh|Espresso|Kopf|Werk|Tage|Brett|Foto|Fach|Wind|Tee)(?=.)/,"$1&shy;")}</small></button>`).join("")}</div></div>` }
+function paintMotifs(root){ const dark=document.documentElement.dataset.dark==="1"; root.querySelectorAll("canvas[data-motif]").forEach(c=>Bild.motifIcon(c,c.dataset.motif,c.dataset.cat,dark,40)) }
+document.addEventListener("input",e=>{ if(!SH||SH.type!=="keep"||e.target.id!=="f-name"||SH.d.motif) return;
+  const g=Bild.guessMotif(e.target.value,SH.d.cat,SH.d.why); document.querySelectorAll(".mot-b").forEach(b=>{ const on=b.dataset.v===g; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on) }) });
 function drawSheet(focus){
   if(!SH) return; const el=$("#sheet-in"); const y=el.scrollTop;
-  el.innerHTML=sheetHTML();
+  el.innerHTML=sheetHTML(); paintMotifs(el);
   settleSel(el);
   if(focus){ el.scrollTop=0; const f=el.querySelector("[data-autofocus]:not(input):not(textarea)")||el.querySelector("#sh-t")||el.querySelector(".sh-close"); if(f) f.focus({preventScroll:true}) } else el.scrollTop=y;
 }
@@ -404,9 +455,10 @@ function sheetHTML(){
   switch(t){
   case "welcome": return `<div class="sh-top"><span class="meta">Willkommen</span><button class="sh-close" data-a="close">Schließen</button></div>
     <h2 id="sh-t" tabindex="-1">Schön, dass du da bist.</h2>
-    <p>Oben siehst du einen Raum. Am Anfang ist er vollgestellt. Mit jedem Ding, das du weitergibst, wird er leerer und heller. So entsteht Freiraum für das, was du wirklich magst.</p>
-    <ul class="steps"><li><b>Loslassen:</b> Du gibst weiter, was du nicht brauchst. Im Raum wird Platz frei.</li><li><b>Behalten:</b> Was dir dient, bekommt mit Grund einen eigenen Platz im Raum.</li><li><b>Wunsch parken:</b> Kaufwünsche warten erst eine Weile, dann entscheidest du.</li><li><b>Statt neu:</b> Leihen, gebraucht holen oder reparieren hängt einen Beutel an die Hakenleiste.</li></ul>
-    <p class="muted small">Es gibt keinen Druck und nichts verfällt. Alles bleibt auf deinem Gerät.</p>
+    <p>Oben siehst du ein Zimmer, in dem jemand wohnt. Am Anfang liegt überall etwas. Mit jedem Ding, das du weitergibst, wird es Stück für Stück ruhiger. Was du mit Grund behältst, bekommt einen festen Platz.</p>
+    <ul class="steps"><li><b>Loslassen:</b> Du gibst weiter, was du nicht brauchst. Im Zimmer wird Platz frei, gemessen in Handbreit.</li><li><b>Behalten:</b> Was dir dient, bekommt mit Grund einen eigenen Platz.</li><li><b>Wunsch parken:</b> Kaufwünsche warten erst eine Weile vor der Tür, dann entscheidest du.</li><li><b>Statt neu:</b> Leihen, gebraucht holen oder reparieren hängt eine Tasche an die Tür.</li></ul>
+    <div class="box"><b>Drei Wörter, die du hier oft liest</b><p class="small" style="margin:6px 0 0"><b class="ui">Handbreit</b> ist das Maß für Platz: so viel, wie ein Ding im Regal braucht. <b class="ui">Statt neu</b> heißt leihen, gebraucht holen oder reparieren, statt neu zu kaufen. Die <b class="ui">Vielleicht-Kiste</b> ist eine echte Kiste für Dinge, bei denen du schwankst; nach 30 Tagen schaust du hinein.</p></div>
+    <p class="muted small" style="margin-top:12px">Es gibt keinen Druck und nichts verfällt. Alles bleibt auf deinem Gerät.</p>
     <hr class="sep"><p class="meta" style="margin-bottom:8px">Wo stehst du gerade?</p>
     <div class="chips">${[["school","Ich gehe zur Schule"],["adult","Ich bin erwachsen"]].map(([v,n])=>`<button class="chip${S.settings.mode===v?" on":""}" aria-pressed="${S.settings.mode===v}" data-a="mode" data-v="${v}">${n}</button>`).join("")}</div>
     <p class="note">Für die Schule gibt es eigene Fassungen der Übungen. Ohne Auswahl siehst du die Fassung für Erwachsene. Du kannst das jederzeit unter „Dein Weg“ ändern.</p>
@@ -418,30 +470,49 @@ function sheetHTML(){
     return `${shTop("Bestandsaufnahme","Frage "+(i+1)+" von "+CHECK.length)}${prog(i,CHECK.length)}<p class="meta"><i class="dot ${q.cat}"></i> ${esc(AREA[q.cat].n)}</p><h3 style="margin:6px 0 14px">${esc(q.q)}</h3>
     <div class="opts">${q.o.map((o,k)=>`<button class="opt${ans[q.id]===k?" on":""}" aria-pressed="${ans[q.id]===k}" data-a="checkans" data-v="${k}">${esc(o)}</button>`).join("")}</div>
     <div class="btns">${i>0?`<button class="btn sec2" data-a="step" data-v="-1">Zurück</button>`:""}</div>` }
-  case "los": return `${shTop("Loslassen","Weitergeben, was du nicht brauchst")}
-    <label class="fld"><span>Was ist es? (freiwillig)</span><input class="inp" id="f-name" maxlength="60" placeholder="${phx("zum Beispiel: Winterjacke","zum Beispiel: zu kleine Turnschuhe")}" value="${esc(d.name||"")}" autocomplete="off"></label>
+  case "los": { const v=d.size&&d.weg?losGain(d.size,d.weg):0, nominal=d.size?(d.weg==="mue"||d.weg==="rec"?Math.ceil(d.size/2):d.size):0, ask=d.ask!==false;
+    return `${shTop("Loslassen","Weitergeben, was du nicht brauchst")}
+    <label class="fld"><span>Was ist es? (freiwillig)</span><input class="inp" id="f-name" maxlength="60" placeholder="${phx("z.\u00a0B. Winterjacke","z.\u00a0B. alte Turnschuhe")}" value="${esc(d.name||"")}" autocomplete="off"></label>
+    <div class="fld"><span>Wie viel?</span><div class="groesse">${SIZES.map(s=>`<button class="opt${d.size===s.v?" on":""}" aria-pressed="${d.size===s.v}" data-a="set-size" data-v="${s.v}" aria-label="${esc(s.n)}, ${s.v} Handbreit">${SIZEICO[s.v]}<b>${esc(s.n)}</b><small>${hb(s.v)}</small></button>`).join("")}</div></div>
+    <div class="fld"><span>Wohin geht es?</span><div class="wohin">${WEGE.map(w=>`<button class="chip${d.weg===w.id?" on":""}" aria-pressed="${d.weg===w.id}" data-a="set-weg" data-v="${w.id}">${WEGICO[w.id]||""}${esc(w.n)}</button>`).join("")}</div>
+    <p class="note">${d.weg==="mue"?"Wenn es noch brauchbar ist, freut sich vielleicht jemand darüber. Verschenkbörsen, Sozialkaufhäuser und Nachbarschaftsgruppen nehmen vieles. ":""}Was zu Menschen geht, zählt voll. Recyceltes und Entsorgtes zählt halb, aufgerundet: Ding 1, Tüte 2, Karton 3, Möbel 5.${d.size&&d.weg&&v<nominal?` Heute zählen davon nur noch ${hb(v)}, weil höchstens ${LOSCAP} am Tag zählen (und höchstens fünf einzelne Dinge).`:""}</p></div>
+    ${!d.weg||WEG[d.weg].g?`<label class="fld"><span>Für wen? (freiwillig)</span><input class="inp" id="f-who" maxlength="30" placeholder="z.\u00a0B. Lena, Nachbar, Kleiderkammer" value="${esc(d.who||"")}" autocomplete="off"><small class="note" style="display:block">Mit Namen hängt die Tasche einen Monat lang mit Anhänger an der Tür deines Zimmers.</small></label>`:""}
     <div class="fld"><span>Bereich</span>${areaChips(d.cat,"set-cat")}</div>
-    <div class="fld"><span>Wie groß?</span><div class="groesse">${SIZES.map(s=>`<button class="opt${d.size===s.v?" on":""}" aria-pressed="${d.size===s.v}" data-a="set-size" data-v="${s.v}">${SIZEICO[s.v]}<b>${esc(s.n)}</b><small>${esc(s.x)}</small></button>`).join("")}</div></div>
-    <div class="fld"><span>Wohin ist es gegangen?</span><div class="chips">${WEGE.map(w=>`<button class="chip${d.weg===w.id?" on":""}" aria-pressed="${d.weg===w.id}" data-a="set-weg" data-v="${w.id}">${esc(w.n)}</button>`).join("")}</div>
-    ${d.weg==="mue"?`<p class="note">Wenn es noch brauchbar ist, freut sich vielleicht jemand darüber. Verschenkbörsen, Sozialkaufhäuser und Nachbarschaftsgruppen nehmen vieles. Es zählt trotzdem als Platz.</p>`:""}</div>
+    ${d.cat==="er"?`<p class="note hl">Bei Erinnerungen sind ein Foto davon, die Weitergabe an Angehörige und Behalten mit Grund gleich gute Wege.</p>`:""}
     ${schoolNote()}
-    <details style="margin-top:12px"><summary>Vor dem Weitergeben</summary><ul class="small dn" style="padding-left:20px;margin:0"><li>Auf Handys und Rechnern die Daten löschen.</li><li>Akkus, Batterien und Elektrogeräte gehören zur Sammelstelle, nicht in den Restmüll.</li><li>Alte Medikamente nicht in die Toilette. Wie man sie entsorgt, sagt die Apotheke.</li><li>Papiere mit Aufbewahrungsfrist nicht wegwerfen, Persönliches schreddern.</li></ul></details>
-    <p class="note">In einem Monat fragt die App einmal, ob du es vermisst hast.</p>
-    ${need([!d.cat&&"Bereich",!d.size&&"Größe",!d.weg&&"wohin es ging"].filter(Boolean))}
-    <div class="btns fuss"><button class="btn" data-a="do-los" ${d.cat&&d.size&&d.weg?"":"disabled"}>Eintragen</button></div>`;
+    <div class="set" style="margin-top:14px"><div><b>In 30 Tagen nachfragen</b><span>„Hast du es vermisst?“ Einmal, ohne Push-Nachricht.</span></div><button class="switch" role="switch" aria-checked="${ask}" aria-label="In 30 Tagen nachfragen" data-a="set-ask"></button></div>
+    <details style="margin-top:4px"><summary>Vor dem Weitergeben</summary><ul class="small dn" style="padding-left:20px;margin:0"><li>Auf Handys und Rechnern die Daten löschen.</li><li>Akkus, Batterien und Elektrogeräte gehören zur Sammelstelle, nicht in den Restmüll.</li><li>Alte Medikamente nicht in die Toilette. Wie man sie entsorgt, sagt die Apotheke.</li><li>Papiere mit Aufbewahrungsfrist nicht wegwerfen, Persönliches schreddern.</li></ul></details>
+    ${need([!d.size&&"wie viel",!d.weg&&"wohin es geht",!d.cat&&"Bereich"].filter(Boolean))}
+    <div class="btns fuss"><button class="btn" data-a="do-los" ${d.cat&&d.size&&d.weg?"":"disabled"}>Eintragen${d.size&&d.weg?" · "+hb(v):""}</button></div>` }
+  case "timer": { const min=+(SH.arg||10), left=Math.max(0,d.end?d.end-now():min*60000), mm=Math.floor(left/60000), ss=Math.floor(left%60000/1000);
+    const st=SCHRITTE[stageOf(weite())]||SCHRITTE[0], frei=!d.step;
+    return `${shTop(frei?"10 Minuten aufräumen":esc(st[0]),min+" Minuten")}
+    <p>${frei?"Such dir eine Stelle aus und fang einfach an. Ein Vorschlag: "+esc(st[0])+". "+esc(st[1]):esc(st[1])}</p>
+    <div class="uhr" aria-live="off"><b id="uhr">${d.end?String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0"):min+":00"}</b><span>${d.end?(left>0?"Danach hörst du auf. Was du nicht geschafft hast, bleibt für ein anderes Mal.":"Die Zeit ist um. Gut gemacht ist, was du gemacht hast."):"Ein Wecker hilft beim Anfangen und beim Aufhören."}</span></div>
+    <div class="btns">${d.end?`<button class="btn" data-a="open" data-v="los">Loslassen eintragen</button><button class="btn sec2" data-a="close">${left>0?"Aufhören":"Fertig"}</button>`:`<button class="btn" data-a="timer-go" data-autofocus>Los · ${min}\u00a0Min.</button><button class="btn sec2" data-a="close">Später</button>`}</div>
+    <p class="note">Die Uhr läuft nur, solange die App offen ist. Es gibt keinen Ton und keine Nachricht.</p>` }
+  case "mehr": return `${shTop("Mehr")}
+    <div class="set" style="display:block"><b>Darstellung</b><div class="chips" style="margin-top:10px">${[["system","Automatisch"],["light","Hell"],["dark","Dunkel"]].map(([v,n])=>`<button class="chip${S.settings.theme===v?" on":""}" aria-pressed="${S.settings.theme===v}" data-a="theme" data-v="${v}">${n}</button>`).join("")}</div></div>
+    <div class="list" style="border-top:0">
+     <button class="row" data-a="open" data-v="daten"><span class="t"><b>Daten sichern und laden</b><span>Alles bleibt auf deinem Gerät</span></span>${chev}</button>
+     <button class="row" data-a="share" data-v="app"><span class="t"><b>Freiraum weiterempfehlen</b><span>Link teilen</span></span>${chev}</button>
+     <button class="row" data-a="tab" data-v="weg"><span class="t"><b>Einstellungen</b><span>Schule oder erwachsen, Vibration, neu beginnen</span></span>${chev}</button>
+     <button class="row" data-a="open" data-v="about"><span class="t"><b>Über Freiraum</b><span>Version vom ${esc(BUILD)}</span></span>${chev}</button>
+    </div>`;
   case "keep": { const full=keepers().length>=MAXKEEP;
     return `${shTop("Bewusst behalten","Was bleibt, hat einen Grund")}
-    ${full?`<p>Dein Raum hat Platz für ${MAXKEEP} behaltene Dinge, und alle Plätze sind vergeben. Du kannst ein Ding gehen lassen, wenn sein Grund nicht mehr stimmt.</p><div class="btns"><button class="btn sec2" data-a="tab" data-v="weg">Zur Liste</button></div>`:
-    `<p class="muted small">Behalten ist keine Niederlage. Wer bewusst behält, weiß, warum ein Ding bleibt. Es bekommt dann einen eigenen Platz in deinem Raum, in der Farbe seines Bereichs.</p>
+    ${full?`<p>Dein Zimmer hat Platz für ${MAXKEEP} behaltene Dinge, und alle Plätze sind vergeben. Du kannst ein Ding gehen lassen, wenn sein Grund nicht mehr stimmt.</p><div class="btns"><button class="btn sec2" data-a="tab" data-v="weg">Zur Liste</button></div>`:
+    `<p class="muted small">Behalten ist keine Niederlage. Wer bewusst behält, weiß, warum ein Ding bleibt. Es bekommt einen festen Platz in deinem Zimmer, in der Farbe seines Bereichs, auf einem Untersetzer für den Grund.</p>
     <label class="fld"><span>Was ist es?</span><input class="inp" id="f-name" maxlength="60" placeholder="${phx("zum Beispiel: Omas Teekanne","zum Beispiel: Gitarre")}" value="${esc(d.name||"")}" autocomplete="off" data-autofocus></label>
     <div class="fld"><span>Bereich</span>${areaChips(d.cat,"set-cat")}</div>
     <div class="fld"><span>Warum bleibt es?</span><div class="opts">${GRUENDE.map(g=>`<button class="opt${d.why===g.id?" on":""}" aria-pressed="${d.why===g.id}" data-a="set-why" data-v="${g.id}"><span>${esc(g.n)}<small>${esc(g.x)}</small></span></button>`).join("")}</div></div>
+    ${motifPicker(d.motif||Bild.guessMotif(d.name,d.cat,d.why),d.cat,"set-motif",!d.motif)}
     <label class="fld"><span>In einem Satz, wenn du magst</span><textarea class="inp" id="f-note" maxlength="200" placeholder="Ich behalte es, weil …">${esc(d.note||"")}</textarea></label>
     <div class="btns"><button class="btn" data-a="do-keep" ${d.cat&&d.why?"":"disabled"}>Behalten</button></div>${need([!d.cat&&"Bereich",!d.why&&"Grund"].filter(Boolean))}
     <p class="note">Nach drei Monaten und nach einem Jahr fragt die App, ob der Grund noch stimmt.</p>`}` }
   case "keepview": { const k=S.keep.find(x=>x.id===SH.arg); if(!k) return shTop("Nicht gefunden");
     return `${shTop(esc(k.name),`<i class="dot ${k.cat}"></i> ${esc(AREA[k.cat].n)}`)}
-    <p><b class="ui">${esc(GRUND[k.why].n)}.</b> ${esc(GRUND[k.why].x)}</p>${k.note?`<blockquote>${esc(k.note)}</blockquote>`:""}
+    <p><b class="ui">${esc(GRUND[k.why].n)}.</b> ${esc(GRUND[k.why].x)}</p>${(()=>{ const K=keepers(), i=K.findIndex(x=>x.id===k.id); return i>=0&&i<Bild.SLOTS.length?`<details class="mot-d"><summary>Im Bild: ${esc(Bild.motifOf(k))}</summary>${motifPicker(Bild.motifOf(k),k.cat,"set-kmotif",false,true)}</details>`:"" })()}${k.note?`<blockquote>${esc(k.note)}</blockquote>`:""}
     <p class="meta">Bewusst behalten seit ${fdateY(k.ts)}${k.gone?". Inzwischen losgelassen.":""}</p>
     ${GRUND[k.why].imp&&IMP[GRUND[k.why].imp]?`<div class="links"><button class="lnk" data-a="open" data-v="imp" data-w="${GRUND[k.why].imp}">Warum das ein guter Grund sein kann</button></div>`:""}
     ${k.gone?"":`<div class="btns"><button class="btn sec2" data-a="keepgo" data-v="${k.id}">Ich kann es gehen lassen</button></div>`}` }
@@ -452,7 +523,7 @@ function sheetHTML(){
     ${GRUENDE.filter(g=>g.id!==k.why).map(g=>`<button class="opt" data-a="keepans" data-v="why:${g.id}">Es bleibt, aber eher: ${esc(g.n)}</button>`).join("")}
     <button class="opt" data-a="keepans" data-v="go">Ich kann es gehen lassen</button></div>` }
   case "wish": return `${shTop("Wunsch parken","Erst warten, dann entscheiden")}
-    <p class="muted small">Im Moment des Wollens fühlt sich ein Wunsch dringend an. Mit etwas Abstand entscheidest du ruhiger. So lange wartet der Wunsch als gestrichelter Platzhalter vor der Tür deines Raums.</p>
+    <p class="muted small">Im Moment des Wollens fühlt sich ein Wunsch dringend an. Mit etwas Abstand entscheidest du ruhiger. So lange wartet der Wunsch als gestricheltes Paket vor der Tür deines Zimmers.</p>
     <label class="fld"><span>Was möchtest du haben?</span><input class="inp" id="f-name" maxlength="60" placeholder="${phx("zum Beispiel: neue Kopfhörer","zum Beispiel: neue Sneaker")}" value="${esc(d.name||"")}" autocomplete="off" data-autofocus></label>
     <label class="fld"><span>Ungefährer Preis in Euro (freiwillig)</span><input class="inp" id="f-price" inputmode="decimal" maxlength="9" value="${esc(d.price||"")}" autocomplete="off"></label>
     <div class="fld"><span>Bereich</span>${areaChips(d.cat,"set-cat")}</div>
@@ -468,15 +539,15 @@ function sheetHTML(){
     if(w.st!=="wait") return `${shTop(esc(w.name))}<p>Schon entschieden.</p>`;
     return `${shTop(esc(w.name),`<i class="dot ${w.cat}"></i> Geparkt am ${fdate(w.ts)}`)}
     <p>${due?"Die Wartezeit ist vorbei. Stell dir vor, du hättest es nie aufgeschrieben. Würdest du heute losgehen und es kaufen?":"Noch "+left+" "+plural(left,"Tag","Tage")+" Wartezeit, bis zum "+fdate(w.due)+"."}${w.price?" Notierter Preis: etwa "+esc(w.price)+" Euro.":""}</p>
-    ${due?"":`<p class="note">Du kannst schon jetzt entscheiden. Dann gibt es dafür aber keine Weite, denn das Warten ist der Kern.</p>`}
+    ${due?"":`<p class="note">Du kannst schon jetzt entscheiden. Dann gibt es dafür aber keine Handbreit, denn das Warten ist der Kern.</p>`}
     <div class="opts" style="margin-top:12px">
-     <button class="opt" data-a="wishans" data-v="lass"><span>Ich will es nicht mehr<small>${due?"Der Wunsch wird zu einem Lichtpunkt in deinem Raum.":"Gut so. Ein Lichtpunkt entsteht nur nach voller Wartezeit."}</small></span></button>
-     <button class="opt" data-a="wishans" data-v="leih"><span>Ich leihe es oder hole es gebraucht<small>Du bekommst es, ohne dass etwas Neues hergestellt wird.</small></span></button>
-     <button class="opt" data-a="wishans" data-v="kauf"><span>Ich kaufe es bewusst<small>Auch das ist eine gute Entscheidung, wenn sie nach dem Warten noch steht. Platz schafft es nicht.</small></span></button>
+     <button class="opt" data-a="wishans" data-v="lass"><span>Ich will es nicht mehr<small>${due?"Das Paket vor der Tür verschwindet. 2 Handbreit fürs Warten und 2 dafür, dass kein Ding dazukommt.":"Gut so. Handbreit gibt es nur nach voller Wartezeit."}</small></span></button>
+     <button class="opt" data-a="wishans" data-v="leih"><span>Ich leihe es oder hole es gebraucht<small>Du bekommst es, ohne dass etwas Neues hergestellt wird.${due?" 2 Handbreit fürs Warten und 2 dafür.":""}</small></span></button>
+     <button class="opt" data-a="wishans" data-v="kauf"><span>Ich kaufe es bewusst<small>Auch das ist eine gute Entscheidung, wenn sie nach dem Warten noch steht.${due?" Für das Warten gibt es 2 Handbreit.":""}</small></span></button>
      ${due?`<button class="opt" data-a="wishans" data-v="mehr"><span>Ich brauche noch eine Woche</span></button>`:""}
     </div>${due?"":calLinks("Wunsch entscheiden: "+w.name,"Die Wartezeit ist vorbei. Willst du es noch?",w.due)}` }
   case "teil": return `${shTop("Statt neu","Geliehen, getauscht, gebraucht, repariert")}
-    <p class="muted small">Jedes Mal, wenn du etwas bekommst, ohne dass es neu hergestellt wird, hängt ein Beutel mehr an der Hakenleiste in deinem Raum. Er steht für Dinge, die zwischen Menschen wandern.</p>
+    <p class="muted small">Jedes Mal, wenn du etwas bekommst, ohne dass es neu hergestellt wird, hängt eine Tasche mehr an der Tür deines Zimmers. Sie steht für Dinge, die zwischen Menschen wandern.</p>
     <label class="fld"><span>Was war es?</span><input class="inp" id="f-name" maxlength="60" placeholder="${phx("zum Beispiel: Bohrmaschine vom Nachbarn","zum Beispiel: Buch aus der Bücherei")}" value="${esc(d.name||"")}" autocomplete="off" data-autofocus></label>
     <div class="fld"><span>Wie?</span><div class="chips">${[["leih","Geliehen"],["tausch","Getauscht"],["gebr","Gebraucht gekauft"],["rep","Repariert"],["teil","Mit anderen geteilt"]].map(([v,n])=>`<button class="chip${d.how===v?" on":""}" aria-pressed="${d.how===v}" data-a="set-how" data-v="${v}">${n}</button>`).join("")}</div></div>
     <div class="fld"><span>Bereich</span>${areaChips(d.cat,"set-cat")}</div>
@@ -500,7 +571,7 @@ function sheetHTML(){
   case "ask": { const A=askDue(); if(!A.length) return `${shTop("Nachfrage")}<p>Alles beantwortet.</p>`;
     return `${shTop("Hast du etwas vermisst?","Nachfrage nach einem Monat")}
     <p class="muted small">Ehrliche Antworten helfen dir am meisten. Vermissen ist kein Fehler. Es zeigt dir, was wirklich gebraucht wird.</p>
-    ${(e=>`<p class="meta" style="margin-top:12px">${A.length===1?"Ein Ding":"Noch "+A.length+" Dinge"}</p><div class="box" style="margin-top:6px"><h3 style="margin:0 0 2px">${esc(e.name||SIZES.find(s=>s.v===e.size).n)}</h3><span class="meta">${esc(AREA[e.cat].n)}, ${esc(WEG[e.weg].n.toLowerCase())} am ${fdate(e.ts)}</span>
+    ${(e=>`<p class="meta" style="margin-top:12px">${A.length===1?"Ein Ding":"Noch "+A.length+" Dinge"}</p><div class="box" style="margin-top:6px"><h3 style="margin:0 0 2px">${esc(e.name||sizeName(e.size))}</h3><span class="meta">${esc(AREA[e.cat].n)}, ${esc(WEG[e.weg].n.toLowerCase())} am ${fdate(e.ts)}</span>
      <div class="opts" style="margin-top:12px">${[["nein","Nicht vermisst"],["ja","Vermisst"],["wn","Weiß ich nicht mehr"]].map(([v,n])=>`<button class="opt" data-a="askans" data-v="${e.id}" data-w="${v}">${n}</button>`).join("")}</div></div>`)(A[0])}` }
   case "imp": return impHTML();
   case "ev": return `${shTop("Wie Belege eingestuft werden")}
@@ -514,29 +585,30 @@ function sheetHTML(){
   case "begriff": { const b=BEG[SH.arg]; return `${shTop(esc(b.t),"Begriff")}<p>${esc(b.x)}</p><div class="box"><b>Zum Beispiel</b><p class="small" style="margin:4px 0 0">${esc(b.bsp)}</p></div>${b.imp&&IMP[b.imp]?`<div class="links"><button class="lnk" data-a="open" data-v="imp" data-w="${b.imp}">Der Befund dazu</button></div>`:""}` }
   case "ueb": return uebHTML();
   case "bild": return bildHTML();
-  case "stufen": { const W=weite(), st=stageOf(W); return `${shTop("Die zehn Stufen","Du hast "+W+" Weite")}
-    <p class="small muted">Mit jeder Stufe wird dein Raum leerer und heller. Was der Name sagt, ist im Bild zu sehen.</p>
-    <ol class="stufen">${STUFEN.map((s,i)=>`<li class="${i>st?"off":""}${i===st?" cur":""}"><span class="w">${s.w}</span><div><b>${esc(s.n)}</b><span>${esc(s.x)}${i>st?" Ab\u00a0"+s.w+"\u00a0Weite.":""}</span></div></li>`).join("")}</ol>` }
-  case "weite": { const T=tally(); return `${shTop("Weite","Platz, der entstanden ist")}
-    <p>Weite misst, was du für weniger Besitz getan hast, nicht wie oft du die App benutzt. Große Dinge zählen mehr als kleine. Was weitergegeben wird, zählt mehr als Müll. Was gar nicht erst hereinkommt, zählt besonders.</p>
-    <p class="small muted">Was neu dazukommt, misst die Weite nicht. Dafür fragt die App einmal im Monat nach, und du siehst es unter „Dein Weg“.</p>
-    <div class="list">${[["los","Losgelassen","1 für ein Ding, 3 für eine Tüte, 5 für etwas Großes. Recyceltes und Entsorgtes zählt halb. Einzelne kleine Dinge zählen höchstens fünfmal am Tag, alles Losgelassene zusammen höchstens "+LOSCAP+" am Tag."],["teil","Statt neu","3 für Leihen, Tauschen, Teilen und Reparieren, 1 für gebraucht Gekauftes. Höchstens zweimal am Tag."],["wunsch","Wünsche","4, wenn ein Wunsch seine volle Wartezeit bekommen hat und du ihn danach lässt, leihst oder gebraucht holst. Wer vorher entscheidet oder bewusst kauft, bekommt keine Weite."],["aufg","Kleine Aufgaben","Einmalige Aufgaben zählen einmal, wiederholbare höchstens einmal am Tag. Aus Aufgaben gibt es höchstens "+AUFCAP+" am Tag. Leihen und Reparieren zählen wie „Statt neu“."],["ueb","Übungen","2 bis 4 für eine Übung, die du an mindestens der Hälfte der Tage gemacht hast. Dieselbe Übung zählt erst nach 60 Tagen wieder."]].map(([k,n,x])=>`<div class="row" style="align-items:flex-start"><span class="t"><b>${n}</b><span style="font-size:14px;color:var(--muted)">${x}</span></span><b class="ui" style="color:var(--sun-ink);font-size:18px">${T.parts[k]}</b></div>`).join("")}</div>
-    <p class="note">Behaltenes zählt keine Weite. Es bekommt dafür einen eigenen Platz in deinem Raum.</p>` }
+  case "stufen": { const W=weite(), st=stageOf(W); return `${shTop("Die zehn Stufen","Du hast "+hb(W))}
+    <p class="small muted">Mit jeder Stufe wird dein Zimmer ruhiger. Was der Name sagt, ist im Bild zu sehen. Die Zahl links ist die Schwelle in Handbreit.</p>
+    <ol class="stufen">${STUFEN.map((s,i)=>`<li class="${i>st?"off":""}${i===st?" cur":""}"><span class="w">${s.w}</span><div><b>${esc(s.n)}</b><span>${esc(s.x)}</span></div></li>`).join("")}</ol>
+    <div class="links"><button class="lnk" data-a="open" data-v="handbreit">Was ist eine Handbreit?</button></div>` }
+  case "weite": case "handbreit": { const T=tally(); return `${shTop("Handbreit","Platz, der entstanden ist")}
+    <p>Eine Handbreit ist der Platz, den ein Ding im Regal braucht. Eine Tüte sind 3, ein Karton 6, ein Möbel 10. Gezählt wird, was du für weniger Besitz getan hast, nicht wie oft du die App öffnest. Was weitergegeben wird, zählt mehr als Müll. Was gar nicht erst hereinkommt, zählt besonders.</p>
+    <p class="small muted">Was neu dazukommt, misst die Handbreit nicht. Dafür fragt die App einmal im Monat nach, und du siehst es unter „Dein Weg“.</p>
+    <div class="list">${[["los","Losgelassen","1 für ein Ding, 3 für eine Tüte, 6 für einen Karton, 10 für ein Möbel. Recyceltes und Entsorgtes zählt halb. Einzelne Dinge zählen höchstens fünfmal am Tag, alles Losgelassene zusammen höchstens "+LOSCAP+" am Tag."],["teil","Statt neu","3 für Leihen, Tauschen, Teilen und Reparieren, 1 für gebraucht Gekauftes. Höchstens zweimal am Tag."],["wunsch","Wünsche","2, wenn ein Wunsch seine volle Wartezeit bekommen hat, ganz gleich, wie du dich danach entscheidest. Lässt du ihn, leihst du oder holst du es gebraucht, kommen 2 dazu. Bewusst kaufen ist eine gute Entscheidung, es kommt nur kein Platz dazu. Wer vor Ablauf der Wartezeit entscheidet, bekommt keine Handbreit."],["aufg","Kleine Aufgaben","Einmalige Aufgaben zählen einmal, wiederholbare höchstens einmal am Tag. Aus Aufgaben gibt es höchstens "+AUFCAP+" am Tag. Leihen und Reparieren zählen wie „Statt neu“."],["ueb","Übungen","2 bis 4 für eine Übung, die du an mindestens der Hälfte der Tage gemacht hast. Dieselbe Übung zählt erst nach 60 Tagen wieder."]].map(([k,n,x])=>`<div class="row" style="align-items:flex-start"><span class="t"><b>${n}</b><span style="font-size:14px;color:var(--muted)">${x}</span></span><b class="ui" style="font-size:18px">${T.parts[k]}</b></div>`).join("")}</div>
+    <p class="note">Behaltenes zählt keine Handbreit. Es bekommt dafür einen festen Platz in deinem Zimmer.${S.stFloor?" Deine Stufe aus der ersten Fassung bleibt dir erhalten, bis die neue Rechnung sie einholt.":""}</p>` }
   case "losstat": { const s=stats(), by=WEGE.map(w=>[w,s.L.filter(e=>e.weg===w.id).length]);
     return `${shTop("Losgelassen")}
     ${s.L.length?`<div class="list">${by.map(([w,n])=>`<div class="row"><span class="t"><b>${esc(w.n)}</b></span><b class="ui">${n}</b></div>`).join("")}</div>
     <p class="small" style="margin-top:12px">${Math.round(s.given/s.L.length*100)} % deiner Einträge sind an andere Menschen gegangen. ${s.L.filter(e=>e.weg==="mue").length?"Was entsorgt wurde, zählt auch als Platz. Beim nächsten Mal lohnt sich vielleicht ein Blick, ob es noch jemand brauchen kann.":""}</p>
-    <h3 style="margin-top:20px">Vermisst?</h3><p class="small">${s.asked.length?`Von ${s.asked.length} nachgefragten ${plural(s.asked.length,"Ding","Dingen")} hast du ${s.missed.length} vermisst. Das ist dein eigener Beleg dafür, wie viel du wirklich brauchst.`:"Einen Monat nach jedem Eintrag fragt die App einmal nach. So sammelst du deinen eigenen Beleg."}</p>`:`<p class="empty">Noch nichts losgelassen.</p>`}` }
+    <h3 style="margin-top:20px">Vermisst?</h3><p class="small">${s.asked.length?`Von ${s.asked.length} nachgefragten ${plural(s.asked.length,"Ding","Dingen")} hast du ${s.missed.length} vermisst. Das ist dein eigener Beleg dafür, was dir gefehlt hat und was nicht.`:"Einen Monat nach jedem Eintrag fragt die App einmal nach. So sammelst du deinen eigenen Beleg."}</p>`:`<p class="empty">Noch nichts losgelassen.</p>`}` }
   case "area": { const a=SH.arg, st=stations(a), L=a==="ko"?STATIONEN.ko:STATIONEN.std;
     return `${shTop(esc(AREA[a].n),"Fünf Stationen")}<p class="small muted">${esc(AREA[a].lang)}.</p>
     <div class="list">${L.map((x,i)=>`<div class="row" style="align-items:flex-start"><span class="stat${st[i]?" on":""}" aria-label="${st[i]?"erledigt":"offen"}">${st[i]?"✓":(i+1)}</span><span class="t"><b>${esc(x.n)}</b><span style="font-size:14px;color:var(--muted)">${esc(x.x)}</span></span></div>`).join("")}</div>
     <p class="small muted" style="margin-top:12px">${st.filter(Boolean).length} von 5 Stationen erledigt.${st.every(Boolean)?" Dieser Bereich ist ganz durchlaufen.":""}</p>` }
   case "verlauf": { const L=S.log.slice().reverse().slice(0,60);
-    const lab=e=>e.k==="los"?WEG[e.weg].n+": "+(e.name||SIZES.find(s=>s.v===e.size).n):e.k==="teil"?"Statt neu: "+(e.name||"ohne Namen"):e.k==="wunsch"?({lass:"Wunsch gelassen",leih:"Wunsch geliehen oder gebraucht",kauf:"Wunsch bewusst gekauft"}[e.dec])+": "+e.name:e.k==="ueb"?"Übung: "+(UEB[e.uid]?UEB[e.uid].t:""):e.k==="keep"?"Bewusst behalten: "+e.name:e.k==="aufg"?"Aufgabe: "+(AUF[e.aid]?AUF[e.aid].t:""):"";
-    return `${shTop("Verlauf")}${L.length?`<div class="list">${L.map(e=>`<div class="row"><i class="dot ${e.cat||(UEB[e.uid]||{}).cat||""}"></i><span class="t"><b style="font-weight:500">${esc(lab(e))}</b><span>${fdateY(e.ts)}${e._p?", "+e._p+" Weite":""}</span></span></div>`).join("")}</div>`:`<p class="empty">Noch leer.</p>`}` }
+    const lab=e=>e.k==="los"?WEG[e.weg].n+": "+(e.name||sizeName(e.size))+(e.who?" (für "+e.who+")":""):e.k==="teil"?"Statt neu: "+(e.name||"ohne Namen"):e.k==="wunsch"?({lass:"Wunsch gelassen",leih:"Wunsch geliehen oder gebraucht",kauf:"Wunsch bewusst gekauft"}[e.dec])+": "+e.name:e.k==="ueb"?"Übung: "+(UEB[e.uid]?UEB[e.uid].t:""):e.k==="keep"?"Bewusst behalten: "+e.name:e.k==="aufg"?"Aufgabe: "+(AUF[e.aid]?AUF[e.aid].t:""):"";
+    return `${shTop("Verlauf")}${L.length?`<div class="list">${L.map(e=>`<div class="row"><i class="dot ${e.cat||(UEB[e.uid]||{}).cat||""}"></i><span class="t"><b style="font-weight:500">${esc(lab(e))}</b><span>${fdateY(e.ts)}${e._p?", "+hb(e._p):""}</span></span></div>`).join("")}</div>`:`<p class="empty">Noch leer.</p>`}` }
   case "hilfe": { const H=school()?[3,4,2,0,1,5].map(i=>HILFE[i]):HILFE;
     return `${shTop("Wenn es schwer wird")}
-    <p>Manchen Menschen fällt Loslassen so schwer, dass es den Alltag stark einschränkt. Andere kaufen, obwohl sie es nicht wollen, und geraten in Schulden. Beides kommt häufiger vor, als man denkt. Beides lässt sich behandeln. Oft wird es deutlich besser, es braucht aber Zeit. Diese App ersetzt keine Hilfe und keinen Behandlungsplan. Wenn Loslassen dir große Angst macht, setz dich mit der Weite nicht unter Druck.</p>
+    <p>Manchen Menschen fällt Loslassen so schwer, dass es den Alltag stark einschränkt. Andere kaufen, obwohl sie es nicht wollen, und geraten in Schulden. Beides kommt häufiger vor, als man denkt. Beides lässt sich behandeln. Oft wird es deutlich besser, es braucht aber Zeit. Diese App ersetzt keine Hilfe und keinen Behandlungsplan. Wenn Loslassen dir große Angst macht, setz dich mit den Handbreit nicht unter Druck.</p>
     <div class="box" style="margin:10px 0 14px"><b>Bei akuter Gefahr: 112</b></div>
     <div class="list">${H.map(h=>`<div class="row" style="align-items:flex-start"><span class="t"><b>${esc(h.n)}</b><span style="font-size:14.5px;color:var(--muted)">${esc(h.x)}</span></span>${h.tel?`<a class="btn quiet" style="min-height:44px;padding:0 14px" href="tel:${h.tel}">Anrufen</a>`:h.u?`<a class="btn quiet" style="min-height:44px;padding:0 14px" href="${h.u}" target="_blank" rel="noopener">Öffnen</a>`:""}</div>`).join("")}</div>
     <p class="small muted" style="margin-top:12px">Für Angehörige: Gegen den Willen eines Menschen zu entrümpeln hilft meist nicht und kann schaden. Beratungsstellen helfen auch Familien.</p>
@@ -550,17 +622,17 @@ function sheetHTML(){
     ${d.err?`<p class="note" style="color:var(--err)">${esc(d.err)}</p>`:""}
     ${d.confirm?`<div class="box"><b>Sicherung vom ${esc(d.confirm.date)}</b><p class="small" style="margin:4px 0 10px">${d.confirm.n} Einträge. Dein jetziger Stand wird dabei ersetzt.</p><button class="btn" data-a="import-ok">Ersetzen und laden</button></div>`:""}
     <p class="note">Tipp: Leg Freiraum auf den Home-Bildschirm. Dann löscht Safari die Daten nicht nach längerer Pause.</p>`;
-  case "reset": return `${shTop("Neu beginnen")}<p>Das löscht alle Einträge, Wünsche, Übungen und Einstellungen auf diesem Gerät. Dein Raum ist danach wieder vollgestellt.</p>
+  case "reset": return `${shTop("Neu beginnen")}<p>Das löscht alle Einträge, Wünsche, Übungen und Einstellungen auf diesem Gerät. Dein Zimmer ist danach wieder voll.</p>
     ${d.sure?`<div class="box"><b>Bist du sicher?</b><p class="small" style="margin:4px 0 10px">Das lässt sich nicht rückgängig machen, außer du hast eine Sicherung.</p><button class="btn" data-a="reset-ok" style="background:var(--err);color:#fff">Ja, alles löschen</button></div>`:`<div class="btns"><button class="btn sec2" data-a="reset-1">Alles löschen</button><button class="btn quiet" data-a="open" data-v="daten">Vorher sichern</button></div>`}`;
   case "about": return `${shTop("Über Freiraum")}
-    <p>Freiraum hilft dir, weniger zu besitzen und das Richtige zu behalten. Sie ist kostenlos, braucht kein Konto und schickt keine Nachrichten. Alles bleibt auf deinem Gerät.</p>
+    <p>Freiraum hilft dir zu entscheiden, was bleibt: weniger besitzen und das Richtige behalten. Die App ist kostenlos, braucht kein Konto und schickt keine Nachrichten. Alles bleibt auf deinem Gerät.</p>
     <p>Alle Befunde nennen ihre Quelle und eine ehrliche Belegstufe. Wo Studien sich nicht wiederholen ließen, steht das dabei. Die App sagt nie, dass Besitz schlecht ist. Sie fragt, welcher Besitz dir dient.</p>
-    <p class="small muted">Idee und Auftrag: Carlo Maximilian Engeländer. Alle Rechte vorbehalten. Schriften: Poppins und Inter (SIL Open Font License), lokal eingebettet, ohne Anfrage an fremde Server.</p>
+    <p class="small muted">Idee und Auftrag: Carlo Maximilian Engeländer. Alle Rechte vorbehalten. Schriften: TeX Gyre Schola (GUST Font License) und Inter (SIL Open Font License), lokal eingebettet, ohne Anfrage an fremde Server.</p>
     <p class="meta">Version vom ${esc(BUILD)}</p>`;
   case "aufgaben": return `${shTop("Kleine Aufgaben",AUFGABEN.filter(a=>a.art==="einmal"&&aufDone(a.id)).length+" von "+AUFGABEN.filter(a=>a.art==="einmal").length+" einmaligen erledigt")}
-    <p class="small muted">Einmalige Aufgaben verändern etwas dauerhaft und zählen einmal. Wiederholbare zählen höchstens einmal am Tag. Was du schon vor der App erledigt hattest, markierst du mit „Hatte ich schon“. Das zählt ehrlich keine Weite.</p>
+    <p class="small muted">Einmalige Aufgaben verändern etwas dauerhaft und zählen einmal. Wiederholbare zählen höchstens einmal am Tag. Was du schon vor der App erledigt hattest, markierst du mit „Hatte ich schon“. Das zählt ehrlich keine Handbreit.</p>
     ${areaOrder().map(c=>`<h3 style="margin:20px 0 6px;display:flex;align-items:center;gap:8px"><i class="dot ${c}"></i>${esc(AREA[c].n)}</h3><div class="list">${AUFGABEN.filter(a=>a.cat===c).map(a=>{ const dn=a.art==="einmal"?aufDone(a.id):aufToday(a.id), n=aufCount(a.id);
-      return `<div class="row" style="align-items:flex-start"><span class="t"><b>${esc(a.t)}</b><span style="font-size:14px;color:var(--muted)">${esc(school()&&a.s?a.s:a.x)}</span><span>${a.art==="einmal"?"einmalig, +"+a.w+" Weite":"wiederholbar, +"+a.w+" Weite"+(n?", schon "+n+"×":"")}${S.pre[a.id]?", hattest du schon":""}</span>${a.imp&&IMP[a.imp]?`<button class="lnk inl" data-a="open" data-v="imp" data-w="${a.imp}">Der Befund dazu</button>`:""}</span>
+      return `<div class="row" style="align-items:flex-start"><span class="t"><b>${esc(a.t)}</b><span style="font-size:14px;color:var(--muted)">${esc(school()&&a.s?a.s:a.x)}</span><span>${a.art==="einmal"?"einmalig, +"+hb(a.w):"wiederholbar, +"+hb(a.w)+(n?", schon "+n+"×":"")}${S.pre[a.id]?", hattest du schon":""}</span>${a.imp&&IMP[a.imp]?`<button class="lnk inl" data-a="open" data-v="imp" data-w="${a.imp}">Der Befund dazu</button>`:""}</span>
         <span style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">${dn?`<span class="stat on" aria-label="erledigt">✓</span>`:`<button class="chip" data-a="aufg" data-v="${a.id}">Erledigt</button>${a.art==="einmal"?`<button class="lnk inl" data-a="aufg-pre" data-v="${a.id}">Hatte ich schon</button>`:""}`}</span></div>` }).join("")}</div>`).join("")}`;
   case "moment": return momentHTML();
   case "none": return shTop("");
@@ -688,7 +760,7 @@ function uebHTML(){
     <div class="fld"><span>Wie schwer wird es wohl?</span><div class="scale">${[1,2,3,4,5].map(n=>`<button class="${d.erw===n?"on":""}" aria-pressed="${d.erw===n}" data-a="set-erw" data-v="${n}">${n}</button>`).join("")}</div><div class="scale-l"><span>ganz leicht</span><span>sehr schwer</span></div></div>
     ${need([!d.erw&&"wie schwer es wohl wird"].filter(Boolean))}<div class="btns"><button class="btn" data-a="ex-start" ${d.erw?"":"disabled"}>Übung beginnen</button><button class="btn sec2" data-a="ex-ph" data-v="info">Zurück</button></div>
     ${exRun().length>=2?`<p class="note" style="color:var(--err)">Es laufen schon zwei Übungen. Schließ zuerst eine ab.</p>`:""}`;
-  if(ph==="early") { const nd=Object.keys(e.days).length; return `${head}<h3 style="margin:8px 0 10px">An wie vielen Tagen hast du es gemacht?</h3><p class="small muted">${nd?"Du hast "+nd+" "+plural(nd,"Tag","Tage")+" eingetragen. Wenn du an einem weiteren Tag dabei warst, kannst du ihn noch dazuzählen. ":"Du hast keinen Tag eingetragen. Das ist nicht schlimm. "}Sei ehrlich: Die Übung zählt für die Weite, wenn du sie an mindestens der Hälfte der Tage gemacht hast.</p>
+  if(ph==="early") { const nd=Object.keys(e.days).length; return `${head}<h3 style="margin:8px 0 10px">An wie vielen Tagen hast du es gemacht?</h3><p class="small muted">${nd?"Du hast "+nd+" "+plural(nd,"Tag","Tage")+" eingetragen. Wenn du an einem weiteren Tag dabei warst, kannst du ihn noch dazuzählen. ":"Du hast keinen Tag eingetragen. Das ist nicht schlimm. "}Sei ehrlich: Die Übung zählt Handbreit, wenn du sie an mindestens der Hälfte der Tage gemacht hast.</p>
     <div class="chips">${Array.from({length:Math.min(u.d,exDay(e),nd+1)+1},(_,n)=>n).map(n=>`<button class="chip${d.dd===n?" on":""}" aria-pressed="${d.dd===n}" data-a="set-dd" data-v="${n}">${n}</button>`).join("")}</div>
     <div class="btns"><button class="btn" data-a="ex-ph" data-v="eval" ${d.dd!=null?"":"disabled"}>Weiter zur Auswertung</button></div>` }
   const evalDue=e&&e.st==="run"&&exEvalDue().some(([id])=>id===u.id);
@@ -710,23 +782,22 @@ function uebHTML(){
      <div class="btns">${exDay(e)>=Math.ceil(u.d/2)&&exDay(e)<=u.d?`<button class="btn sec2" data-a="ex-ph" data-v="early">Früher abschließen</button>`:""}</div><div class="links"><button class="lnk" data-a="ex-stop">Übung abbrechen</button></div>
      ${calLinks("Übung: "+u.t,"Letzter Tag der Übung. Danach auswerten.",e.start+(u.d-1)*DAY)}`:
    `<div class="btns"><button class="btn" data-a="ex-ph" data-v="plan">${e&&e.st==="done"?"Noch einmal machen":"Annehmen"}</button><button class="btn sec2" data-a="share" data-v="u-${u.id}">Mit jemandem machen</button></div>
-    ${e&&e.st==="done"?`<p class="note">Zuletzt abgeschlossen am ${fdate(e.end)}${e.lived?"":", nicht genug Tage für Weite"}.${e.note?" Deine Notiz: „"+esc(e.note)+"“":""}</p>`:""}`}`;
+    ${e&&e.st==="done"?`<p class="note">Zuletzt abgeschlossen am ${fdate(e.end)}${e.lived?"":", nicht genug Tage für Handbreit"}.${e.note?" Deine Notiz: „"+esc(e.note)+"“":""}</p>`:""}`}`;
 }
 function daysDone(e,u){ let n=0; Object.values(e.days).forEach(v=>{ n+=v===2?1:v===1?0.5:0 }); return Math.min(u.d,Math.floor(n+1e-9)) }
 
 /* ---------- Bild-Erklärung ---------- */
-function bildHTML(){ const W=weite(), st=stageOf(W), K=keepers(), nW=waiting().length;
+function bildHTML(){ const W=weite(), st=stageOf(W), K=keepers(), nW=waiting().length, nB=bagList().length;
   const ico=(p)=>`<svg viewBox="0 0 40 40" aria-hidden="true">${p}</svg>`;
-  return `${shTop("Dein Raum","Stufe "+(st+1)+" von 10: "+esc(STUFEN[st].n))}
+  return `${shTop("Dein Zimmer","Stufe "+(st+1)+" von 10: "+esc(STUFEN[st].n))}
   <p>${esc(STUFEN[st].x)}</p>
   <div class="legend">
-   <div>${ico('<rect x="7" y="18" width="26" height="15" rx="1.5" fill="var(--box)"/><rect x="7" y="18" width="26" height="2.5" fill="var(--wood-d)"/><rect x="17.5" y="18" width="5" height="8" fill="var(--box-l)"/><rect x="12" y="10" width="16" height="8" rx="1" fill="var(--box-l)"/>')}<p><b class="ui">Kartons, Kisten und Tüten</b> stehen für alles, was du besitzt und was Platz braucht. Wenn du etwas weitergibst, verschwindet ein Stück davon, und der Raum wird freier.</p></div>
-   <div>${ico('<rect x="6" y="30" width="28" height="3" rx="1.5" fill="var(--wood)"/><path d="M18 9h4v5c6 2 6 13 3 16H15c-3-3-3-14 3-16z" fill="var(--c-er)"/>')}<p><b class="ui">Dinge in Farbe</b> behältst du bewusst. Die Farbe zeigt den Bereich, die Form den Grund: Becher für „oft genutzt“, Buch für „macht mich fähig“, Vase für „trägt Bedeutung“, Schale für „tut mir gut“. ${K.length?"Du hast "+K.length+".":"Noch steht keins da."} Tipp auf ein Ding, um es anzusehen.</p></div>
-   <div>${ico('<rect x="11" y="11" width="18" height="18" rx="3.5" fill="none" stroke="var(--c-pa)" stroke-width="2" stroke-dasharray="4 3"/><rect x="12" y="21" width="16" height="7" rx="1.5" fill="var(--c-pa)" opacity=".35"/>')}<p><b class="ui">Gestrichelte Platzhalter</b> vor der Tür sind Wünsche, die gerade warten. Mit der Wartezeit füllen sie sich von unten. ${nW?"Es "+plural(nW,"wartet einer","warten "+nW)+".":""}</p></div>
-   <div>${ico('<rect x="5" y="8" width="30" height="4" rx="2" fill="var(--wood)"/><path d="M12 19l3-8 3 8" fill="none" stroke="var(--c-ko)" stroke-width="1.6"/><rect x="10" y="18" width="10" height="14" rx="2" fill="var(--c-ko)"/><path d="M22 19l3-8 3 8" fill="none" stroke="var(--c-ko)" stroke-width="1.6" opacity=".6"/><rect x="20" y="18" width="10" height="12" rx="2" fill="var(--c-ko)" opacity=".6"/>')}<p><b class="ui">Beutel an der Hakenleiste</b> kommen dazu, wenn du etwas leihst, tauschst, gebraucht holst oder reparierst.</p></div>
-   <div>${ico('<circle cx="13" cy="15" r="3" fill="var(--sun)"/><circle cx="25" cy="11" r="2.2" fill="var(--sun)"/><circle cx="27" cy="24" r="3.4" fill="var(--sun)"/><circle cx="16" cy="28" r="2" fill="var(--sun)"/>')}<p><b class="ui">Lichtpunkte</b> im Licht sind Wünsche, die gewartet haben und die du danach nicht mehr wolltest.</p></div>
+   <div>${ico('<rect x="8" y="22" width="16" height="10" rx="1.5" fill="var(--c-pa)" opacity=".55"/><rect x="11" y="15" width="12" height="7" rx="1" fill="var(--c-kl)" opacity=".55"/><path d="M24 31c3-4 6 1 9-3" fill="none" stroke="var(--muted)" stroke-width="1.6"/><rect x="25" y="12" width="7" height="9" fill="var(--surface)" stroke="var(--muted)"/>')}<p><b class="ui">Zeug überall</b>: Zettel, Tassen, Kabel, Kleidung, Bücher quer. Wenn du etwas weitergibst, geht Stück für Stück etwas davon, und der Rest wird ruhiger. Möbel, Lampe, Pflanze, Bild und ein paar Bücher bleiben immer.</p></div>
+   <div>${ico('<ellipse cx="20" cy="31" rx="12" ry="2.6" fill="var(--surface)" stroke="var(--ink)" stroke-opacity=".5"/><rect x="14" y="13" width="11" height="16" rx="1.5" fill="var(--c-er)" stroke="var(--ink)" stroke-opacity=".6"/>')}<p><b class="ui">Dinge mit Kontur</b> behältst du bewusst. Die Farbe zeigt den Bereich, der Untersetzer den Grund: runder Untersetzer für „oft genutzt“, Holzklotz für „macht mich fähig“, Spitzendeckchen für „trägt Bedeutung“, Kissen für „tut mir gut“. ${K.length?"Du hast "+K.length+".":"Noch steht keins da."} Tipp auf ein Ding, um es anzusehen.</p></div>
+   <div>${ico('<rect x="11" y="13" width="18" height="16" rx="2.5" fill="none" stroke="var(--c-pa)" stroke-width="2" stroke-dasharray="3.5 2.6"/><rect x="12" y="22" width="16" height="6" rx="1.5" fill="var(--c-pa)" opacity=".35"/>')}<p><b class="ui">Gestrichelte Pakete</b> vor der Tür sind Wünsche, die gerade warten. Mit der Wartezeit füllen sie sich von unten. ${nW?"Es "+plural(nW,"wartet einer","warten "+nW)+".":""}</p></div>
+   <div>${ico('<path d="M14 15l4-6 4 6" fill="none" stroke="var(--c-ko)" stroke-width="1.8"/><rect x="11" y="14" width="14" height="17" rx="2" fill="var(--c-ko)"/><circle cx="28" cy="26" r="5" fill="var(--surface)" stroke="var(--c-ko)" stroke-width="1.4"/><text x="28" y="28.6" font-size="7" font-weight="700" text-anchor="middle" fill="var(--c-ko)" font-family="Inter">L</text>')}<p><b class="ui">Taschen an der Tür</b> gehen zu Menschen. Mit einem Namen bei „Für wen?“ hängt die Tasche einen Monat lang mit Anhänger dort. Leihen, gebraucht holen oder reparieren hängt ebenfalls eine Tasche dazu. ${nB?"Gerade "+plural(nB,"hängt eine","hängen "+nB)+".":""}</p></div>
   </div>
-  <p class="note">Tagsüber scheint die Sonne herein, nachts brennt die Lampe. Nichts, was du dir erarbeitet hast, verschwindet aus dem Bild.</p>
+  <p class="note">Tagsüber scheint die Sonne herein, abends brennt die Lampe, und gegenüber gehen die Fenster an. Über der Tasse steigt Dampf auf. Nichts, was du dir erarbeitet hast, verschwindet aus dem Bild.</p>
   <div class="btns"><button class="btn sec2" data-a="open" data-v="stufen">Alle Stufen</button></div>` }
 
 /* ---------- Bestandsaufnahme ---------- */
@@ -746,16 +817,16 @@ function checkResult(){
    <div class="list" style="margin-top:12px">${AREAS.map(a=>a.id).sort((x,y)=>sum[y]-sum[x]).map(a=>`<div class="row"><i class="dot ${a}"></i><span class="t"><b style="font-weight:500">${esc(AREA[a].n)}</b></span><span class="weg" style="width:auto;border:0;min-height:0;padding:0"><span class="st">${[0,1,2,3,4,5].map(k=>`<i class="${k<sum[a]?"on":""}" style="width:12px"></i>`).join("")}</span></span></div>`).join("")}</div>
    ${Object.values(ans).filter(v=>v===3).length>=4?`<div class="box"><p class="small" style="margin:0">Wenn dich das stark belastet, findest du unter „Wenn es schwer wird“ Anlaufstellen.</p><button class="lnk" data-a="open" data-v="hilfe">Wenn es schwer wird</button></div>`:""}
    <p class="small muted" style="margin-top:12px">Dein nächster Schritt richtet sich jetzt nach diesen Bereichen. In drei Monaten kannst du die Bestandsaufnahme wiederholen und vergleichen.</p>
-   <div class="btns"><button class="btn" data-a="close">Zum Raum</button></div>`;
+   <div class="btns"><button class="btn" data-a="close">Zum Zimmer</button></div>`;
 }
 
 /* ---------- Momente ---------- */
 const MOM=[
-  {k:"stage",pri:10},{k:"first-keep",pri:6,c:()=>S.keep.length>0,t:"Das erste Lieblingsding",x:"Du hast zum ersten Mal ein Ding bewusst behalten. Es steht jetzt mit seinem Grund in deinem Raum."},
-  {k:"first-wish",pri:7,c:()=>S.wishes.some(w=>w.waited&&(w.st==="lass"||w.st==="leih")),t:"Ein Wunsch ist verblasst",x:"Ein Wunsch hat gewartet, und danach wolltest du ihn nicht mehr. Er ist jetzt ein Lichtpunkt in deinem Raum."},
+  {k:"stage",pri:10},{k:"first-keep",pri:6,c:()=>S.keep.length>0,t:"Das erste Ding mit Grund",x:"Du hast zum ersten Mal ein Ding bewusst behalten. Es steht jetzt auf seinem Platz in deinem Zimmer, mit einem Untersetzer für den Grund."},
+  {k:"first-wish",pri:7,c:()=>S.wishes.some(w=>w.waited&&(w.st==="lass"||w.st==="leih")),t:"Ein Wunsch hat gewartet",x:"Ein Wunsch hat seine Zeit bekommen, und danach wolltest du ihn nicht mehr. Das Paket vor der Tür ist weg, der Platz bleibt frei."},
   {k:"first-box",pri:5,c:()=>S.box.some(b=>b.st!=="in"),t:"Die erste Kiste ist offen",x:"Du hast nach dreißig Tagen nachgesehen. Was du nicht gebraucht hast, weißt du jetzt aus eigener Erfahrung."},
   {k:"first-ex",pri:6,c:()=>Object.values(S.ex).some(e=>e.st==="done"&&e.lived),t:"Eine Übung durchgezogen",x:"Du hast eine Übung an genug Tagen gemacht. Aus einem Vorsatz ist etwas geworden, das du kennst."},
-  {k:"first-teil",pri:4,c:()=>S.log.some(e=>e.k==="teil"),t:"Der erste Beutel",x:"Du hast etwas bekommen, ohne dass es neu hergestellt wurde. In deinem Raum hängt jetzt ein Beutel an der Hakenleiste."},
+  {k:"first-teil",pri:4,c:()=>S.log.some(e=>e.k==="teil"),t:"Die erste Tasche an der Tür",x:"Du hast etwas bekommen, ohne dass es neu hergestellt wurde. In deinem Zimmer hängt jetzt eine Tasche an der Tür."},
   {k:"nomiss",pri:5,c:()=>{ const s=stats(); return s.asked.length>=5 },t:"Dein eigener Beleg",x:null}
 ];
 function maybeMoment(){
@@ -767,14 +838,14 @@ function maybeMoment(){
   if(!due.length) return;
   due.sort((a,b)=>b.pri-a.pri);
   const main=due[0], more=due.slice(1);
-  if(main.k==="nomiss"){ const s=stats(); main.x="Von "+s.asked.length+" Dingen, nach denen die App gefragt hat, hast du "+s.missed.length+" vermisst. Das ist dein eigener Beleg, wie viel du wirklich brauchst." }
+  if(main.k==="nomiss"){ const s=stats(); main.x="Von "+s.asked.length+" Dingen, nach denen die App gefragt hat, hast du "+s.missed.length+" vermisst. Das ist dein eigener Beleg dafür, was dir gefehlt hat und was nicht." }
   // Ältere Stufen, die man übersprungen hat, gelten als gesehen
   for(let i=1;i<=st;i++) S.mom["stage-"+i]=now();
   due.forEach(m=>S.mom[m.k]=now()); save();
   openSheet("moment",null,{m:main,more});
 }
 function momentHTML(){ const {m,more}=SH.d;
-  return `<div class="sh-top"><span class="meta">${m.k&&m.k.startsWith("stage")?"Neue Stufe":"Neu in deinem Raum"}</span><button class="sh-close" data-a="close">Schließen</button></div><h2 id="sh-t" tabindex="-1">${esc(m.t)}</h2><p class="lead">${esc(m.x)}</p>
+  return `<div class="sh-top"><span class="meta">${m.k&&m.k.startsWith("stage")?"Neue Stufe":"Neu in deinem Zimmer"}</span><button class="sh-close" data-a="close">Schließen</button></div><h2 id="sh-t" tabindex="-1">${esc(m.t)}</h2><p class="lead">${esc(m.x)}</p>
   ${more&&more.length?`<p class="small muted">Auch neu: ${more.map(x=>esc(x.t)).join(", ")}.</p>`:""}
   <div class="btns"><button class="btn" data-a="close" data-autofocus>Weiter</button></div>` }
 
@@ -790,7 +861,7 @@ function act(msg,fn,opt){ const snap=JSON.stringify(S), w0=weite(); fn(); save()
 
 /* ---------- Aktionen ---------- */
 function readFields(){ const g=id=>{ const e=document.getElementById(id); return e?e.value.trim():undefined };
-  if(!SH) return; const d=SH.d; [["f-name","name"],["f-note","note"],["f-price","price"],["f-wo","wo"],["f-wenn","wenn"],["f-enote","note"]].forEach(([id,k])=>{ const v=g(id); if(v!==undefined) d[k]=v }) }
+  if(!SH) return; const d=SH.d; [["f-name","name"],["f-who","who"],["f-note","note"],["f-price","price"],["f-wo","wo"],["f-wenn","wenn"],["f-enote","note"]].forEach(([id,k])=>{ const v=g(id); if(v!==undefined) d[k]=v }) }
 const A={
   logo(){ if(TAB!=="home"){ TAB="home"; render() } scrollTo({top:0,behavior:RM()?"auto":"smooth"}) },
   tab(el){ go(el.dataset.v) },
@@ -799,6 +870,7 @@ const A={
     const pre={};
     if(["los","keep","pruef","kiste"].includes(v)&&w&&AREA[w]) pre.cat=w;
     if(v==="wish") pre.cat="ko";
+    if(v==="timer"){ NXALT=0; if(el.dataset.step) pre.step=1 }
     if(v==="imp") markRead(w);
     openSheet(v,w,pre) },
   close(){ closeSheet() },
@@ -813,11 +885,17 @@ const A={
   "set-erl"(el){ readFields(); SH.d.erl=+el.dataset.v; drawSheet() },
   "set-ekeep"(el){ readFields(); SH.d.keep=el.dataset.v; drawSheet() },
   "set-dd"(el){ SH.d.dd=+el.dataset.v; drawSheet() },
-  "do-los"(){ readFields(); const d=SH.d; const e={id:uid(),k:"los",ts:now(),cat:d.cat,size:d.size,weg:d.weg,name:d.name||"",ask:now()+30*DAY};
-    closeSheet(); act("Eingetragen. In deinem Raum wird Platz frei.",()=>{ S.log.push(e) }); render() },
+  "do-los"(){ readFields(); const d=SH.d; const e={id:uid(),k:"los",ts:now(),cat:d.cat,size:d.size,weg:d.weg,name:d.name||"",ask:d.ask===false?null:now()+30*DAY};
+    if(d.who&&WEG[d.weg]&&WEG[d.weg].g) e.who=d.who.slice(0,30);
+    closeSheet(); act(e.who?"Eingetragen. Die Tasche für "+e.who+" hängt an der Tür.":"Eingetragen. In deinem Zimmer wird Platz frei.",()=>{ S.log.push(e) }); render() },
+  "set-motif"(el){ readFields(); SH.d.motif=el.dataset.v; drawSheet() },
+  "set-kmotif"(el){ const k=S.keep.find(x=>x.id===SH.arg); if(!k) return; k.motif=el.dataset.v; save(); drawSheet(); const dd=document.querySelector(".mot-d"); if(dd) dd.open=true; toast("Im Bild steht es jetzt als "+el.dataset.v+".") },
+  "set-ask"(){ readFields(); SH.d.ask=SH.d.ask===false; drawSheet() },
+  nxalt(){ NXALT++; render(); const h=$("#nx-t"); if(h) h.closest(".next").querySelector(".btn").focus({preventScroll:true}) },
+  "timer-go"(){ SH.d.end=now()+(+(SH.arg||10))*60000; drawSheet(); timerTick() },
   "do-keep"(){ readFields(); const d=SH.d; if(keepers().length>=MAXKEEP) return;
-    const k={id:uid(),ts:now(),name:d.name||"Ohne Namen",cat:d.cat,why:d.why,note:d.note||"",next:now()+90*DAY,asks:0};
-    closeSheet(); act("Behalten. Es hat jetzt seinen Platz in deinem Raum.",()=>{ S.keep.push(k); S.log.push({id:uid(),k:"keep",ts:now(),cat:k.cat,name:k.name}) }); render() },
+    const k={id:uid(),ts:now(),name:d.name||"Ohne Namen",cat:d.cat,why:d.why,note:d.note||"",next:now()+90*DAY,asks:0,motif:d.motif||Bild.guessMotif(d.name,d.cat,d.why)};
+    closeSheet(); act("Behalten. Es hat jetzt seinen Platz in deinem Zimmer.",()=>{ S.keep.push(k); S.log.push({id:uid(),k:"keep",ts:now(),cat:k.cat,name:k.name}) }); render() },
   keepgo(el){ const k=S.keep.find(x=>x.id===el.dataset.v); if(!k) return; const name=k.name, cat=k.cat;
     act("Sein Platz ist jetzt frei. Trag ein, wohin das Ding geht.",()=>{ k.gone=true; k.answered=true }); openSheet("los",null,{name,cat}) },
   keepans(el){ const k=S.keep.find(x=>x.id===SH.arg)||keepAskDue()[0]; if(!k) return; const v=el.dataset.v;
@@ -830,7 +908,7 @@ const A={
   wishans(el){ const w=S.wishes.find(x=>x.id===SH.arg); if(!w) return; const v=el.dataset.v;
     if(v==="mehr"){ w.due=day0(now())+7*DAY; save(); closeSheet(); toast("Noch eine Woche bis zum "+fdate(w.due)+"."); return }
     const waited=isDue(w.due);
-    closeSheet(); act(v==="lass"?"Gelassen. Ein neuer Lichtpunkt.":v==="leih"?"Gut. Nichts Neues muss dafür hergestellt werden.":"Entschieden. Du hast es dir gut überlegt.",()=>{
+    closeSheet(); act(v==="lass"?(waited?"Gelassen. Das Paket vor der Tür ist weg, 4 Handbreit.":"Gelassen. Das Paket vor der Tür ist weg."):v==="leih"?"Gut. Nichts Neues muss dafür hergestellt werden.":(waited?"Entschieden, nach voller Wartezeit. 2 Handbreit fürs Warten.":"Entschieden. Du hast es dir überlegt."),()=>{
       w.st=v; w.dts=now(); w.waited=waited; S.log.push({id:uid(),k:"wunsch",ts:now(),wid:w.id,name:w.name,cat:w.cat,dec:v,waited}) }); render() },
   "do-teil"(){ readFields(); const d=SH.d; const e={id:uid(),k:"teil",ts:now(),name:d.name||"",how:d.how,cat:d.cat};
     closeSheet(); act("Eingetragen. Gut, dass es nicht neu sein musste.",()=>{ S.log.push(e) }); render() },
@@ -869,7 +947,7 @@ const A={
   "ex-stop"(){ const u=UEB[SH.arg]; closeSheet(); act("Abgebrochen. Du kannst jederzeit neu anfangen.",()=>{ S.ex[u.id].st="stop" },{ok:false}) },
   "ex-done"(){ readFields(); const u=UEB[SH.arg], e=S.ex[u.id], d=SH.d; const dd=d.dd!=null?d.dd:daysDone(e,u);
     const lived=dd>=Math.ceil(u.d/2), p=lived?(u.d<=3?2:u.d<=7?3:4):0;
-    closeSheet(); act(lived?"Abgeschlossen. Dein Raum bekommt Weite dazu.":"Abgeschlossen. Für Weite waren es zu wenige Tage, aber du hast es ausprobiert.",()=>{
+    closeSheet(); act(lived?"Abgeschlossen. Dein Zimmer bekommt Handbreit dazu.":"Abgeschlossen. Für Handbreit waren es zu wenige Tage, aber du hast es ausprobiert.",()=>{
       Object.assign(e,{st:"done",end:now(),erl:d.erl,keep:d.keep,note:d.note||"",daysDone:dd,lived}); if(p) S.log.push({id:uid(),k:"ueb",ts:now(),uid:u.id,cat:u.cat,p}) }); render() },
   save(el){ const id=el.dataset.v; if(S.saved[id]) delete S.saved[id]; else S.saved[id]=now(); save(); drawSheet() },
   share(el){ shareIt(el.dataset.v) },
@@ -883,7 +961,7 @@ const A={
     const before=weite(); buzz("ok");
     act("„"+a.t+"“ erledigt.",()=>{ S.log.push({id:uid(),k:"aufg",ts:now(),aid:a.id,cat:a.cat}) });
     const gain=weite()-before; if(SH) drawSheet(); else render();
-    if(gain===0&&a.art==="oft") setTimeout(()=>toast("Eingetragen. Für heute ist die Grenze der Weite aus Aufgaben erreicht.",{ok:false}),50);
+    if(gain===0&&a.art==="oft") setTimeout(()=>toast("Eingetragen. Für heute ist die Grenze der Handbreit aus Aufgaben erreicht.",{ok:false}),50);
     const el2=document.querySelector(`.aufg[data-v="${a.id}"]`); if(el2&&!RM()){ el2.classList.add("stamp"); setTimeout(()=>el2.classList.remove("stamp"),700) } },
   "aufg-pre"(el){ const id=el.dataset.v; act("Als „hatte ich schon“ markiert.",()=>{ S.pre[id]=now() }); drawSheet() },
   inflow(el){ S.inflow[el.dataset.v]=+el.dataset.w; S.hint.key=""; save(); render(); toast("Gespeichert. Du siehst es unter „Dein Weg“.") },
@@ -898,8 +976,12 @@ const A={
   filepick(){},
   "import-ok"(){ S=merge(fresh(),SH.d.confirm.o); migrate(); save(); applyTheme(); closeSheet(); toast("Sicherung geladen.") },
   "reset-1"(){ SH.d.sure=true; drawSheet() },
-  "reset-ok"(){ try{ localStorage.removeItem(KEY) }catch(e){} S=fresh(); S.seen=true; save(); applyTheme(); closeSheet(); TAB="home"; render(); toast("Alles gelöscht. Dein Raum beginnt neu.",{ok:false}) }
+  "reset-ok"(){ try{ localStorage.removeItem(KEY) }catch(e){} S=fresh(); S.seen=true; save(); applyTheme(); closeSheet(); TAB="home"; render(); toast("Alles gelöscht. Dein Zimmer beginnt neu.",{ok:false}) }
 };
+let timerT=0;
+function timerTick(){ clearInterval(timerT); timerT=setInterval(()=>{ if(!SH||SH.type!=="timer"||!SH.d.end){ clearInterval(timerT); return }
+  const left=Math.max(0,SH.d.end-now()), el=$("#uhr"); if(el) el.textContent=String(Math.floor(left/60000)).padStart(2,"0")+":"+String(Math.floor(left%60000/1000)).padStart(2,"0");
+  if(left<=0){ clearInterval(timerT); buzz("ok"); drawSheet() } },1000) }
 function markRead(id){ if(!id||!IMP[id]) return; const r=S.readRun, t=now();
   if(!S.read[id]) S.read[id]=t;
   if(r.day===dkey()&&t-r.t<15*60*1000) r.n++; else { r.n=1; r.day=dkey() } r.t=t; save() }
@@ -958,7 +1040,7 @@ const mq=matchMedia("(prefers-color-scheme: dark)");
 function applyTheme(){ const t=S.settings.theme, r=document.documentElement;
   if(t==="light") r.dataset.theme="light"; else if(t==="dark") r.dataset.theme="dark"; else delete r.dataset.theme;
   const dark=t==="dark"||(t==="system"&&mq.matches); r.dataset.dark=dark?"1":"0";
-  const m=document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x=>x.setAttribute("content",dark?"#222A42":"#F2F4F2")) }
+  const m=document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x=>x.setAttribute("content",dark?"#24201F":"#F6F4EF")) }
 mq.addEventListener&&mq.addEventListener("change",()=>{ applyTheme(); if(TAB==="home") mountBild() });
 let rsT=0; addEventListener("resize",()=>{ clearTimeout(rsT); rsT=setTimeout(()=>{ moveDot(); if(TAB==="home") mountBild() },200) });
 

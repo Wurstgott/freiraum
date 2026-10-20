@@ -15,12 +15,12 @@ def need(name,T,fg,bg,lim):
     if r<lim: bad+=1; print(f"{name}: {fg} auf {bg}: {r:.2f} < {lim}")
 for name,T in (("hell",light),("dunkel",dark)):
     # Text
-    for fg in ["ink","muted","faint","sun-ink","err","ok"]:
+    for fg in ["ink","muted","faint","sun-ink","err","ok","brand-ink"]:
         for bg in ["bg","surface","surface2","sel"]:
             need(name,T,fg,bg,4.5)
     for fg in ["ink","sun-ink"]: need(name,T,fg,"sun-soft",4.5)
     need(name,T,"done-ink","done",4.5); need(name,T,"ink","done",4.5); need(name,T,"muted","done",4.5)
-    need(name,T,"on-primary","primary",4.5); need(name,T,"on-toast","toast",4.5)
+    need(name,T,"on-primary","primary",4.5); need(name,T,"on-toast","toast",4.5); need(name,T,"ink","surface2",4.5); need(name,T,"muted","surface2",4.5)
     # Grafik (Punkte, Kanten der Auswahl): mindestens 3:1
     for fg in ["c-kl","c-wo","c-pa","c-er","c-ko","primary"]:
         for bg in ["bg","surface"]:

@@ -31,6 +31,7 @@ with sync_playwright() as p:
         elif a.startswith("fill:"):
             sel, val = a[5:].split("=", 1); pg.fill(sel, val)
         elif a.startswith("scroll:"): pg.evaluate(f"document.querySelector('#sheet-in')?document.querySelector('#sheet-in').scrollTop={a[7:]}:scrollTo(0,{a[7:]})"); pg.wait_for_timeout(200)
+    if full: pg.add_style_tag(content=".tabs{position:absolute!important;bottom:0!important;top:auto!important} #app{position:relative;min-height:100vh}")
     pg.screenshot(path=f"{OUT}/{name}.png", full_page=full)
     sw = pg.evaluate("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
     print("scroll", sw, "errors:", errs or "keine")

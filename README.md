@@ -1,6 +1,6 @@
 # Freiraum (Arbeitstitel, früher „Lichtung“)
 
-Eine helle Web-App, die beim Ausmisten hilft: Dinge gut weitergeben, Kaufwünsche warten lassen, bewusst behalten, kleine Aufgaben abhaken. Das Hauptbild ist ein Raum voller Kartons, der sich mit jedem losgelassenen Ding leert. Mit Wissen aus der Forschung, jede Aussage mit Quelle und Belegstufe. Kein Konto, kein Server, alles bleibt auf dem Gerät.
+Eine helle, forschungsbasierte Web-App fürs Ausmisten: Dinge gut weitergeben, Kaufwünsche warten lassen, bewusst behalten, kleine Aufgaben abhaken. Das Hauptbild ist ein überladenes, bewohntes Zimmer, das mit jedem losgelassenen Ding Stück für Stück leerer wird. Fortschritt wird in „Handbreit“ gemessen. Mit Wissen aus der Forschung, jede Aussage mit Quelle und Belegstufe. Kein Konto, kein Server, alles bleibt auf dem Gerät.
 
 Live: https://wurstgott.github.io/freiraum/
 
@@ -13,4 +13,4 @@ Live: https://wurstgott.github.io/freiraum/
 - `KONZEPT.md` – Kernidee, Datenschema, Haltung
 
 Idee und Auftrag: Carlo Maximilian Engeländer. Alle Rechte vorbehalten.
-Schriften: Poppins und Inter, SIL Open Font License.
+Schriften: TeX Gyre Schola (GUST Font License) und Inter (SIL Open Font License).

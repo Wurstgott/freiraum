@@ -1,21 +1,49 @@
+"""App-Icons und Logo-Proben aus dem Logo „Ein Buch steht, eines lehnt“ (Büro H, mit Auflagen).
+python3 icons.py            -> repo/icon-512.png, icon-512-maskable.png, icon-192.png, apple-touch-icon.png
+python3 icons.py proben DIR -> zusätzlich Logo-Proben (PNG) und die SVG-Fassungen nach DIR
+
+Auflagen: keine Kerbe (das lehnende Buch schneidet nichts an), klein lesbar als Bücher
+(drei Bücher mit Rückenbändern statt zweier Balken, die wie „IL“ wirkten), eine Ziegelfarbe #B4472E."""
+import sys, os
 from playwright.sync_api import sync_playwright
-svg='''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#F2F4F2"/>
-<defs><radialGradient id="g" cx=".22" cy=".18" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
-<rect x="120" y="92" width="272" height="226" rx="22" fill="#11666F"/>
-<rect x="142" y="114" width="228" height="182" rx="8" fill="#CFE4F2"/>
-<rect x="142" y="114" width="228" height="182" rx="8" fill="url(#g)"/>
-<rect x="246" y="114" width="20" height="182" fill="#11666F"/><rect x="142" y="190" width="228" height="18" fill="#11666F"/>
-<rect x="104" y="318" width="304" height="16" rx="8" fill="#E2CBA4"/>
-<path d="M132 350h220l64 74H176z" fill="#FFD45C"/>
-</svg>''' + "".join(f'<path d="M{x} 430V{y}"/>' for x,y in [(110,190),(122,210),(160,150),(170,200),(342,190),(354,180),(392,150),(402,200)]) + '''</g>
-<path d="M236 150 196 430h120l-40-280z" fill="#E3B64E" opacity=".38"/>
-<ellipse cx="256" cy="428" rx="74" ry="16" fill="#E3B64E" opacity=".7"/>
-<circle cx="256" cy="118" r="34" fill="#E3B64E"/>
-<path d="M150 430h212" stroke="#17241D" stroke-width="10" stroke-linecap="round"/></svg>'''
+BRAND, CREAM, LIGHT = "#B4472E", "#FFF4E6", "#F7C548"
+
+def logo(size="gross", bg=BRAND, a=CREAM, b=LIGHT, rx=116, scale=None):
+    """Zwei Bücher stehen, ein drittes lehnt am zweiten: ein Regalboden, auf dem wieder Platz ist.
+    Rückenbänder in der Grundfarbe machen die Formen auch klein als Bücher lesbar (nicht als Buchstaben).
+    size „klein“ (20–32 px) hat dieselbe Form, nur ohne die feinen Bänder des lehnenden Buchs."""
+    r = f'<rect width="512" height="512" rx="{rx}" fill="{bg}"/>' if bg else ""
+    band = bg or "none"
+    s = scale or 1.0
+    lean_band = "" if size == "klein" else f'<rect x="0" y="120" width="76" height="14" fill="{band}"/>'
+    g = (f'<g transform="translate(256 256) scale({s}) translate(-256 -274)">'
+         f'<rect x="92" y="120" width="82" height="260" rx="12" fill="{a}"/><rect x="92" y="246" width="82" height="16" fill="{band}"/>'
+         f'<rect x="188" y="170" width="74" height="210" rx="12" fill="{a}"/><rect x="188" y="320" width="74" height="14" fill="{band}"/>'
+         f'<g transform="translate(362 380) rotate(-27) translate(0 -190)"><rect x="0" y="0" width="76" height="190" rx="12" fill="{b}"/>{lean_band}</g>'
+         f'<rect x="70" y="372" width="372" height="56" rx="14" fill="{a}"/></g>')
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">{r}{g}</svg>'
+
+def render(pg, svg, px, path, bgpage="transparent"):
+    pg.set_viewport_size({"width": px, "height": px})
+    pg.set_content(f'<html><body style="margin:0;background:{bgpage}">{svg.replace("<svg ", f"<svg width=\"{px}\" height=\"{px}\" ", 1)}</body></html>')
+    pg.screenshot(path=path, clip={"x": 0, "y": 0, "width": px, "height": px}, omit_background=bgpage == "transparent")
+
 with sync_playwright() as p:
-    b=p.chromium.launch(); pg=b.new_page(viewport={"width":512,"height":512})
-    pg.set_content(f'<html><body style="margin:0">{svg}</body></html>')
-    for s,n in [(512,"icon-512.png"),(192,"icon-192.png"),(180,"apple-touch-icon.png")]:
-        pg.set_viewport_size({"width":s,"height":s}); pg.evaluate(f"document.querySelector('svg').setAttribute('width',{s});document.querySelector('svg').setAttribute('height',{s})")
-        pg.screenshot(path="/home/claude/lichtung/repo/"+n, clip={"x":0,"y":0,"width":s,"height":s})
-    b.close()
+    br = p.chromium.launch(); pg = br.new_page()
+    R = "/home/claude/lichtung/repo/"
+    render(pg, logo("gross"), 512, R + "icon-512.png")
+    render(pg, logo("gross", rx=0, scale=0.82), 512, R + "icon-512-maskable.png")
+    render(pg, logo("gross"), 192, R + "icon-192.png")
+    render(pg, logo("gross", rx=0), 180, R + "apple-touch-icon.png")
+    if len(sys.argv) > 2 and sys.argv[1] == "proben":
+        D = sys.argv[2]; os.makedirs(D, exist_ok=True)
+        open(D + "/logo.svg", "w").write(logo("gross"))
+        open(D + "/logo-klein.svg", "w").write(logo("klein"))
+        open(D + "/logo-sw.svg", "w").write(logo("gross", bg="#111111", a="#FFFFFF", b="#FFFFFF"))
+        for px in (512, 192, 60, 40):
+            render(pg, logo("gross"), px, f"{D}/logo-{px}.png")
+        render(pg, logo("gross", rx=0), 180, f"{D}/logo-180.png")
+        for px in (32, 29, 20):
+            render(pg, logo("klein"), px, f"{D}/logo-{px}.png")
+    br.close()
+print("Icons geschrieben")

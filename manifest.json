@@ -5,9 +5,9 @@
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
- "background_color": "#F2F4F2",
- "theme_color": "#F2F4F2",
- "description": "Weniger besitzen, besser behalten: Freiraum hilft Schritt für Schritt beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät.",
+ "background_color": "#F6F4EF",
+ "theme_color": "#F6F4EF",
+ "description": "Entscheiden, was bleibt: Freiraum hilft Stück für Stück beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät.",
  "icons": [
   {
    "src": "icon-192.png",
@@ -20,7 +20,7 @@
    "type": "image/png"
   },
   {
-   "src": "icon-512.png",
+   "src": "icon-512-maskable.png",
    "sizes": "512x512",
    "type": "image/png",
    "purpose": "maskable"

@@ -1,6 +1,6 @@
 /* Freiraum – feste Kerndaten. ids ändern sich nie. */
 const APPNAME="Freiraum";
-const APPSUB="Mehr Luft, mehr Lieblingsdinge";
+const APPSUB="Entscheiden, was bleibt";
 
 const AREAS=[
   {id:"kl",n:"Kleidung",lang:"Kleidung, Schuhe, Taschen"},
@@ -11,25 +11,42 @@ const AREAS=[
 ];
 const AREA=Object.fromEntries(AREAS.map(a=>[a.id,a]));
 
-/* Stufen: Name, Text und Bild sind deckungsgleich. Schwellen in „Weite“. */
+/* Stufen: benannt nach dem, was im Bild frei wird. Name, Text und Bild sind deckungsgleich.
+   Schwellen in Handbreit (Platz, den ein Ding im Regal braucht). */
 const STUFEN=[
-  {w:0,  n:"Vollgestellt",   x:"Kartons, Kisten und Tüten stehen überall. Nur wenig Licht kommt durch das Fenster."},
-  {w:1,  n:"Erster Karton",  x:"Drei große Kartonstapel sind weg. Mitten im Raum wird es lichter."},
-  {w:5,  n:"Ein Stück Boden",x:"Vor dem Fenster ist ein Stück Boden frei. Man sieht die hellen Dielen."},
-  {w:12, n:"Fenster frei",   x:"Auf der Bank unter dem Fenster steht nichts mehr. Das Licht fällt bis auf den Boden."},
-  {w:24, n:"Freie Ecke",     x:"Der Boden in der linken Ecke ist frei. Auch an der Wand hängt weniger."},
-  {w:44, n:"Luft zum Atmen", x:"Mehr als die Hälfte der Kisten ist fort. Zwischen den Dingen ist überall Platz."},
-  {w:75, n:"Sonnenfleck",    x:"Der Lichtfleck vom Fenster ist ganz frei. Er leuchtet kräftig auf den Dielen."},
-  {w:115,n:"Klare Flächen",  x:"Die Bank und das Wandbord sind leer, bis auf das, was du behältst."},
-  {w:170,n:"Weiter Raum",    x:"Die Wände und das Regal sind leer. Auf dem Boden steht keine Kiste mehr."},
-  {w:250,n:"Lieblingsraum",  x:"Der Raum ist leer und hell. Auf Bank, Bord und Regal steht nur noch, was du gern hast und bewusst behältst."}
+  {w:0,  n:"Alles da",           x:"Hier wohnt jemand, und alles liegt irgendwo: Tisch, Stuhl, Regal und Boden sind voll."},
+  {w:3,  n:"Erste Lücke",        x:"Der Versandkarton und die Tüten vorn am Boden sind weg."},
+  {w:8,  n:"Boden in Sicht",     x:"Ganz vorn liegt nichts mehr, der Teppich ist wieder zu sehen. Weiter hinten steht noch einiges."},
+  {w:16, n:"Stuhl frei",         x:"Auf dem Stuhl liegt keine Kleidung mehr, nur die Strickjacke hängt dort. Auch die Socke hängt nicht mehr an der Lampe."},
+  {w:28, n:"Tischecke frei",     x:"Die linke Hälfte vom Tisch ist frei. Dort kann man wieder etwas abstellen."},
+  {w:45, n:"Regal mit Lücken",   x:"Im Regal liegt nichts mehr quer, zwischen den Büchern sind Lücken. Auch am Boden wird es frei."},
+  {w:70, n:"Wand ohne Zettel",   x:"Die losen Zettel sind ab. Das Bild und die Pinnwand bleiben."},
+  {w:105,n:"Tisch frei",         x:"Auf dem Tisch stehen Laptop, Lampe, Tasse und was du behältst."},
+  {w:150,n:"Boden frei",         x:"Am Boden und unter dem Tisch liegt nichts mehr. Das Licht fällt auf die Dielen."},
+  {w:210,n:"Genug",              x:"Ein bewohntes Zimmer mit Platz dazwischen. Was hier steht, hat einen Grund."}
+];
+/* Ein Schritt im eigenen Zimmer je Stufe: was man jetzt tun kann (Titel, Text, Minuten) */
+const SCHRITTE=[
+  ["Den Versandkarton vorn","Pack aus, was noch drin ist, und bring den Karton zum Altpapier. Das ist der schnellste sichtbare Schritt.",5],
+  ["Die Tüten am Boden","Leere zwei Tüten. Was du brauchst, bekommt einen Platz. Der Rest kommt in eine Tüte zum Weitergeben.",10],
+  ["Den Stuhl leer räumen","Was du trägst, kommt in den Schrank oder in die Wäsche. Was du nicht mehr trägst, kommt in eine Tüte für später.",5],
+  ["Eine Tischecke freiräumen","Nimm dir die linke Hälfte vom Tisch vor. Was du jeden Tag brauchst, bleibt. Alles andere bekommt einen Platz oder kommt in eine Tüte.",10],
+  ["Ein Regalfach als Grenze","Wähle ein Fach. Stell zuerst die Bücher hinein, die du wirklich liest. Was nicht mehr passt, kommt in die Vielleicht-Kiste.",15],
+  ["Fünf Zettel von der Wand","Lies jeden Zettel einmal. Erledigtes kommt weg, Wichtiges an die Pinnwand oder als Foto ins Handy.",5],
+  ["Den Tisch ganz frei","Räum den Tisch leer und stell nur zurück, was du diese Woche benutzt hast.",15],
+  ["Unter dem Tisch","Hol alles unter dem Tisch hervor und entscheide Stück für Stück: behalten, weitergeben, Vielleicht-Kiste.",15],
+  ["Eine Ecke am Boden","Such dir eine Ecke, in der noch etwas steht. Zehn Minuten, dann hörst du auf.",10],
+  ["Ein Platz für Neues","Wenn etwas Neues kommt: Wo soll es stehen? Hat es keinen Platz, lass es als Wunsch warten.",5]
 ];
 
+/* Größen beim Loslassen in Handbreit. 5 („Etwas Großes“) gab es in der ersten Fassung, alte Einträge zählen weiter 5. */
 const SIZES=[
-  {v:1,n:"Ein Ding",x:"ein Buch, ein Pullover, eine Tasse"},
-  {v:3,n:"Eine Tüte oder Kiste",x:"mehrere Dinge auf einmal"},
-  {v:5,n:"Etwas Großes",x:"ein Möbelstück, ein Gerät, ein Fahrrad"}
+  {v:1,n:"Ein Ding",x:"ein Buch, ein Pulli, eine Tasse"},
+  {v:3,n:"Eine Tüte",x:"mehrere kleine Dinge"},
+  {v:6,n:"Ein Karton",x:"eine volle Kiste"},
+  {v:10,n:"Ein Möbel",x:"ein Möbel, ein Gerät, ein Fahrrad"}
 ];
+const SIZE_ALT={5:"Etwas Großes"};
 const WEGE=[
   {id:"ver",n:"Verschenkt",g:1},
   {id:"spe",n:"Gespendet",g:1},

@@ -148,8 +148,8 @@ const IMPULSE_A=[
 
 { id:"i15", cat:"ko",
   t:"Was sagt die Forschung zu Minimalismus selbst?",
-  x:"Hook und Kollegen sammelten 23 Studien zu Minimalismus und freiwilliger Einfachheit. Fast alle fanden einen positiven Zusammenhang mit Wohlbefinden. Die Autoren vermuten zwei Gründe: Man kontrolliert seine Kaufwünsche besser, und Grundbedürfnisse wie Selbstbestimmung, Können und Verbundenheit werden eher erfüllt. Ob der Effekt gilt, hängt möglicherweise vom Einkommen ab und davon, ob man sich selbst für das einfache Leben entschieden hat.",
-  c:"Eine frühere Übersicht von Rich und Kollegen (2017) fand keine einzige Langzeit- oder Experimentalstudie. Die meisten Befragten waren Menschen aus reichen Ländern, die sich online selbst meldeten. Der Zusammenhang ist beständig, die Ursache aber ungeklärt.",
+  x:"Hook und Kollegen sammelten 23 Studien zu Minimalismus und freiwilliger Einfachheit. Die große Mehrheit fand einen positiven Zusammenhang mit Wohlbefinden. Die Autoren vermuten zwei Gründe: Man kontrolliert seine Kaufwünsche besser, und Grundbedürfnisse wie Selbstbestimmung, Können und Verbundenheit werden eher erfüllt. Ob der Effekt gilt, hängt möglicherweise vom Einkommen ab und davon, ob man sich selbst für das einfache Leben entschieden hat.",
+  c:"Die meisten Befragten waren Menschen aus reichen Ländern, die sich online selbst meldeten. Der Zusammenhang ist beständig, die Ursache aber ungeklärt. Ein erster kleiner Versuch von 2024 fand: Ein Programm half beim Ausmisten, das Wohlbefinden stieg aber nicht (Impuls „Ein Experiment zum Ausmisten“).",
   src:"Hook, J. N., Hodge, A. S., Zhang, H., Van Tongeren, D. R., & Davis, D. E. (2023). Minimalism, voluntary simplicity, and well-being: A systematic review of the empirical literature. The Journal of Positive Psychology, 18(1), 130–141.",
   u:"https://doi.org/10.1080/17439760.2021.1991450",
   ev:2, typ:"Übersicht",
@@ -253,7 +253,7 @@ const QUIZ_A=[
 
 { id:"q08", q:"Was ist das ehrlichste Fazit zur Forschung über Minimalismus?",
   o:["Minimalismus hängt mit mehr Wohlbefinden zusammen, aber Experimente fehlen fast ganz.","Minimalismus macht nachweislich glücklich.","Minimalismus schadet dem Wohlbefinden."],
-  r:0, x:"Eine Übersicht fand in 23 Studien einen beständigen positiven Zusammenhang. Fast alle waren Befragungen von Menschen, die sich selbst meldeten. Ob Minimalismus die Ursache ist, bleibt offen.", imp:"i15" },
+  r:0, x:"Eine Übersicht fand in 23 Studien einen beständigen positiven Zusammenhang. Fast alle waren Befragungen. Ein kleiner Versuch von 2024 half beim Ausmisten, das Wohlbefinden stieg aber nicht. Ob Minimalismus glücklicher macht, bleibt offen.", imp:"i15" },
 
 { id:"q09", q:"Wie steht es um den Befund, dass Geld für andere glücklicher macht als Geld für sich?",
   o:["Er wurde in allen Wiederholungen genauso stark gefunden.","Er hat sich als völlig falsch erwiesen.","Wiederholungen fanden ihn teils, teils nicht, und meist kleiner als im Original."],
