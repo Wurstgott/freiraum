@@ -1,13 +1,13 @@
 {
- "name": "Freiraum",
- "short_name": "Freiraum",
+ "name": "Luftholen",
+ "short_name": "Luftholen",
  "lang": "de",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
  "background_color": "#F6F4EF",
  "theme_color": "#F6F4EF",
- "description": "Entscheiden, was bleibt: Freiraum hilft Stück für Stück beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät.",
+ "description": "Entscheiden, was bleibt: Luftholen hilft Stück für Stück beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät.",
  "icons": [
   {
    "src": "icon-192.png",

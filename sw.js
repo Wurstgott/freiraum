@@ -1,5 +1,5 @@
-/* Freiraum: Offline-Fähigkeit. Die Seite kommt zuerst aus dem Netz, ohne Netz aus dem Speicher. */
-const C="freiraum-22.10.2026, 00:00";
+/* Luftholen: Offline-Fähigkeit. Die Seite kommt zuerst aus dem Netz, ohne Netz aus dem Speicher. */
+const C="luftholen-22.10.2026, 00:54";
 const FILES=["./","index.html","manifest.json","icon-192.png","icon-512.png","icon-512-maskable.png","apple-touch-icon.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n!==C).map(n=>caches.delete(n)))).then(()=>self.clients.claim()))});

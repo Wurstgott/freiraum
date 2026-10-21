@@ -1,4 +1,4 @@
-/* ===== Freiraum: Gestaltungssystem „Das Zimmer“ =====
+/* ===== Luftholen: Gestaltungssystem „Das Zimmer“ =====
    Warmer, heller Grund wie Papier. Eine einzige Leitfarbe: Ziegel. Gelb ist nur Licht.
    Schola (Schulbuch-Antiqua) für Name und Überschriften, Inter für alles andere.
    Dunkel ist ein Abend in warmem Graphit, klar und nicht trüb. */
@@ -433,3 +433,10 @@ ul.steps li{margin:6px 0}
 .row.chal.hl{background:var(--sel);border-radius:12px;padding-left:10px;padding-right:10px}
 .box.schwer{margin-top:14px}
 .fokus-z{font:400 14px/1.4 var(--f-ui);color:var(--muted);margin:6px 2px 0}
+.zverw{position:absolute;left:50%;top:10px;transform:translateX(-50%);margin:0;max-width:calc(100% - 24px);width:max-content;padding:6px 12px;border-radius:999px;background:var(--surface);color:var(--ink);font:600 13px/1.25 var(--f-ui);box-shadow:0 2px 8px rgba(0,0,0,.18);pointer-events:none;text-align:center;animation:zv .5s ease both;transition:opacity .6s}
+.zverw.weg{opacity:0}
+@keyframes zv{from{opacity:0;transform:translate(-50%,-6px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion: reduce){.zverw{animation:none}}
+.prevw{height:120px;overflow:hidden;border-radius:14px;margin-top:10px;background:var(--wall);position:relative}
+canvas.prev{display:block;width:100%;position:absolute;left:0;top:50%;transform:translateY(-58%)}
+h3.profil{font-size:26px;line-height:1.15;margin:0}

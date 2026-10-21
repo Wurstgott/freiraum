@@ -1,10 +1,10 @@
-# Freiraum – Konzept
+# Luftholen – Konzept
 
 Autor und Auftraggeber: Carlo Maximilian Engeländer. Alle Rechte vorbehalten.
 
 ## Kernidee
 
-Das Hauptbild ist ein Raum. Am Anfang ist er mit Kartons, Kisten und Tüten vollgestellt. Wer Dinge gut weitergibt und weniger Neues hereinlässt, schafft Platz: Der Raum wird leerer und heller, und Licht fällt auf freie Dielen. So entsteht Freiraum, im Zimmer und im Kopf. Die wenigen Dinge, die man bewusst behält, bekommen einen festen Platz auf Bank, Bord und Regal.
+Das Hauptbild ist ein Raum. Am Anfang ist er mit Kartons, Kisten und Tüten vollgestellt. Wer Dinge gut weitergibt und weniger Neues hereinlässt, schafft Platz: Der Raum wird leerer und heller, und Licht fällt auf freie Dielen. So entsteht Luftholen, im Zimmer und im Kopf. Die wenigen Dinge, die man bewusst behält, bekommen einen festen Platz auf Bank, Bord und Regal.
 
 Die App ist nicht gegen Besitz. Sie fragt, welcher Besitz einem dient. Werkzeuge, die selbstständig machen, Dinge, die man oft benutzt, und Dinge mit echter Bedeutung bekommen einen Ehrenplatz. Der Wissensteil erklärt mit Quellen, warum Loslassen schwerfällt und wo Besitz sinnvoll ist.
 

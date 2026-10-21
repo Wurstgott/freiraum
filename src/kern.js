@@ -1,5 +1,5 @@
-/* Freiraum – feste Kerndaten. ids ändern sich nie. */
-const APPNAME="Freiraum";
+/* Luftholen – feste Kerndaten. ids ändern sich nie. */
+const APPNAME="Luftholen";
 const APPSUB="Entscheiden, was bleibt";
 
 const AREAS=[

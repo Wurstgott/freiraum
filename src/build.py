@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Setzt Freiraum zu einer einzigen HTML-Datei zusammen.
+"""Setzt Luftholen zu einer einzigen HTML-Datei zusammen.
 Ausgabe: ../repo/index.html (GitHub Pages, PWA) und ../dist/app.html (Artifact)."""
 import base64, datetime, json, os, re, subprocess, sys, zoneinfo
 
@@ -42,13 +42,13 @@ print(p.stdout.strip())
 if p.returncode != 0:
     print(p.stderr.strip()); sys.exit("Datenprüfung fehlgeschlagen")
 
-desc = "Entscheiden, was bleibt: Freiraum hilft Stück für Stück beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät."
+desc = "Entscheiden, was bleibt: Luftholen hilft Stück für Stück beim Loslassen, Warten und bewussten Behalten. Mit Wissen aus der Forschung, ohne Konto, alles bleibt auf deinem Gerät."
 head = f"""<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Freiraum – Entscheiden, was bleibt</title>
+<title>Luftholen – Entscheiden, was bleibt</title>
 <meta name="description" content="{desc}">
 <meta name="author" content="Carlo Maximilian Engeländer">
 <meta name="copyright" content="© Carlo Maximilian Engeländer. Alle Rechte vorbehalten.">
@@ -57,11 +57,11 @@ head = f"""<!doctype html>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Freiraum">
+<meta name="apple-mobile-web-app-title" content="Luftholen">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta property="og:title" content="Freiraum">
+<meta property="og:title" content="Luftholen">
 <meta property="og:description" content="{desc}">
 <meta property="og:image" content="icon-512.png">
 <meta property="og:type" content="website">
@@ -75,7 +75,7 @@ ahead = re.sub(r'<link rel="(manifest|icon|apple-touch-icon)"[^>]*>\n', "", head
 ahead = re.sub(r'<meta property="og:image"[^>]*>\n', "", ahead)
 open("../dist/app.html", "w", encoding="utf-8").write(ahead + body + "\n</body>\n</html>\n")
 
-manifest = {"name": "Freiraum", "short_name": "Freiraum", "lang": "de", "start_url": "./", "scope": "./",
+manifest = {"name": "Luftholen", "short_name": "Luftholen", "lang": "de", "start_url": "./", "scope": "./",
             "display": "standalone", "background_color": "#F6F4EF", "theme_color": "#F6F4EF",
             "description": desc,
             "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},

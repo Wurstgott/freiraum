@@ -1,4 +1,4 @@
-/* ===== Freiraum: Zustand, Logik, Ansichten ===== */
+/* ===== Luftholen: Zustand, Logik, Ansichten ===== */
 const BUILD="__BUILD__";
 const KEY="lichtung-v1";
 try{ history.scrollRestoration="manual" }catch(e){}
@@ -253,22 +253,27 @@ function autoSpend(){ if(!S.settings.auto) return; const G=guthaben(); if(G>0) S
 function mountBild(){
   const cv=$("#bild"); if(!cv) return; autoSpend();
   const R=raum(), K=keepers(), st=stageOf(R);
-  const BL=bagList(), sig={w:R,ns:S.spend.length,k:K.map(k=>k.id).join(","),p:BL.length,s:waiting().length,f:focusKats().join()};
+  const BL=bagList(), sig={w:R,ns:S.spend.length,k:K.map(k=>k.id).join(","),p:BL.length,s:waiting().length,f:focusKats().join(),c:S.check?S.check.ts:0};
   const sh=S.shown;
   let from=null;
-  const fChange=sh&&sh.f!=null&&sh.f!==sig.f;
+  // Verwandlung nach einer (neuen) Bestandsaufnahme oder geändertem Schwerpunkt. Ältere Stände ohne f/c gelten als „vorher ohne Schwerpunkt“.
+  const fChange=!!(sh&&(((sh.c||0)!==sig.c&&sig.f)||(sh.f!=null&&sh.f!==sig.f)));
   if(sh&&(sh.w!==R||sh.k!==sig.k||sh.p!==sig.p||fChange)){
     const oldK=K.filter(k=>sh.k.split(",").includes(k.id)), ns=sh.ns==null?S.spend.length:Math.min(sh.ns,S.spend.length);
     const oldSp=sh.w<R?S.spend.slice(0,ns):S.spend, oldR=oldSp.reduce((s,x)=>s+x.n,0);
     from=bildModel(oldR,oldK,BL.slice(BL.length-Math.min(sh.p,sig.p)),oldSp);
-    if(fChange) from.focus=sh.f?sh.f.split(","):[];
+    if(fChange) from.focus=sh.f&&(sh.c||0)===sig.c?sh.f.split(","):[];
   }
   const m=bildModel(R,K,BL);
   const newK=from?K.filter(k=>!sh.k.split(",").includes(k.id)):[];
   if(from){ if(newK.length) m.ringKeep=newK[newK.length-1].id; else if(st>stageOf(from.w)) m.ringStage=true }
   m.delay=FADE_DELAY;
   // Neuer Schwerpunkt: langsame, gut sichtbare Verwandlung, das Bild steht dafür oben im Blick
-  if(fChange){ m.delay=700; m.fadeDur=2600; if(scrollY>0) scrollTo({top:0,behavior:"auto"}) }
+  if(fChange){ m.delay=900; m.fadeDur=2600; if(scrollY>0) scrollTo({top:0,behavior:"auto"});
+    // Etikett im Bild, damit man den Zusammenhang sieht
+    const st=cv.parentNode; if(st&&m.focus.length){ const o=document.createElement("p"); o.className="zverw"; o.setAttribute("aria-live","polite");
+      o.textContent="Dein Schwerpunkt: "+m.focus.map(k=>KAT[k].n).join(", "); st.appendChild(o); setTimeout(()=>o.classList.add("weg"),5200); setTimeout(()=>o.remove(),6000) }
+    else if(st){ const o=document.createElement("p"); o.className="zverw"; o.textContent="Kein Schwerpunkt: alle Sorten sehen gleich aus"; st.appendChild(o); setTimeout(()=>o.classList.add("weg"),4200); setTimeout(()=>o.remove(),5000) } }
   const info=Bild.mount(cv,m,from);
   const ov=$("#hits"); if(ov){ const Wc=cv.clientWidth, Hc=cv.clientHeight;
     // Tastatur: Die Flächen im Bild sind aus der Tab-Reihenfolge genommen (tabindex -1). Die Liste „Was liegt hier?“ führt zu denselben Blättern.
@@ -283,9 +288,9 @@ function mountBild(){
   const zp=$(".zhint"); if(zp&&!(info.zones||[]).length) zp.remove();
   if(!S.mom["zonen-tipp"]&&!SH&&(info.zones||[]).length){ S.mom["zonen-tipp"]=now(); zHintNow=true; setTimeout(zHintOff,8000) }
   // Nach dem Abräumen: die Stelle während der Überblendung markieren
-  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } else if(fChange&&m.focus.length) Bild.markFocus(m,700+2600); zMarkNext=null;
+  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } else if(fChange&&m.focus.length) Bild.markFocus(m,900+2600); zMarkNext=null;
   save();
-  later(()=>maybeMoment(),from?(stUp?2600:1500)+FADE_DELAY-250:700);
+  later(()=>maybeMoment(),fChange?6200:from?(stUp?2600:1500)+FADE_DELAY-250:700);
 }
 
 let NXALT=0;
@@ -349,7 +354,7 @@ function vHome(){
   const box=boxIn().length;
   const nK=keepers().length, nW=waiting().length, nP=bagList().length;
   const leg=[nK&&`<span>${LEG.keep}${nK} behalten</span>`,nW&&`<span>${LEG.wish}${nW} ${plural(nW,"Wunsch wartet","Wünsche warten")}</span>`,nP&&`<span>${LEG.bag}${nP} geteilt</span>`].filter(Boolean).join("");
-  return `<h1 class="sr">Freiraum</h1>
+  return `<h1 class="sr">Luftholen</h1>
   <div class="stage"><canvas id="bild" role="img" aria-label="Dein Zimmer, Stufe ${st+1} von 10: ${esc(S1.n)}. ${esc(S1.x)}"></canvas>
     <button class="img-hit" data-a="imgtap" aria-label="Was in deinem Zimmer zu sehen ist"></button><div id="hits"></div>
     ${!S.mom["zonen-tipp"]||zHintNow?`<p class="zhint" aria-hidden="true">Tipp auf etwas im Bild</p>`:""}</div>
@@ -434,7 +439,7 @@ function hintDef(k){
     const parts=[]; if(l) parts.push(l+" "+plural(l,"Eintrag","Einträge")+" losgelassen"); if(w) parts.push(w+" "+plural(w,"Wunsch","Wünsche")+" entschieden"); if(t) parts.push(t+"-mal statt neu"); if(ag) parts.push(ag+" kleine "+plural(ag,"Aufgabe","Aufgaben"));
     return {k,t:"Deine Woche",x:(parts.length?parts.join(", ")+". ":"")+"Was soll nächste Woche Platz bekommen?",b:"Ein Ding prüfen",a:"open",v:"pruef"} }
   if(k==="sichern") return {k,t:"Sichere deine Daten",x:"Alles liegt nur auf diesem Gerät. Eine Sicherung schützt deine Einträge, falls der Browser Daten löscht.",b:"Jetzt sichern",a:"open",v:"daten"};
-  if(k==="home") return {k,t:"Leg Freiraum auf den Home-Bildschirm",x:"Tipp in Safari auf Teilen und dann auf „Zum Home-Bildschirm“. Dann öffnet sich Freiraum wie eine App, und Safari löscht deine Daten nicht.",b:null};
+  if(k==="home") return {k,t:"Leg Luftholen auf den Home-Bildschirm",x:"Tipp in Safari auf Teilen und dann auf „Zum Home-Bildschirm“. Dann öffnet sich Luftholen wie eine App, und Safari löscht deine Daten nicht.",b:null};
   return null;
 }
 function hintHTML(h){ if(h.inf) return `<section class="box" style="margin-top:14px" aria-label="Frage zum Monat"><b>${esc(h.t)}</b><p class="small" style="margin:4px 0 10px">${esc(h.x)}</p>
@@ -450,7 +455,7 @@ function vWissen(){
   const due=lkDue().length, qn=QUIZ.filter(q=>!S.quiz[q.id]).length;
   const f=(v,n)=>`<button class="chipx${WF===v?" on":""}" aria-pressed="${WF===v}" data-a="wf" data-v="${v}">${n}</button>`;
   const imp=impOfDay(), readToday=imp&&S.read[imp.id]&&dkey(S.read[imp.id])===dkey();
-  return `<h1 class="sr">Freiraum</h1><h2 class="tab-h">Wissen</h2>
+  return `<h1 class="sr">Luftholen</h1><h2 class="tab-h">Wissen</h2>
   <p class="muted" style="margin:6px 0 14px">Was die Forschung über Besitz, Kaufen und Loslassen weiß. Jeder Impuls nennt Quelle und Belegstufe.</p>
   ${imp&&WF==="all"?`<button class="card" style="margin-bottom:14px" data-a="open" data-v="imp" data-w="${imp.id}"><div class="meta"><i class="dot ${imp.cat}"></i>${readToday?"Heute gelesen":"Impuls des Tages"} · ${esc(AREA[imp.cat].n)}${imp.myth?' <span class="tag myth">Oft gehört, schlecht belegt</span>':""}</div><h3>${esc(imp.t)}</h3>${readToday?"":`<p>${esc(school()&&imp.s?imp.s:imp.tip)}</p>`}</button>`:""}
   <div class="acts" style="margin-top:0">
@@ -464,7 +469,7 @@ function vWissen(){
 /* ---------- Üben ---------- */
 function vUeben(){
   const run=exRun(), sug=suggestUeb();
-  return `<h1 class="sr">Freiraum</h1><h2 class="tab-h">Üben</h2>
+  return `<h1 class="sr">Luftholen</h1><h2 class="tab-h">Üben</h2>
   <p class="muted" style="margin:6px 0 4px">Kleine Experimente im Alltag. Du planst, probierst und schaust danach ehrlich zurück. Höchstens zwei laufen gleichzeitig.</p>
   ${monthCard()}
   ${run.length?`<section class="sec"><h2>Läuft gerade</h2>${run.map(([id,e])=>exCard(id,e)).join("")}</section>`:""}
@@ -484,7 +489,7 @@ function exCard(id,e){ const u=UEB[id], dn=exDay(e), over=exEvalDue().some(([x])
 /* ---------- Dein Weg ---------- */
 function vWeg(){
   const T=tally(), s=stats(), K=keepers();
-  return `<h1 class="sr">Freiraum</h1><h2 class="tab-h">Dein Weg</h2>
+  return `<h1 class="sr">Luftholen</h1><h2 class="tab-h">Dein Weg</h2>
   ${S.log.length||K.length?"":`<p class="muted" style="margin:6px 0 0">Hier sammelt sich, was du tust. Fang mit einem Ding an. Es muss nichts Großes sein.</p>`}
   <div class="nums" style="margin-top:16px">
     <button class="num" data-a="open" data-v="handbreit"><b class="gold">${T.W}</b><span>Handbreit bekommen</span></button>
@@ -515,7 +520,7 @@ function vWeg(){
    <div class="set"><div><b>Vibration</b><span>Ein kurzer Tick bei Berührung</span></div><button class="switch" role="switch" aria-checked="${S.settings.vib!==false}" aria-label="Vibration" data-a="vib"></button></div>
    <div class="list" style="border-top:0">
     <button class="row" data-a="open" data-v="daten"><span class="t"><b>Daten sichern und laden</b><span>${S.exported?"Zuletzt gesichert am "+fdateY(S.exported):S.log.length>=5?"Noch nie gesichert. Alles liegt nur auf diesem Gerät.":"Alles bleibt auf deinem Gerät"}</span></span>${chev}</button>
-    <button class="row" data-a="open" data-v="about"><span class="t"><b>Über Freiraum</b><span>Version vom ${esc(BUILD)}</span></span>${chev}</button>
+    <button class="row" data-a="open" data-v="about"><span class="t"><b>Über Luftholen</b><span>Version vom ${esc(BUILD)}</span></span>${chev}</button>
     <button class="row" data-a="open" data-v="reset"><span class="t"><b>Neu beginnen</b><span>Löscht alle Einträge auf diesem Gerät</span></span>${chev}</button>
    </div></section>`;
 }
@@ -535,10 +540,13 @@ function motifPicker(sel,cat,act,guess,bare){
 function paintMotifs(root){ const dark=document.documentElement.dataset.dark==="1"; root.querySelectorAll("canvas[data-motif]").forEach(c=>Bild.motifIcon(c,c.dataset.motif,c.dataset.cat,dark,40)) }
 document.addEventListener("input",e=>{ if(!SH||SH.type!=="keep"||e.target.id!=="f-name"||SH.d.motif) return;
   const g=Bild.guessMotif(e.target.value,SH.d.cat,SH.d.why); document.querySelectorAll(".mot-b").forEach(b=>{ const on=b.dataset.v===g; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on) }) });
+function paintPrev(){ const c=document.getElementById("prev"); if(!c||!Bild||!Bild.paint) return; const W=Math.min(c.parentNode.clientWidth||320,420);
+  Bild.paint(c,Object.assign(bildModel(raum(),keepers()),{focus:focusKats(SH&&SH.d&&SH.d.ans)}),W); c.style.width="100%"; c.style.height="auto" }
 function drawSheet(focus){
   if(!SH) return; const el=$("#sheet-in"); const y=el.scrollTop;
   el.innerHTML=sheetHTML(); paintMotifs(el);
   const zc=el.querySelector("canvas.zcrop"); if(zc) Bild.crop(zc,zc.dataset.z);
+  if(el.querySelector("#prev")) paintPrev();
   settleSel(el);
   if(focus){ el.scrollTop=0; const f=el.querySelector("[data-autofocus]:not(input):not(textarea)")||el.querySelector("#sh-t")||el.querySelector(".sh-close"); if(f) f.focus({preventScroll:true}) } else el.scrollTop=y;
 }
@@ -609,9 +617,9 @@ function sheetHTML(){
     <div class="set" style="display:block"><b>Darstellung</b><div class="chips" style="margin-top:10px">${[["system","Automatisch"],["light","Hell"],["dark","Dunkel"]].map(([v,n])=>`<button class="chip${S.settings.theme===v?" on":""}" aria-pressed="${S.settings.theme===v}" data-a="theme" data-v="${v}">${n}</button>`).join("")}</div></div>
     <div class="list" style="border-top:0">
      <button class="row" data-a="open" data-v="daten"><span class="t"><b>Daten sichern und laden</b><span>Alles bleibt auf deinem Gerät</span></span>${chev}</button>
-     <button class="row" data-a="share" data-v="app"><span class="t"><b>Freiraum weiterempfehlen</b><span>Link teilen</span></span>${chev}</button>
+     <button class="row" data-a="share" data-v="app"><span class="t"><b>Luftholen weiterempfehlen</b><span>Link teilen</span></span>${chev}</button>
      <button class="row" data-a="tab" data-v="weg"><span class="t"><b>Einstellungen</b><span>Schule oder erwachsen, Vibration, neu beginnen</span></span>${chev}</button>
-     <button class="row" data-a="open" data-v="about"><span class="t"><b>Über Freiraum</b><span>Version vom ${esc(BUILD)}</span></span>${chev}</button>
+     <button class="row" data-a="open" data-v="about"><span class="t"><b>Über Luftholen</b><span>Version vom ${esc(BUILD)}</span></span>${chev}</button>
     </div>`;
   case "keep": { const full=keepers().length>=MAXKEEP;
     return `${shTop("Bewusst behalten","Was bleibt, hat einen Grund")}
@@ -735,11 +743,11 @@ function sheetHTML(){
     <div class="btns"><button class="btn sec2" data-a="import">Laden</button></div>
     ${d.err?`<p class="note" style="color:var(--err)">${esc(d.err)}</p>`:""}
     ${d.confirm?`<div class="box"><b>Sicherung vom ${esc(d.confirm.date)}</b><p class="small" style="margin:4px 0 10px">${d.confirm.n} Einträge. Dein jetziger Stand wird dabei ersetzt.</p><button class="btn" data-a="import-ok">Ersetzen und laden</button></div>`:""}
-    <p class="note">Tipp: Leg Freiraum auf den Home-Bildschirm. Dann löscht Safari die Daten nicht nach längerer Pause.</p>`;
+    <p class="note">Tipp: Leg Luftholen auf den Home-Bildschirm. Dann löscht Safari die Daten nicht nach längerer Pause.</p>`;
   case "reset": return `${shTop("Neu beginnen")}<p>Das löscht alle Einträge, Wünsche, Übungen und Einstellungen auf diesem Gerät. Dein Zimmer ist danach wieder voll.</p>
     ${d.sure?`<div class="box"><b>Bist du sicher?</b><p class="small" style="margin:4px 0 10px">Das lässt sich nicht rückgängig machen, außer du hast eine Sicherung.</p><button class="btn" data-a="reset-ok" style="background:var(--err);color:#fff">Ja, alles löschen</button></div>`:`<div class="btns"><button class="btn sec2" data-a="reset-1">Alles löschen</button><button class="btn quiet" data-a="open" data-v="daten">Vorher sichern</button></div>`}`;
-  case "about": return `${shTop("Über Freiraum")}
-    <p>Freiraum hilft dir zu entscheiden, was bleibt: weniger besitzen und das Richtige behalten. Die App ist kostenlos, braucht kein Konto und schickt keine Nachrichten. Alles bleibt auf deinem Gerät.</p>
+  case "about": return `${shTop("Über Luftholen")}
+    <p>Luftholen hilft dir zu entscheiden, was bleibt: weniger besitzen und das Richtige behalten. Die App ist kostenlos, braucht kein Konto und schickt keine Nachrichten. Alles bleibt auf deinem Gerät.</p>
     <p>Alle Befunde nennen ihre Quelle und eine ehrliche Belegstufe. Wo Studien sich nicht wiederholen ließen, steht das dabei. Die App sagt nie, dass Besitz schlecht ist. Sie fragt, welcher Besitz dir dient.</p>
     <p class="small muted">Idee und Auftrag: Carlo Maximilian Engeländer. Alle Rechte vorbehalten. Schriften: TeX Gyre Schola (GUST Font License) und Inter (SIL Open Font License), lokal eingebettet, ohne Anfrage an fremde Server.</p>
     <p class="meta">Version vom ${esc(BUILD)}</p>`;
@@ -953,26 +961,55 @@ function bildHTML(){ const W=raum(), st=stageOf(W), K=keepers(), nW=waiting().le
   <div class="btns"><button class="btn sec2" data-a="open" data-v="stufen">Alle Stufen</button></div>` }
 
 /* ---------- Bestandsaufnahme ---------- */
+/* Momentaufnahme nach der Bestandsaufnahme: ein Name für das Zuhause gerade, nie für die Person (runde7/typ1.md, typ2.md) */
+const PROFILE={
+  kl:["Volle Schränke","Bei der Kleidung ist gerade am meisten los."],
+  pa:["Stapel und Speicher","Papiere und Daten brauchen gerade die meiste Aufmerksamkeit."],
+  er:["Kiste voller Geschichten","Erinnerungen und Geschenke nehmen gerade viel Raum ein."],
+  wo:["Zugestellte Flächen","Flächen und Schränke sind gerade voller, als dir lieb ist."],
+  ko:["Viel Nachschub","Gerade kommt mehr herein, als du willst."],
+  "kl+ko":["Kleiderberg mit Neuzugängen","Kleidung stapelt sich, und es kommt laufend Neues dazu."],
+  "pa+wo":["Ablage überall","Papiere und Kleinkram verteilen sich gerade auf viele Flächen."],
+  "er+wo":["Schränke voller Gestern","Viel Platz gehört gerade Dingen mit Geschichte."],
+  "er+kl":["Kleider mit Geschichte","Im Schrank hängt gerade viel, an dem Erinnerungen hängen."],
+  "ko+wo":["Kartonvorrat","Neues kommt herein, und die Flächen werden knapp."],
+  ruhig:["Ruhige Ecken","Gerade drückt kaum etwas. Du kannst in Ruhe schauen, was bleiben soll."],
+  viel:["Viel auf einmal","Gerade drückt vieles gleichzeitig. Ein sehr kleiner erster Schritt reicht."]
+};
+function profilOf(sum,ans){ const ids=AREAS.map(a=>a.id), max=Math.max(...ids.map(a=>sum[a]));
+  if(Object.values(ans).filter(v=>v===3).length>=4||ids.filter(a=>sum[a]>=5).length>=4) return "viel";
+  if(max<=2) return "ruhig";
+  const o=ids.slice().sort((x,y)=>sum[y]-sum[x]||ids.indexOf(x)-ids.indexOf(y)), a=o[0], b=o[1];
+  if(sum[b]>=3&&sum[b]>=sum[a]-1){ const k=[a,b].sort().join("+"); if(PROFILE[k]) return k }
+  return a }
 function checkResult(){
   const d=SH.d, ans=d.ans, sum={};
   AREAS.forEach(a=>sum[a.id]=0); CHECK.forEach(c=>{ if(!c.fokus) sum[c.cat]+=ans[c.id]||0 }); /* Fragen mit fokus zählen nur für den Schwerpunkt im Bild */
   const top3=AREAS.map(a=>a.id).sort((x,y)=>sum[y]-sum[x]||AREAS.findIndex(a=>a.id===x)-AREAS.findIndex(a=>a.id===y)).slice(0,3);
-  if(!d.saved){ d.saved=true; S.check={ts:now(),ans:Object.assign({},ans),top:top3,sum}; S.settings.nofocus=false; save() }
+  const pk=profilOf(sum,ans), P=PROFILE[pk], viel=pk==="viel";
+  if(!d.saved){ d.saved=true; d.vorher=S.check&&S.check.profil&&S.check.profil!==pk?S.check.profil:null; S.check={ts:now(),ans:Object.assign({},ans),top:top3,sum,profil:pk}; S.settings.nofocus=false; save() }
   const names=top3.map(a=>"„"+AREA[a].n+"“");
-  const max=Math.max(...Object.values(sum));
+  const max=Math.max(...Object.values(sum)), F=focusKats(ans);
   return `${shTop("Deine Bestandsaufnahme","Ergebnis")}
-   <p class="lead">${(()=>{ const G=AREAS.map(a=>a.id).filter(a=>sum[a]===max), q=a=>"„"+AREA[a].n+"“", list=L=>L.length===1?q(L[0]):L.slice(0,-1).map(q).join(", ")+" und "+q(L[L.length-1]);
+   ${F.length&&!viel?`<div class="prevw"><canvas class="prev" id="prev" role="img" aria-label="Vorschau: So sieht dein Zimmer mit Schwerpunkt aus"></canvas></div>`:""}
+   <p class="meta" style="margin:14px 0 2px">Dein Zuhause gerade</p>
+   <h3 class="profil">${esc(P[0])}</h3>
+   <p style="margin:4px 0 6px">${esc(P[1])}</p>
+   ${viel?`<div class="box"><p class="small" style="margin:0">Wenn dich das stark belastet, musst du da nicht allein durch. ${school()?"Sprich mit deinen Eltern, einer Lehrkraft oder der Schulsozialarbeit.":"Unter „Wenn es schwer wird“ findest du Anlaufstellen, etwa die Hausarztpraxis oder eine Beratungsstelle."}</p><button class="lnk" data-a="open" data-v="hilfe">Wenn es schwer wird</button></div>`:""}
+   <p class="small muted" style="margin:0">Eine Momentaufnahme deines Zuhauses, kein Urteil über dich. Bei der nächsten Bestandsaufnahme kann sie anders heißen.${d.vorher&&PROFILE[d.vorher]?" Beim letzten Mal hieß sie „"+esc(PROFILE[d.vorher][0])+"“.":""}</p>
+   <details class="mehr" style="margin-top:14px"><summary>So hast du geantwortet</summary>
+   <p class="small">${(()=>{ const G=AREAS.map(a=>a.id).filter(a=>sum[a]===max), q=a=>"„"+AREA[a].n+"“", list=L=>L.length===1?q(L[0]):L.slice(0,-1).map(q).join(", ")+" und "+q(L[L.length-1]);
      if(max===0) return "Besitz macht dir gerade kaum Druck. Wir fangen mit "+names[0]+" an.";
      if(G.length===AREAS.length) return "Gerade drückt kein Bereich besonders. Wir fangen mit "+names[0]+" an.";
      if(G.length===1) return "Am meisten Druck macht gerade "+q(G[0])+". Danach folgen "+names[1]+" und "+names[2]+".";
-     return "Gleich stark drücken gerade "+list(G)+". Wir fangen mit "+names[0]+" an." })()}</p>
-   <div class="list" style="margin-top:12px">${AREAS.map(a=>a.id).sort((x,y)=>sum[y]-sum[x]).map(a=>`<div class="row"><i class="dot ${a}"></i><span class="t"><b style="font-weight:500">${esc(AREA[a].n)}</b></span><span class="weg" style="width:auto;border:0;min-height:0;padding:0"><span class="st">${[0,1,2,3,4,5].map(k=>`<i class="${k<sum[a]?"on":""}" style="width:12px"></i>`).join("")}</span></span></div>`).join("")}</div>
-   ${Object.values(ans).filter(v=>v===3).length>=4?`<div class="box"><p class="small" style="margin:0">Wenn dich das stark belastet, findest du unter „Wenn es schwer wird“ Anlaufstellen.</p><button class="lnk" data-a="open" data-v="hilfe">Wenn es schwer wird</button></div>`:""}
-   ${(()=>{ const F=focusKats(ans); return F.length?`<div class="box schwer"><b>Dein Zimmer bekommt einen Schwerpunkt</b><p class="small" style="margin:4px 0 0">Gleich treten im Bild ${F.map(k=>"„"+esc(KAT[k].n)+"“"+(AREA[KAT[k].cat].n!==KAT[k].n?" ("+esc(AREA[KAT[k].cat].n)+")":"")).join(F.length>2?", ":" und ").replace(/, (?=[^,]*$)/," und ")} nach vorn, der übrige Kram wird etwas ruhiger. ${F.includes("moebel")?"„Möbel und Stauraum“ kommt aus deiner Antwort zu Möbeln, die vor allem aufbewahren. ":""}Dein Fortschritt bleibt, wie er ist. Unter dem Bild kannst du den Schwerpunkt ausblenden.</p></div>`:"" })()}
+     return "Gleich stark drücken gerade "+list(G)+". Wir fangen mit "+names[0]+" an." })()} Der Name oben kommt aus den ein oder zwei stärksten Bereichen.</p>
+   <div class="list">${AREAS.map(a=>a.id).sort((x,y)=>sum[y]-sum[x]).map(a=>`<div class="row"><i class="dot ${a}"></i><span class="t"><b style="font-weight:500">${esc(AREA[a].n)}</b></span><span class="weg" style="width:auto;border:0;min-height:0;padding:0"><span class="st">${[0,1,2,3,4,5].map(k=>`<i class="${k<sum[a]?"on":""}" style="width:12px"></i>`).join("")}</span></span></div>`).join("")}</div>
    ${(+ans.c11||0)>=1?`<p class="small muted" style="margin-top:8px">Deine Antwort zu Möbeln zählt nicht in die Balken. Sie bestimmt, ob „Möbel und Stauraum“ im Bild nach vorn tritt.</p>`:""}
-   ${ans.c11===3&&Object.values(ans).filter(v=>v===3).length<4?`<p class="small" style="margin-top:10px">Wenn ganze Zimmer nicht mehr nutzbar sind oder Loslassen dir große Angst macht, findest du unter „Wenn es schwer wird“ Anlaufstellen.</p>`:""}
-   <p class="small muted" style="margin-top:12px">Dein nächster Schritt richtet sich jetzt nach diesen Bereichen. In drei Monaten kannst du die Bestandsaufnahme wiederholen.${focusKats(ans).length?" Dann verschiebt sich höchstens der Schwerpunkt im Bild, dein Fortschritt bleibt.":""}</p>
-   <div class="btns"><button class="btn" data-a="close">Zum Zimmer</button></div>`;
+   </details>
+   ${ans.c11===3&&!viel?`<p class="small" style="margin-top:10px">Wenn ganze Zimmer nicht mehr nutzbar sind oder Loslassen dir große Angst macht, findest du unter „Wenn es schwer wird“ Anlaufstellen.</p>`:""}
+   ${F.length?`<p class="small" style="margin-top:12px">Gleich verwandelt sich dein Zimmer: ${F.map(k=>"„"+esc(KAT[k].n)+"“").join(F.length>2?", ":" und ").replace(/, (?=[^,]*$)/," und ")} ${F.length>1?"treten":"tritt"} nach vorn, der Rest wird ruhiger. Dein Fortschritt bleibt.</p>`:""}
+   <div class="btns"><button class="btn" data-a="close">${F.length?"Zimmer verwandeln":"Zum Zimmer"}</button></div>
+   <p class="small muted" style="margin-top:8px">In drei Monaten kannst du die Bestandsaufnahme wiederholen.</p>`;
 }
 
 /* ---------- Momente ---------- */
@@ -1156,10 +1193,10 @@ const A={
   "aufg-sheet"(){ openSheet("aufgaben") },
   undo(){ const f=undoFn; undoFn=null; $("#toast").classList.remove("show"); if(SH&&SH.type==="moment") closeSheet(); if(f) f() },
   ics(el){ downloadICS(el.dataset.v,+el.dataset.w) },
-  export(){ const blob=new Blob([JSON.stringify(S)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="freiraum-sicherung-"+dkey()+".json"; document.body.appendChild(a); a.click(); a.remove(); S.exported=now(); save(); toast("Sicherung erstellt.") },
+  export(){ const blob=new Blob([JSON.stringify(S)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="luftholen-sicherung-"+dkey()+".json"; document.body.appendChild(a); a.click(); a.remove(); S.exported=now(); save(); toast("Sicherung erstellt.") },
   copy(){ const t=JSON.stringify(S); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{ S.exported=now(); save(); toast("In die Zwischenablage kopiert.") }).catch(()=>{ toast("Kopieren ging nicht. Nutze „Sicherung speichern“.",{ok:false}) }) },
   import(){ const f=document.getElementById("f-file"), p=document.getElementById("f-paste").value.trim();
-    const use=t=>{ try{ const o=JSON.parse(t); if(!o||!Array.isArray(o.log)||!o.settings) throw 0; SH.d={confirm:{o,date:fdateY(o.exported||o.created||now()),n:o.log.length}} }catch(e){ SH.d={err:"Das ist keine gültige Sicherung von Freiraum."} } drawSheet() };
+    const use=t=>{ try{ const o=JSON.parse(t); if(!o||!Array.isArray(o.log)||!o.settings) throw 0; SH.d={confirm:{o,date:fdateY(o.exported||o.created||now()),n:o.log.length}} }catch(e){ SH.d={err:"Das ist keine gültige Sicherung von Luftholen."} } drawSheet() };
     if(f&&f.files&&f.files[0]){ const r=new FileReader(); r.onload=()=>use(r.result); r.readAsText(f.files[0]) } else if(p) use(p); else { SH.d={err:"Wähle eine Datei oder füge den Text ein."}; drawSheet() } },
   filepick(){},
   "import-ok"(){ S=merge(fresh(),SH.d.confirm.o); S.gv=SH.d.confirm.o.gv||1; if(SH.d.confirm.o.gv3ts==null&&S.gv<3) delete S.gv3ts; migrate(); save(); applyTheme(); closeSheet(); toast("Sicherung geladen.") },
@@ -1209,8 +1246,8 @@ document.addEventListener("keydown",e=>{
 /* ---------- Teilen, Kalender ---------- */
 function shareIt(v){
   const base=location.href.split("#")[0];
-  let url=base, title="Freiraum", text="Freiraum hilft beim Loslassen, Warten und bewussten Behalten.";
-  if(v.startsWith("i-")){ const i=IMP[v.slice(2)]; url=base+"#i-"+i.id; title=i.t; text=i.t+": ein Befund aus der App Freiraum." }
+  let url=base, title="Luftholen", text="Luftholen hilft beim Loslassen, Warten und bewussten Behalten.";
+  if(v.startsWith("i-")){ const i=IMP[v.slice(2)]; url=base+"#i-"+i.id; title=i.t; text=i.t+": ein Befund aus der App Luftholen." }
   if(v.startsWith("u-")){ const u=UEB[v.slice(2)]; url=base+"#u-"+u.id; title=u.t; text="Machst du mit? Übung „"+u.t+"“, "+(u.d===1?"ein Tag":u.d+" Tage")+"." }
   if(navigator.share){ navigator.share({title,text,url}).catch(()=>{}) }
   else if(navigator.clipboard){ navigator.clipboard.writeText(url).then(()=>toast("Link kopiert.")).catch(()=>toast("Kopieren ging nicht.",{ok:false})) }
@@ -1218,9 +1255,9 @@ function shareIt(v){
 }
 function downloadICS(title,ts){
   const d=new Date(ts), f=x=>x.getFullYear()+String(x.getMonth()+1).padStart(2,"0")+String(x.getDate()).padStart(2,"0");
-  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Freiraum//DE","BEGIN:VEVENT","UID:"+uid()+"@freiraum","DTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z",
-    "DTSTART;VALUE=DATE:"+f(d),"DTEND;VALUE=DATE:"+f(new Date(ts+DAY)),"SUMMARY:"+title.replace(/[,;]/g," "),"DESCRIPTION:Erinnerung aus Freiraum","END:VEVENT","END:VCALENDAR"].join("\r\n");
-  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"})); a.download="freiraum.ics"; document.body.appendChild(a); a.click(); a.remove();
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Luftholen//DE","BEGIN:VEVENT","UID:"+uid()+"@luftholen","DTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z",
+    "DTSTART;VALUE=DATE:"+f(d),"DTEND;VALUE=DATE:"+f(new Date(ts+DAY)),"SUMMARY:"+title.replace(/[,;]/g," "),"DESCRIPTION:Erinnerung aus Luftholen","END:VEVENT","END:VCALENDAR"].join("\r\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"})); a.download="luftholen.ics"; document.body.appendChild(a); a.click(); a.remove();
 }
 
 /* ---------- Darstellung ---------- */

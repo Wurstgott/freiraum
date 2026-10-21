@@ -1,4 +1,4 @@
-"""Abläufe von Freiraum im iPhone-Profil durchspielen: python3 test_flows.py"""
+"""Abläufe von Luftholen im iPhone-Profil durchspielen: python3 test_flows.py"""
 import json, sys, re
 from playwright.sync_api import sync_playwright
 URL = "http://127.0.0.1:8765/index.html"
@@ -743,7 +743,10 @@ with sync_playwright() as p:
     ok(pg.evaluate("focusKats({c01:0,c02:1})") == [], "kein Schwerpunkt bei wenig Druck")
     g0 = pg.evaluate("[raum(),Bild.gone(S.spend,keepers()).length]")
     pg.evaluate("openSheet('check',null,{ans:{c01:3,c02:3,c03:0,c04:1,c05:0,c06:0,c07:0,c08:0,c09:2,c10:2,c11:3}}); SH.step=CHECK.length; drawSheet()"); pg.wait_for_timeout(300)
-    ok("Schwerpunkt" in pg.locator("#sheet-in").inner_text() and "Möbel und Stauraum" in pg.locator("#sheet .box.schwer").inner_text(), "Ergebnis kündigt den Schwerpunkt im Bild an")
+    t = pg.locator("#sheet-in").inner_text()
+    ok("Gleich verwandelt sich dein Zimmer" in t and "Möbel und Stauraum" in t and pg.locator('#sheet .btn[data-a="close"]').inner_text() == "Zimmer verwandeln", "Ergebnis kündigt die Verwandlung an, Knopf „Zimmer verwandeln“")
+    ok("Dein Zuhause gerade" in t and "kein Urteil über dich" in t and pg.locator("#sheet h3.profil").count() == 1 and "Du bist" not in t, "Momentaufnahme mit Namen, kein Personentyp: " + pg.locator("#sheet h3.profil").inner_text())
+    ok(pg.evaluate("profilOf({kl:6,pa:0,er:0,wo:1,ko:5},{c01:3,c02:3,c09:3,c10:2})") == "kl+ko" and pg.evaluate("profilOf({kl:1,pa:1,er:0,wo:0,ko:0},{})") == "ruhig" and pg.evaluate("profilOf({kl:6,pa:6,er:6,wo:6,ko:6},{c01:3,c02:3,c05:3,c06:3})") == "viel", "Momentaufnahme: Paar, ruhig, viel")
     pg.evaluate("closeSheet()"); pg.wait_for_timeout(2600)
     ok(pg.evaluate("bildModel(raum(),keepers()).focus").__contains__("moebel") and pg.evaluate("[raum(),Bild.gone(S.spend,keepers()).length]") == g0, "Schwerpunkt ändert nur die Betonung, nicht die Menge oder den Fortschritt")
     ok(pg.evaluate("heute().k.id") in pg.evaluate("focusKats()"), "Tageskarte beginnt mit einer Schwerpunkt-Sorte: " + pg.evaluate("heute().k.id"))

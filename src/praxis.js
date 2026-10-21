@@ -1,4 +1,4 @@
-// Freiraum – Praxisinhalte: Übungen, Begriffe, Monatsthemen, Bestandsaufnahme
+// Luftholen – Praxisinhalte: Übungen, Begriffe, Monatsthemen, Bestandsaufnahme
 // Autor und Auftraggeber: Carlo Maximilian Engeländer. Alle Rechte vorbehalten.
 
 const UEBUNGEN=[
