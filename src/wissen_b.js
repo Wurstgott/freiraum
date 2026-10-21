@@ -342,7 +342,7 @@ const IMPULSE_B=[
   u:"https://doi.org/10.1007/s12144-017-9679-4",
   links:[{n:"Patel, Graupmann & Ferrari 2023",u:"https://doi.org/10.3390/ijerph20032061"}],
   ev:1, typ:"Beobachtung",
-  tip:"Das kann heißen: Unordnung ist oft weniger ein Platzproblem als ein Entscheidungsproblem. Kleine, klare Entscheidungen, etwa mit der Vielleicht-Kiste oder einem kurzen Timer, machen den Anfang vielleicht leichter.",
+  tip:"Das kann heißen: Unordnung ist oft weniger ein Platzproblem als ein Entscheidungsproblem. Kleine, klare Entscheidungen, etwa mit der Vielleicht-Kiste oder einem kurzen Zeitgeber, machen den Anfang vielleicht leichter.",
   myth:false },
 
 { id:"i54", cat:"ko",

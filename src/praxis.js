@@ -242,13 +242,13 @@ const UEBUNGEN=[
   imp:"i51",
   s:"Wähl eine Sorte eigener Verbrauchsdinge, von der du mehrere offen hast, etwa Stifte, Hefte, Duschgel oder Haarspray. Drei Wochen lang kaufst du davon nichts Neues und brauchst zuerst auf, was da ist. Das ist eine bewährte Regel aus der Aufräumszene, untersucht ist sie nicht." },
 
-{ id:"u31", cat:"wo", t:"Zehn Minuten mit Timer", d:7,
-  x:"Stell eine Woche lang jeden Tag einen Timer auf zehn Minuten und räum in dieser Zeit eine kleine Fläche auf. Wenn der Timer klingelt, hörst du auf. Kurze Einheiten sind eine bewährte Regel aus der Aufräumszene, untersucht sind sie nicht. Sie sollen das Anfangen leichter machen.",
-  steps:["Such dir für jeden Tag eine kleine Fläche aus, etwa einen Stuhl, ein Regalbrett oder den Eingang.","Stell den Timer auf zehn Minuten.","Fang mit dem an, was du am deutlichsten siehst.","Hör auf, wenn der Timer klingelt.","Notiere kurz, was du geschafft hast."],
-  wenn:"Wenn ich merke, dass ich das Aufräumen schon wieder verschiebe, dann stelle ich den Timer auf zehn Minuten und fange sofort an.",
+{ id:"u31", cat:"wo", t:"Zehn Minuten mit Zeitgeber", d:7,
+  x:"Stell eine Woche lang jeden Tag einen Zeitgeber auf zehn Minuten und räum in dieser Zeit eine kleine Fläche auf. Wenn der Zeitgeber klingelt, hörst du auf. Kurze Einheiten sind eine bewährte Regel aus der Aufräumszene, untersucht sind sie nicht. Sie sollen das Anfangen leichter machen.",
+  steps:["Such dir für jeden Tag eine kleine Fläche aus, etwa einen Stuhl, ein Regalbrett oder den Eingang.","Stell den Zeitgeber auf zehn Minuten.","Fang mit dem an, was du am deutlichsten siehst.","Hör auf, wenn der Zeitgeber klingelt.","Notiere kurz, was du geschafft hast."],
+  wenn:"Wenn ich merke, dass ich das Aufräumen schon wieder verschiebe, dann stelle ich den Zeitgeber auf zehn Minuten und fange sofort an.",
   warum:"Unordnung hängt in Befragungen mit Aufschieben zusammen, und ein kurzer, fester Zeitrahmen kann das Anfangen leichter machen; ob das bei dir so ist, zeigt nur dein eigener Versuch.",
   imp:"i53",
-  s:"Stell eine Woche lang jeden Tag einen Timer auf zehn Minuten und räum in dieser Zeit eine kleine Fläche in deinem Zimmer auf, etwa den Stuhl oder den Schreibtisch. Wenn der Timer klingelt, hörst du auf. Kurze Einheiten sind eine bewährte Regel aus der Aufräumszene, untersucht sind sie nicht." },
+  s:"Stell eine Woche lang jeden Tag einen Zeitgeber auf zehn Minuten und räum in dieser Zeit eine kleine Fläche in deinem Zimmer auf, etwa den Stuhl oder den Schreibtisch. Wenn der Zeitgeber klingelt, hörst du auf. Kurze Einheiten sind eine bewährte Regel aus der Aufräumszene, untersucht sind sie nicht." },
 
 { id:"u32", cat:"wo", t:"Die 90-Tage-Frage", d:7,
   x:"Nimm eine Woche lang jeden Tag fünf Dinge aus einem Bereich in die Hand. Frag bei jedem: Habe ich es in den letzten 90 Tagen benutzt? Werde ich es in den nächsten 90 Tagen benutzen? Die Regel stammt vom Blog „The Minimalists“. Sie ist eine Erfahrungsregel, untersucht ist sie nicht.",

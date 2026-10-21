@@ -133,6 +133,24 @@ b,strong{font-weight:600}
 .stage .img-hit{position:absolute;inset:0;border-radius:0}
 .ding-hit{position:absolute;transform:translate(-50%,-50%);border-radius:50%}
 .ding-hit:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.zone-hit{position:absolute;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%;-webkit-tap-highlight-color:transparent}
+.zone-hit:focus-visible{outline:2px dashed var(--primary);outline-offset:-2px}
+.zone-hit:active{background:rgba(180,71,46,.12)}
+.zone-hit.zeig::after{content:"";position:absolute;inset:9px;border-radius:50%;border:2px dashed var(--primary);background:rgba(255,255,255,.28);pointer-events:none}
+.box.zs{margin-top:10px;padding:10px 14px}
+.zw{margin:8px 0 0}
+.note.zb{margin-top:8px}
+.opts.drei{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.opts.drei .opt{min-height:52px;padding:6px 6px;justify-content:center;text-align:center;font-size:14.5px;line-height:1.2;hyphens:auto}
+.opts.drei .opt span{width:100%;overflow-wrap:anywhere}
+@media (max-width:360px){.opts.drei .opt{font-size:13.5px;padding:6px 4px}}
+details.mehr{margin-top:6px;border-bottom:0}
+details.mehr>summary{font-size:15px}
+.zhint{position:absolute;right:8px;top:6px;margin:0;max-width:calc(100% - 24px);width:max-content;padding:4px 10px;border-radius:999px;background:var(--surface);color:var(--ink);font:500 12px/1.25 var(--f-ui);box-shadow:0 1px 4px rgba(0,0,0,.14);pointer-events:none;text-align:center}
+.zliste{margin:4px 0 0}
+.zliste>summary{min-height:44px}
+.opts.drei{margin-top:10px}
+canvas.zcrop{display:block;width:100%;height:100px;margin-top:10px;border-radius:14px;background:var(--wall)}
 .legende{display:flex;gap:6px 16px;flex-wrap:wrap;margin:10px 2px 0;font:400 14px/1.35 var(--f-ui);color:var(--muted)}
 .legende span{display:inline-flex;align-items:center;gap:6px}
 .legende svg{width:16px;height:16px;flex:none}
@@ -469,7 +487,7 @@ const AREA=Object.fromEntries(AREAS.map(a=>[a.id,a]));
    Schwellen in Handbreit (Platz, den ein Ding im Regal braucht). */
 const STUFEN=[
   {w:0,  n:"Alles da",           x:"Hier wohnt jemand, und alles liegt irgendwo: Tisch, Stuhl, Regal und Boden sind voll."},
-  {w:3,  n:"Erste Lücke",        x:"Der Versandkarton und die Tüten vorn am Boden sind weg."},
+  {w:3,  n:"Erste Lücke",        x:"Der Versandkarton und die Versandtüten sind weg."},
   {w:8,  n:"Boden in Sicht",     x:"Ganz vorn liegt nichts mehr, der Teppich ist wieder zu sehen. Weiter hinten steht noch einiges."},
   {w:16, n:"Stuhl frei",         x:"Auf dem Stuhl liegt keine Kleidung mehr, nur die Strickjacke hängt dort. Auch die Socke hängt nicht mehr an der Lampe."},
   {w:28, n:"Tischecke frei",     x:"Die linke Hälfte vom Tisch ist frei. Dort kann man wieder etwas abstellen."},
@@ -561,6 +579,72 @@ const HILFE=[
   {n:"Nummer gegen Kummer",x:"116 111 für Kinder und Jugendliche, kostenlos.",tel:"116111"},
   {n:"krisenchat.de",x:"Chat-Beratung für Menschen unter 25 Jahren, rund um die Uhr.",u:"https://krisenchat.de"},
   {n:"Schuldnerberatung",x:"Wenn Käufe zu Schulden geführt haben: Verbraucherzentralen und Wohlfahrtsverbände beraten kostenlos oder günstig."}
+];
+
+/* Zonen im Bild: antippbare Häufchen mit einem kleinen, konkreten Schritt.
+   Ein Angebot, kein Befehl.
+   Felder: id (wie in bild.js), n Name in der Liste, t Titel als Frage, x ein Schritt, min Minuten,
+   wenn Wenn-dann-Vorschlag, cat Bereich, name Vorbelegung des Namens (die Menge wählt man selbst),
+   imp passender Impuls, ueb passende Übung, regel = Erfahrungsregel aus der Aufräumszene (nicht untersucht),
+   s Fassung für die Schule. */
+const ZONEN=[
+  {id:"regal",n:"Bücher und Ordner im Regal",t:"Welche Bücher und Ordner im Regal brauchst du noch?",cat:"pa",name:"Bücher",min:10,
+   x:"Nimm fünf Bücher in die Hand. Für jedes ein Satz: gelesen und behalten, noch vor oder weitergeben.",
+   wenn:"Wenn ich ein Buch zu Ende gelesen habe, frage ich, wer es als Nächstes lesen möchte.",imp:"i05",ueb:"u29"},
+  {id:"regal-quer",n:"Bücher quer im Regal",t:"Was ist mit den Büchern, die quer im Regal liegen?",cat:"pa",name:"Bücher",min:5,
+   x:"Nimm die quer liegenden Bücher heraus. Was du liest, kommt in die Reihe. Der Rest kommt auf einen Stapel zum Entscheiden.",
+   wenn:"Wenn ein Buch keinen Platz in der Reihe hat, frage ich, ob es bleiben soll."},
+  {id:"regal-kisten",n:"Dosen, Kisten und Deko im Regal",t:"Was steckt in den Dosen und Kisten im Regal?",cat:"wo",name:"Kleinkram aus Dosen",min:5,
+   x:"Öffne eine einzige Dose oder Kiste. Was du kennst und nutzt, bleibt. Der Rest kommt auf einen Haufen zum Entscheiden.",
+   wenn:"Wenn ich nicht weiß, wofür etwas ist, lege ich es in die Vielleicht-Kiste.",ueb:"u33"},
+  {id:"regal-oben",n:"Kartons und Plüsch oben auf dem Regal",t:"Was liegt oben auf dem Regal?",cat:"er",name:"Sachen vom Regal oben",min:10,
+   x:"Hol einen Karton herunter und schau hinein. Wenn du nicht mehr weißt, was drin ist, ist das schon eine Antwort.",
+   wenn:"Wenn ein Karton seit einem Jahr zu ist, schaue ich einmal hinein, bevor er wieder hochkommt.",imp:"i33",
+   s:"Hol einen Karton herunter und schau hinein. Entscheide nur über deine eigenen Sachen."},
+  {id:"wand",n:"Zettel, Poster und Kalender an der Wand",t:"Welche Zettel an der Wand gelten noch?",cat:"pa",name:"Zettel",min:5,
+   x:"Lies jeden Zettel einmal. Erledigtes kommt weg, Wichtiges an die Pinnwand oder als Foto ins Handy.",
+   wenn:"Wenn ich einen neuen Zettel aufhänge, nehme ich einen alten ab.",regel:true,aufg:"a32"},
+  {id:"pinnwand",n:"Fotos und Zettel an der Pinnwand",t:"Was hängt an der Pinnwand noch aus Gewohnheit?",cat:"er",name:"Fotos und Zettel",min:5,
+   x:"Nimm drei Dinge ab. Lass hängen, was dich heute freut oder was du diese Woche brauchst.",
+   wenn:"Wenn ein Foto mir viel bedeutet, bekommt es einen Rahmen oder ein Album.",imp:"i07"},
+  {id:"fensterbank",n:"Flaschen und Kleinkram auf der Fensterbank",t:"Was steht auf der Fensterbank, das woanders hingehört?",cat:"wo",name:"Flaschen und Kleinkram",min:2,
+   x:"Räum die Fensterbank in zwei Minuten leer und stell nur zurück, was du dort sehen willst.",
+   wenn:"Wenn ich eine Flasche leer habe, bringe ich sie gleich mit raus."},
+  {id:"tisch-papier",n:"Papierstapel, Briefe und Bücher auf dem Tisch",t:"Was liegt im Papierstapel auf dem Tisch?",cat:"pa",name:"Papier",min:10,
+   x:"Nimm die obersten zehn Blätter. Drei Stapel: erledigen, ablegen, Altpapier.",
+   wenn:"Wenn Post kommt, öffne ich sie gleich am Tisch und entscheide sofort.",aufg:"a15",ueb:"u11"},
+  {id:"tisch-tassen",n:"Tassen, Teller und Dosen auf dem Tisch",t:"Wie viele Tassen stehen auf dem Tisch?",cat:"wo",name:"Geschirr",min:2,
+   x:"Trag alles Geschirr in die Küche. Das dauert meist keine zwei Minuten.",
+   wenn:"Wenn ich vom Tisch aufstehe, nehme ich mein Glas oder meine Tasse mit.",regel:true},
+  {id:"tisch-kabel",n:"Kabel, Ladegeräte und Kleinkram auf dem Tisch",t:"Zu welchem Gerät gehört jedes Kabel?",cat:"wo",name:"Kabel und Ladegeräte",min:10,
+   x:"Leg alle Kabel nebeneinander. Eins pro Gerät bleibt. Kabel ohne Gerät kommen zur Sammelstelle.",
+   wenn:"Wenn ich ein neues Gerät bekomme, frage ich, ob ein altes Kabel noch passt.",imp:"i29"},
+  {id:"stuhl",n:"Kleidung auf dem Stuhl und an der Lampe",t:"Was liegt auf dem Stuhl, und was davon trägst du?",cat:"kl",name:"Kleidung vom Stuhl",min:5,
+   x:"Häng auf, was du trägst. Was in die Wäsche muss, kommt in den Korb. Was du nicht mehr trägst, kommt in eine Tüte.",
+   wenn:"Wenn ich abends etwas ausziehe, hängt es auf oder kommt in den Korb, nicht auf den Stuhl.",aufg:"a31",imp:"i26"},
+  {id:"unter-tisch",n:"Kartons und Kabel unter dem Tisch",t:"Was steht unter dem Tisch, das du vergessen hast?",cat:"wo",name:"Sachen unter dem Tisch",min:10,
+   x:"Hol alles unter dem Tisch hervor und entscheide Stück für Stück: behalten, weitergeben oder Vielleicht-Kiste.",
+   wenn:"Wenn ein Karton leer ist, falte ich ihn gleich zusammen."},
+  {id:"waesche",n:"Wäschekorb",t:"Ist das im Wäschekorb Wäsche oder Aufbewahrung?",cat:"kl",name:"Kleidung aus dem Korb",min:5,
+   x:"Sortier den Korb in drei Haufen: waschen, zurück in den Schrank, passt nicht mehr.",
+   wenn:"Wenn etwas zweimal nicht passt, kommt es in die Tüte zum Weitergeben.",ueb:"u01"},
+  {id:"boden-vorn",n:"Kartons und Tüten am Boden",t:"Was ist noch in den Kartons und Tüten am Boden?",cat:"ko",name:"Karton",min:5,
+   x:"Pack einen Karton oder eine Tüte aus und bring die Verpackung zum Altpapier. Das ist der schnellste sichtbare Schritt.",
+   wenn:"Wenn ein Paket kommt, packe ich es am selben Tag aus.",imp:"i23"},
+  {id:"boden-kleidung",n:"Kleidung, Schuhe und Rucksack am Boden",t:"Wem gehören die Kleider und Schuhe am Boden?",cat:"kl",name:"Kleidung und Schuhe",min:5,
+   x:"Heb alles auf, was am Boden liegt. Schuhe zur Tür, Kleidung aufhängen oder in den Korb.",
+   wenn:"Wenn ich heimkomme, stelle ich die Schuhe gleich an die Tür.",
+   s:"Heb deine eigenen Sachen auf. Bei Sachen von anderen fragst du vorher."},
+  {id:"spielzeug",n:"Spielzeug und Bälle am Boden",t:"Mit welchem Spielzeug wird noch gespielt?",cat:"er",name:"Spielzeug",min:10,
+   x:"Leg alles Spielzeug auf einen Haufen. Was diese Woche gebraucht wurde, bleibt in Reichweite. Den Rest packst du in eine Kiste mit Datum.",
+   wenn:"Wenn ein Spielzeug einen Monat in der Kiste lag, entscheide ich dann.",regel:true,
+   s:"Leg dein Spielzeug auf einen Haufen. Was du noch magst, bleibt. Bei Sachen von Geschwistern fragst du vorher."},
+  {id:"boden-buecher",n:"Bücherstapel am Boden",t:"Welche Bücher am Boden liest du wirklich noch?",cat:"pa",name:"Bücher",min:10,
+   x:"Nimm einen Stapel. Was du gerade liest, kommt ins Regal. Den Rest gibst du weiter oder legst ihn in die Vielleicht-Kiste.",
+   wenn:"Wenn ich ein Buch ausgelesen habe, kommt es zurück ins Regal oder zu jemandem, der es lesen will.",ueb:"u29"},
+  {id:"boden-flaschen",n:"Flaschen und Kabel am Boden",t:"Wohin gehören die Flaschen und das Kabel am Boden?",cat:"wo",name:"Flaschen und Kabel",min:5,
+   x:"Pfandflaschen kommen in eine Tüte an die Tür. Das Kabel kommt zu seinem Gerät oder zur Sammelstelle.",
+   wenn:"Wenn ich Pfandflaschen sehe, nehme ich sie beim nächsten Einkauf mit.",regel:true}
 ];
 
 const IMPULSE_A=[
@@ -1173,7 +1257,7 @@ const IMPULSE_B=[
   u:"https://doi.org/10.1007/s12144-017-9679-4",
   links:[{n:"Patel, Graupmann & Ferrari 2023",u:"https://doi.org/10.3390/ijerph20032061"}],
   ev:1, typ:"Beobachtung",
-  tip:"Das kann heißen: Unordnung ist oft weniger ein Platzproblem als ein Entscheidungsproblem. Kleine, klare Entscheidungen, etwa mit der Vielleicht-Kiste oder einem kurzen Timer, machen den Anfang vielleicht leichter.",
+  tip:"Das kann heißen: Unordnung ist oft weniger ein Platzproblem als ein Entscheidungsproblem. Kleine, klare Entscheidungen, etwa mit der Vielleicht-Kiste oder einem kurzen Zeitgeber, machen den Anfang vielleicht leichter.",
   myth:false },
 
 { id:"i54", cat:"ko",
@@ -1579,13 +1663,13 @@ const UEBUNGEN=[
   imp:"i51",
   s:"Wähl eine Sorte eigener Verbrauchsdinge, von der du mehrere offen hast, etwa Stifte, Hefte, Duschgel oder Haarspray. Drei Wochen lang kaufst du davon nichts Neues und brauchst zuerst auf, was da ist. Das ist eine bewährte Regel aus der Aufräumszene, untersucht ist sie nicht." },
 
-{ id:"u31", cat:"wo", t:"Zehn Minuten mit Timer", d:7,
-  x:"Stell eine Woche lang jeden Tag einen Timer auf zehn Minuten und räum in dieser Zeit eine kleine Fläche auf. Wenn der Timer klingelt, hörst du auf. Kurze Einheiten sind eine bewährte Regel aus der Aufräumszene, untersucht sind sie nicht. Sie sollen das Anfangen leichter machen.",
-  steps:["Such dir für jeden Tag eine kleine Fläche aus, etwa einen Stuhl, ein Regalbrett oder den Eingang.","Stell den Timer auf zehn Minuten.","Fang mit dem an, was du am deutlichsten siehst.","Hör auf, wenn der Timer klingelt.","Notiere kurz, was du geschafft hast."],
-  wenn:"Wenn ich merke, dass ich das Aufräumen schon wieder verschiebe, dann stelle ich den Timer auf zehn Minuten und fange sofort an.",
+{ id:"u31", cat:"wo", t:"Zehn Minuten mit Zeitgeber", d:7,
+  x:"Stell eine Woche lang jeden Tag einen Zeitgeber auf zehn Minuten und räum in dieser Zeit eine kleine Fläche auf. Wenn der Zeitgeber klingelt, hörst du auf. Kurze Einheiten sind eine bewährte Regel aus der Aufräumszene, untersucht sind sie nicht. Sie sollen das Anfangen leichter machen.",
+  steps:["Such dir für jeden Tag eine kleine Fläche aus, etwa einen Stuhl, ein Regalbrett oder den Eingang.","Stell den Zeitgeber auf zehn Minuten.","Fang mit dem an, was du am deutlichsten siehst.","Hör auf, wenn der Zeitgeber klingelt.","Notiere kurz, was du geschafft hast."],
+  wenn:"Wenn ich merke, dass ich das Aufräumen schon wieder verschiebe, dann stelle ich den Zeitgeber auf zehn Minuten und fange sofort an.",
   warum:"Unordnung hängt in Befragungen mit Aufschieben zusammen, und ein kurzer, fester Zeitrahmen kann das Anfangen leichter machen; ob das bei dir so ist, zeigt nur dein eigener Versuch.",
   imp:"i53",
-  s:"Stell eine Woche lang jeden Tag einen Timer auf zehn Minuten und räum in dieser Zeit eine kleine Fläche in deinem Zimmer auf, etwa den Stuhl oder den Schreibtisch. Wenn der Timer klingelt, hörst du auf. Kurze Einheiten sind eine bewährte Regel aus der Aufräumszene, untersucht sind sie nicht." },
+  s:"Stell eine Woche lang jeden Tag einen Zeitgeber auf zehn Minuten und räum in dieser Zeit eine kleine Fläche in deinem Zimmer auf, etwa den Stuhl oder den Schreibtisch. Wenn der Zeitgeber klingelt, hörst du auf. Kurze Einheiten sind eine bewährte Regel aus der Aufräumszene, untersucht sind sie nicht." },
 
 { id:"u32", cat:"wo", t:"Die 90-Tage-Frage", d:7,
   x:"Nimm eine Woche lang jeden Tag fünf Dinge aus einem Bereich in die Hand. Frag bei jedem: Habe ich es in den letzten 90 Tagen benutzt? Werde ich es in den nächsten 90 Tagen benutzen? Die Regel stammt vom Blog „The Minimalists“. Sie ist eine Erfahrungsregel, untersucht ist sie nicht.",
@@ -1784,7 +1868,7 @@ const AUFGABEN=[
   {id:"a28",cat:"ko",art:"einmal",w:2,t:"Mitteilungen von Shop-Apps ausgeschaltet",x:"Shop-Apps schicken dir keine Nachrichten mehr aufs Handy. Wann du hineinschaust, bestimmst du selbst.",imp:"i36"},
   // Methoden aus der Aufräumszene und neutrale Einstiege
   {id:"a29",cat:"wo",art:"einmal",w:3,t:"Ein Fach als Grenze festgelegt",x:"Für eine Sorte Dinge gibt es jetzt ein festes Fach. Was nicht hineinpasst, liegt in der Vielleicht-Kiste. Das ist eine bewährte Regel aus der Aufräumszene, untersucht ist sie nicht.",imp:"i51"},
-  {id:"a30",cat:"wo",art:"oft",w:1,t:"Zehn Minuten mit Timer aufgeräumt",x:"Du hast einen Timer auf zehn Minuten gestellt und beim Klingeln aufgehört. Kurze Einheiten sind eine bewährte Regel aus der Aufräumszene, untersucht sind sie nicht.",imp:"i53"},
+  {id:"a30",cat:"wo",art:"oft",w:1,t:"Zehn Minuten mit Zeitgeber aufgeräumt",x:"Du hast einen Zeitgeber auf zehn Minuten gestellt und beim Klingeln aufgehört. Kurze Einheiten sind eine bewährte Regel aus der Aufräumszene, untersucht sind sie nicht.",imp:"i53"},
   {id:"a31",cat:"kl",art:"oft",w:1,t:"Den Kleiderstuhl leer geräumt",x:"Was auf dem Stuhl lag, hängt im Schrank oder liegt in der Wäsche. Der Stuhl ist wieder zum Sitzen da."},
   {id:"a32",cat:"pa",art:"einmal",w:2,t:"Einen festen Platz für Zettel eingerichtet",x:"Briefe und Zettel, die noch erledigt werden müssen, haben jetzt einen festen Platz, etwa eine Ablage oder eine Mappe. Sie landen nicht mehr auf Tisch oder Stuhl.",s:"Deine Schulzettel und Briefe haben jetzt einen festen Platz, etwa eine Mappe. Elternbriefe gibst du gleich weiter."},
   {id:"a33",cat:"wo",art:"oft",w:1,t:"Ein Ding ohne Platz versorgt",x:"Du hast dich gefragt, wo du zuerst danach suchen würdest, und es genau dorthin gebracht. Die Frage stammt von der Autorin Dana K. White und ist nicht untersucht.",imp:"i53"}
@@ -1797,7 +1881,7 @@ const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="Mac
 const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* Familien: Aktion, Auswahl, Schalter, Logo. Navigation tickt nicht. */
 const FAM_ACT=".btn,.tile,.card[data-a],.act";
-const FAM_SEL=".chip,.opt,.scale>button,.ans";
+const FAM_SEL=".chip,.opt,.scale>button,.ans,.zone-hit,.zliste .row";
 const FAM_TASK=".aufg";
 const FAM_TOG=".switch";
 const FAM_LOGO="#logo";
@@ -1805,6 +1889,12 @@ const HAPSEL=[FAM_ACT,FAM_SEL,FAM_TOG,FAM_LOGO,FAM_TASK].join(",");
 const TAPSEL=HAPSEL+",.tab,.row,.lnk,summary,.chipx,.ding-hit";
 const VIB={sel:10,act:12,tog:10,logo:12,ok:[10,60,14],err:[24,60,24]};
 let tapKind=null;
+/* Eine Handlung, eine Rückmeldung: In Eintragsformularen ticken Auswahl und Schalter nicht, nur „Eintragen“.
+   Auch das Öffnen eines Formulars tickt nicht. */
+const FORMSH=new Set(["los","keep","kiste","wish","teil"]);
+function quietTap(el){ if(!el||!el.dataset) return false; const a=el.dataset.a||"";
+  if(a==="zone-go"||(a==="open"&&FORMSH.has(el.dataset.v))) return true;
+  return !!(el.closest&&el.closest("#sheet")&&typeof SH!=="undefined"&&SH&&FORMSH.has(SH.type)&&!a.startsWith("do-")) }
 function vibOn(){ return !S||!S.settings||S.settings.vib!==false }
 function famOf(el){
   if(!el) return null;
@@ -1823,7 +1913,7 @@ function vibrateNow(k){ if(!vibOn()||IOS||!navigator.vibrate) return; try{ navig
 function armHaptics(){
   if(!IOS||!vibOn()) return;
   document.querySelectorAll(HAPSEL).forEach(el=>{
-    if(el.tagName==="A"||el.tagName==="LABEL"||el.querySelector(":scope>label.hap")) return;
+    if(el.tagName==="A"||el.tagName==="LABEL"||el.querySelector(":scope>label.hap")||quietTap(el)) return;
     if(getComputedStyle(el).position==="static") el.style.position="relative";
     const l=document.createElement("label"); l.className="hap"; l.setAttribute("aria-hidden","true");
     l.addEventListener("click",e=>{ if(e.target===l) e.stopPropagation() });
@@ -1950,6 +2040,87 @@ const Bild=(function(){
     return {dark,night,eve:dark||night,T:dark?TH.dunkel:night?TH.abend:TH.hell,se:season(dt)};
   }
 
+  /* ---------- Zonen: antippbare Stellen (Texte in zonen.js) ----------
+     Jedes Kramding gehört zu der Stelle, an der es im Bild steht, und nach seinem Inhalt (Bücher immer zu Bücherstellen).
+     Was auf einem anderen liegt, gehört zur Stelle seiner Unterlage. Die Tippfläche liegt immer auf einem sichtbaren Ding. */
+  const ZIDS=["regal-oben","regal","regal-quer","regal-kisten","wand","fensterbank","pinnwand","tisch-papier","tisch-tassen","tisch-kabel","stuhl","unter-tisch","waesche","boden-vorn","boden-kleidung","boden-buecher","spielzeug","boden-flaschen"];
+  function zoneOf(p){ const k=p.k, cx=p.x+p.w/2;
+    if(p.z==="regaltop") return "regal-oben";
+    if(p.z==="regalq") return "regal-quer";
+    if(p.z==="regal") return (k==="buch"||k==="ordner")?"regal":"regal-kisten";
+    if(p.z==="wand") return (cx>240&&cx<316&&p.y>70)?"pinnwand":"wand";
+    if(p.z==="sill") return "fensterbank";
+    if(p.z==="deskB"||p.z==="deskF"){ if(p.stackOn) return "tisch-papier";
+      return ["tasse","teller","chips","dose","flasche"].includes(k)?"tisch-tassen":["kabel","lader","lego","controller","stifte"].includes(k)?"tisch-kabel":"tisch-papier" }
+    if(p.z==="chair"||p.z==="lamp") return "stuhl";
+    if(p.z==="under") return "unter-tisch";
+    if(k==="waeschekorb") return "waesche";
+    if(k==="stapelbuch") return "boden-buecher";
+    if(p.stackOn||["versand","versandtuete","tuete","karton"].includes(k)) return "boden-vorn";
+    if(["kleidhaufen","pulli","rucksack","schuhe"].includes(k)) return "boden-kleidung";
+    if(k==="lego"||k==="ball") return "spielzeug";
+    return "boden-flaschen";
+  }
+
+  /* ---------- Eintrag und Bild ----------
+     Die Menge je Stufe bleibt fest (Gruppen 1..9). Kommt ein Eintrag aus einer Zone, verschwindet innerhalb der
+     laufenden Gruppe zuerst Kram aus dieser Zone. Die Zeitpunkte der noch sichtbaren Dinge dieser Gruppe werden nur
+     neu verteilt; was schon fort ist, bleibt fort, und am Ende der Stufe ist genau dasselbe fort wie ohne Eintrag.
+     Dinge, die auf anderen liegen, gehen immer vor ihrer Unterlage. */
+  const TCACHE=new Map();
+  function times(pref){
+    const L=(pref||[]).filter(x=>x&&ZIDS.includes(x.z)&&typeof x.c==="number"&&x.c>=0&&x.c<9);
+    const key=JSON.stringify(L); if(TCACHE.has(key)) return TCACHE.get(key);
+    const P=build(), T=P.map(p=>p.t);
+    L.forEach(x=>{ const k=Math.floor(x.c)+1, R=P.filter(p=>p.g===k&&T[p.i]>x.c); if(!R.some(p=>p.zone===x.z)) return;
+      const vals=R.map(p=>T[p.i]).sort((a,b)=>a-b), rank=p=>p.stackOn?0:p.zone===x.z?1:2;
+      R.slice().sort((a,b)=>rank(a)-rank(b)||T[a.i]-T[b.i]).forEach((p,j)=>{ T[p.i]=vals[j] }) });
+    TCACHE.set(key,T); if(TCACHE.size>20) TCACHE.delete(TCACHE.keys().next().value);
+    return T;
+  }
+  /* Zonen im aktuellen Zustand: sichtbare Dinge, Umriss, Kandidaten für die Tippfläche. Zwischengespeichert, bis sich der Zustand ändert. */
+  const ZCACHE=new Map();
+  const isTop=p=>p.z==="wand"||p.z==="chair"||p.z==="lamp";
+  const rectOf=p=>isTop(p)?[p.x,p.y,p.w,p.h]:[p.x,p.y-p.h,p.w,p.h];
+  function zonesOf(m){
+    const c=clearing(m), K=(m.keep||[]).slice(0,MAXK), key=JSON.stringify([c.toFixed(4),K.map(k=>[k.id,k.cat,k.why,k.motif]),m.zpref||[]]);
+    if(ZCACHE.has(key)) return ZCACHE.get(key);
+    const P=build(), T=times(m.zpref), B=blockedSet(K), out=[];
+    // Der Sessel vorn links (fest) verdeckt, was am Boden hinter ihm liegt
+    const behind=p=>p.z==="floor"&&p.y<=270, inS=(x,y)=>x>5&&x<62&&y>228&&y<298;
+    ZIDS.forEach(z=>{ const L=P.filter(p=>p.zone===z&&c<T[p.i]&&!B.has(p.i)&&!(behind(p)&&inS(p.x,p.y-p.h)&&inS(p.x+p.w,p.y))); if(!L.length) return;
+      let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+      L.forEach(p=>{ const [x,y,w,h]=rectOf(p); x0=Math.min(x0,x); x1=Math.max(x1,x+w); y0=Math.min(y0,y); y1=Math.max(y1,y+h) });
+      // Kandidaten: ein Raster aus 3 x 3 Punkten auf jedem Ding, größte Dinge zuerst
+      const cand=L.slice().sort((a,b)=>b.a-a.a).flatMap(p=>{ const [x,y,w,h]=rectOf(p), Q=[];
+        [0.5,0.25,0.75].forEach(fy=>[0.5,0.25,0.75].forEach(fx=>Q.push([x+w*fx,y+h*fy]))); return Q.filter(([qx,qy])=>!(behind(p)&&inS(qx,qy))) });
+      const k=Math.floor(c)+1, jetzt=L.filter(p=>p.g===k).length;
+      out.push({id:z,n:L.length,a:L.reduce((s,p)=>s+p.a,0),box:[x0-2,y0-2,x1-x0+4,y1-y0+4],cand,jetzt,rects:L.map(rectOf)}) });
+    out.sort((a,b)=>b.a-a.a);
+    ZCACHE.set(key,out); if(ZCACHE.size>12) ZCACHE.delete(ZCACHE.keys().next().value);
+    return out;
+  }
+  /* Tippflächen setzen: Kreise mit 44 px, Mittelpunkte mindestens 46 px auseinander, nie über einem behaltenen Ding,
+     ganz im Bild. Stellen mit wenig freien Punkten kommen zuerst dran, damit möglichst jede Stelle eine Fläche bekommt.
+     Eine Stelle ohne Fläche fällt auch aus der Liste. */
+  function placeZones(Z,hits,u,W,H){
+    const S=46, keep=hits.map(h=>[h.hx,h.hy]);
+    const okPt=([cx,cy])=>{ const x=cx*u, y=cy*u; return x>=22&&x<=W-22&&y>=22&&y<=H-22&&!keep.some(([a,b])=>Math.hypot(a-x,b-y)<S) };
+    const V=Z.map(z=>({z,c:z.cand.filter(okPt).map(([x,y])=>[x*u,y*u])}));
+    let best=null;
+    // zwei Reihenfolgen probieren: wenig Kandidaten zuerst, große Stellen zuerst; die mit mehr gesetzten Flächen gewinnt
+    [V.slice().sort((a,b)=>a.c.length-b.c.length), V.slice()].forEach(order=>{ const taken=[], got={};
+      order.forEach(({z,c})=>{ const p=c.find(([x,y])=>!taken.some(([a,b])=>Math.hypot(a-x,b-y)<S)); if(p){ taken.push(p); got[z.id]=p } });
+      if(!best||Object.keys(got).length>Object.keys(best).length) best=got });
+    return Z.filter(z=>best[z.id]).map(z=>({id:z.id,hx:best[z.id][0],hy:best[z.id][1],hr:22,n:z.n,jetzt:z.jetzt,box:z.box.map(v=>v*u),rects:z.rects.map(r=>r.map(v=>v*u))}))
+      .sort((a,b)=>(Math.round(a.hy/40)-Math.round(b.hy/40))||(a.hx-b.hx));
+  }
+  /* Tipp knapp neben eine Fläche: nächstgelegene Stelle, deren Kram höchstens r px entfernt ist */
+  function zoneAt(x,y,r){ if(!info) return null; let best=null, bd=1e9;
+    (info.zones||[]).forEach(z=>{ z.rects.forEach(([rx,ry,rw,rh])=>{ const dx=Math.max(rx-x,0,x-rx-rw), dy=Math.max(ry-y,0,y-ry-rh), d=Math.hypot(dx,dy); if(d<bd){ bd=d; best=z.id } });
+      const dc=Math.max(0,Math.hypot(z.hx-x,z.hy-y)-22); if(dc<bd){ bd=dc; best=z.id } });
+    return bd<=(r==null?30:r)?best:null }
+
   /* ---------- Gruppen (= Stufe, ab der sie ganz fort sind) ----------
      1 Erste Lücke      Versandkarton und Tüten vorn am Boden
      2 Boden in Sicht   vordere Bodenreihe, Kleinzeug obenauf, Stapel auf dem Tisch
@@ -2024,7 +2195,7 @@ const Bild=(function(){
     const st={}; P.forEach(p=>{ if(p.stack!=null)(st[p.stack]=st[p.stack]||[]).push(p) });
     Object.values(st).forEach(L=>{ const us=L.map(p=>p.u).sort((a,b)=>a-b); L.sort((a,b)=>b.lvl-a.lvl).forEach((p,i)=>p.u=us[i]) });
     P.forEach(p=>{ if(p.stackOn) p.u=Math.min(p.u,0.3) });
-    P.forEach((p,i)=>{ p.i=i; p.t=(p.g-1)+p.u*0.999; p.a=Math.max(8,p.w*p.h) });
+    P.forEach((p,i)=>{ p.i=i; p.t=(p.g-1)+p.u*0.999; p.a=Math.max(8,p.w*p.h); p.zone=zoneOf(p) });
     JUNK=P; return P;
   }
 
@@ -2252,8 +2423,8 @@ const Bild=(function(){
   function scene(g,m){
     const E=env(m), {dark,eve,se,T}=E, c=clearing(m), k=c/9;
     const P=build(), calm=0.55*Math.pow(k,1.2);
-    const K=(m.keep||[]).slice(0,MAXK), B=blockedSet(K);
-    const vis=p=>c<p.t&&!B.has(p.i);
+    const K=(m.keep||[]).slice(0,MAXK), B=blockedSet(K), TT=times(m.zpref);
+    const vis=p=>c<TT[p.i]&&!B.has(p.i);
     const J=z=>P.filter(p=>p.z===z&&vis(p));
     const dj=p=>drawJunk(g,p,T,calm,dark);
 
@@ -2514,13 +2685,14 @@ const Bild=(function(){
   }
   function size(){ const W=cv.clientWidth||360; return {W,H:Math.round(W*VH/VW),dpr:Math.min(3,window.devicePixelRatio||1)} }
   const cache=new Map();
-  function keyOf(m,W,dpr){ const e=env(m); return JSON.stringify([W,dpr,e.dark,e.night,e.se,clearing(m).toFixed(4),m.keep,(m.bags||[]).map(b=>b.n),m.paths,(m.wishes||[]).map(w=>[w.cat,Math.round(w.p*10)])]) }
+  function keyOf(m,W,dpr){ const e=env(m); return JSON.stringify([W,dpr,e.dark,e.night,e.se,clearing(m).toFixed(4),m.keep,(m.bags||[]).map(b=>b.n),m.paths,(m.wishes||[]).map(w=>[w.cat,Math.round(w.p*10)]),m.zpref||[]]) }
   function layerFor(W,H,dpr,m){ const k=keyOf(m,W,dpr); let L=cache.get(k); if(!L){ L=layer(W,H,dpr,m); cache.set(k,L); if(cache.size>4) cache.delete(cache.keys().next().value) } return L }
   function mount(canvas,m,fromModel){
     cv=canvas; ctx=cv.getContext("2d"); model=m; m.dark=document.documentElement.dataset.dark==="1";
     const {W,H,dpr}=size(); cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.height=H+"px";
     const t1=performance.now(); cur=layerFor(W,H,dpr,m); Bild.lastBuild=performance.now()-t1; const u=W/VW;
     info={hits:cur.hits.map(h=>({id:h.id,hx:h.x*u,hy:h.y*u,hr:22,cat:h.cat,why:h.why,ding:h.ding})),cx:180*u,cy:190*u,rx:120*u,ry:80*u,ph:dayPhase(m.date||new Date()),W,H};
+    info.zones=placeZones(zonesOf(m),info.hits,u,W,H);
     prev=null; fadeT0=0; ringAt=null; full=true;
     if(fromModel&&!RMq()){ fromModel.dark=m.dark; fromModel.date=m.date; prev=layerFor(W,H,dpr,fromModel); fadeT0=performance.now()+(m.delay||250) }
     if(m.ringKeep&&!RMq()){ const hk=info.hits.find(x=>x.id===m.ringKeep); if(hk) ringAt={x:hk.hx,y:hk.hy,r:hk.hr} }
@@ -2547,8 +2719,10 @@ const Bild=(function(){
       if(prev){ ctx.globalAlpha=k; ctx.drawImage(cur.top,0,0); ctx.globalAlpha=1-k; ctx.drawImage(prev.top,0,0); ctx.globalAlpha=1 }
       else ctx.drawImage(cur.top,0,0);
       full=!!prev;
-      if(ringAt){ const q=(t-ringT0)/1600; if(q>0&&q<1){ ctx.setTransform(dpr,0,0,dpr,0,0); ctx.save(); ctx.strokeStyle=model.dark?"#E8826A":"#B4472E"; ctx.globalAlpha=Math.sin(q*Math.PI)*0.85; ctx.setLineDash([4,3.5]); ctx.lineWidth=1.6;
-          ctx.beginPath(); ctx.arc(ringAt.x,ringAt.y,ringAt.r*(0.9+q*0.25),0,7); ctx.stroke(); ctx.restore() } else if(q>=1){ ringAt=null; full=true } }
+      if(ringAt){ const dur=ringAt.dur||1600, q=still&&(ringAt.box||ringAt.dots)?0.5:(t-ringT0)/dur; if(q>0&&q<1){ ctx.setTransform(dpr,0,0,dpr,0,0); ctx.save(); ctx.strokeStyle=model.dark?"#E8826A":"#B4472E"; ctx.globalAlpha=Math.sin(q*Math.PI)*0.85; ctx.setLineDash([4,3.5]); ctx.lineWidth=1.6;
+          if(ringAt.box){ const [bx,by,bw,bh]=ringAt.box, e=still?0:(1-q)*3; ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,6); ctx.stroke() }
+          else if(ringAt.dots){ ctx.setLineDash([3,3]); ringAt.dots.forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(x,y,13+(still?0:q*3),0,7); ctx.stroke() }) }
+          else { ctx.beginPath(); ctx.arc(ringAt.x,ringAt.y,ringAt.r*(0.9+q*0.25),0,7); ctx.stroke() } ctx.restore() } else if(q>=1){ ringAt=null; full=true } }
     } else {
       // Nur der Dampf: Ausschnitt aus dem Standbild zurücksetzen, Dampf und Behaltenes darüber
       const s=dpr*u, sx=Math.floor(STEAM.x*s), sy=Math.floor(STEAM.y*s), sw=Math.ceil(STEAM.w*s), sh=Math.ceil(STEAM.h*s);
@@ -2560,18 +2734,40 @@ const Bild=(function(){
     Bild.lastFrame=performance.now()-t1;
   }
   function stop(){ cancelAnimationFrame(raf); if(io) io.disconnect(); cv=null }
+  /* Markierung einer Zone nach dem Antippen; einmaliger Hinweis auf alle Tippflächen. Bei reduzierter Bewegung steht sie still und geht nach kurzer Zeit weg. */
+  let markT=0;
+  function ring(r,delay){ if(!cv||!info) return; ringAt=r; ringT0=performance.now()+(delay||0); full=true; clearTimeout(markT);
+    if(RMq()){ frame(performance.now()); markT=setTimeout(()=>{ ringAt=null; full=true; if(cv) frame(performance.now()) },(r.dur||1600)-200) } else loop() }
+  function mark(id){ const z=info&&(info.zones||[]).find(x=>x.id===id); if(z) ring({box:z.box}) }
+  /* Nach einem Eintrag aus einer Stelle: ihren Umriss (aus dem Zustand davor) während der Überblendung zeigen */
+  function markFrom(m,id,delay){ if(!cv||!info) return; const z=zonesOf(m).find(x=>x.id===id); if(!z) return; const u=info.W/VW;
+    ring({box:z.box.map(v=>v*u),dur:2000},delay||0) }
+  /* Ausschnitt um eine Zone für das Blatt: aus dem Standbild, mit gestricheltem Rahmen */
+  function crop(el,id){ if(!cur||!info||!el) return false; const z=(info.zones||[]).find(x=>x.id===id); if(!z) return false;
+    const {W,H,dpr}=size(), ew=el.clientWidth||320, eh=el.clientHeight||120, A=ew/eh, [bx,by,bw,bh]=z.box;
+    let cw=Math.max(bw+40,(bh+40)*A,150); cw=Math.min(cw,W,H*A); const ch=cw/A;
+    const x=Math.min(W-cw,Math.max(0,bx+bw/2-cw/2)), y=Math.min(H-ch,Math.max(0,by+bh/2-ch/2)), d2=Math.min(3,window.devicePixelRatio||1);
+    el.width=Math.round(ew*d2); el.height=Math.round(eh*d2); const g=el.getContext("2d"), s=ew/cw;
+    [cur.base,cur.top].forEach(L=>g.drawImage(L,x*dpr,y*dpr,cw*dpr,ch*dpr,0,0,el.width,el.height));
+    g.setTransform(d2*s,0,0,d2*s,-x*d2*s,-y*d2*s);
+    // außerhalb der Stelle leicht abdunkeln bzw. aufhellen, damit sie heraussticht
+    g.fillStyle=model&&model.dark?"rgba(20,16,14,.42)":"rgba(246,244,239,.5)"; g.beginPath(); g.rect(x,y,cw,ch); g.roundRect(bx,by,bw,bh,6/s); g.fill("evenodd");
+    g.strokeStyle=model&&model.dark?"#E8826A":"#B4472E"; g.lineWidth=1.8/s; g.setLineDash([5/s,4/s]);
+    g.beginPath(); g.roundRect(bx,by,bw,bh,6/s); g.stroke(); return true }
   /* Standbild für Tests und Übersichten */
   function paint(canvas,m,W,time){ W=W||360; const H=Math.round(W*VH/VW), dpr=Math.min(3,window.devicePixelRatio||1);
     if(m.dark==null) m.dark=document.documentElement.dataset.dark==="1";
     canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr); canvas.style.width=W+"px"; canvas.style.height=H+"px";
     const g=canvas.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); return draw(g,W,H,Object.assign({},m,{time:time==null?2:time})) }
   /* Kramfläche (Summe der Grundflächen) bei Fortschritt c, für die Messung der Reduktionskurve */
-  function flaeche(c,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)); return build().filter(p=>c<p.t&&!B.has(p.i)).reduce((s,p)=>s+p.a,0) }
-  return {mount,stop,paint,draw,season,dayPhase,clearing,flaeche,SLOTS,DING,MOTIVE,motifOf,guessMotif,motifIcon,VW,VH,hitY,lastBuild:0,lastFrame:0,_build:build};
+  function flaeche(c,keep,pref){ const B=blockedSet((keep||[]).slice(0,MAXK)), T=times(pref); return build().filter(p=>c<T[p.i]&&!B.has(p.i)).reduce((s,p)=>s+p.a,0) }
+  function zoneArea(z,c,pref){ const T=times(pref); return build().filter(p=>p.zone===z&&c<T[p.i]).reduce((s,p)=>s+p.a,0) }
+  function gone(c,pref,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)), T=times(pref); return build().filter(p=>!(c<T[p.i])&&!B.has(p.i)).map(p=>p.i) }
+  return {placed:()=>info&&info.zones||[],zonesOf,zoneArea,gone,mark,markFrom,zoneAt,crop,times,ZIDS,mount,stop,paint,draw,season,dayPhase,clearing,flaeche,SLOTS,DING,MOTIVE,motifOf,guessMotif,motifIcon,VW,VH,hitY,lastBuild:0,lastFrame:0,_build:build};
 })();
 
 /* ===== Freiraum: Zustand, Logik, Ansichten ===== */
-const BUILD="20.10.2026, 13:56";
+const BUILD="21.10.2026, 11:52";
 const KEY="lichtung-v1";
 try{ history.scrollRestoration="manual" }catch(e){}
 const DAY=864e5;
@@ -2590,6 +2786,7 @@ const IMP=Object.fromEntries(IMPULSE.map(i=>[i.id,i]));
 const UEB=Object.fromEntries(UEBUNGEN.map(u=>[u.id,u]));
 const BEG=Object.fromEntries(BEGRIFFE.map(b=>[b.id,b]));
 const AUF=Object.fromEntries(AUFGABEN.map(a=>[a.id,a]));
+const ZONE=Object.fromEntries(ZONEN.map(z=>[z.id,z]));
 const AUFCAP=6;
 
 /* ---------- Zustand ---------- */
@@ -2779,8 +2976,19 @@ function bildModel(W,keepL,bags){
   const faded=S.wishes.filter(w=>w.st==="lass"||w.st==="leih").length;
   const Wt=waiting();
   return {r:rOf(W),w:W,stage:st,keep:keepL.map(k=>Object.assign({id:k.id,cat:k.cat,why:k.why},k.motif?{motif:k.motif}:{})),paths:B.length,bags:B,
-    wishes:Wt.map(w=>({cat:w.cat,p:Math.max(0,Math.min(1,(now()-w.ts)/Math.max(1,w.due-w.ts)))})),motes:faded,date:new Date(now())};
+    wishes:Wt.map(w=>({cat:w.cat,p:Math.max(0,Math.min(1,(now()-w.ts)/Math.max(1,w.due-w.ts)))})),motes:faded,date:new Date(now()),zpref:zpref()};
 }
+/* Loslassen aus einer Zone: Innerhalb der laufenden Stufe verschwindet im Bild zuerst Kram von dort */
+/* Hinweis auf die Stellen: beim ersten Besuch, ohne Zeitabhängigkeit sichtbar (gestrichelte Kreise und ein Etikett am oberen Bildrand).
+   Er geht beim ersten Antippen, beim ersten Eintrag oder nach 8 s weg. */
+let zHintNow=false, zMarkNext=null;
+function zHintOff(){ zHintNow=false; document.querySelectorAll(".zone-hit.zeig").forEach(e=>e.classList.remove("zeig")); const p=$(".zhint"); if(p) p.remove() }
+function zpref(){ return S.log.filter(e=>e.k==="los"&&e.z&&typeof e.zc==="number").map(e=>({z:e.z,c:e.zc})) }
+/* Was ein Eintrag aus einer Stelle im Bild bewirkt: wie viele Dinge der Stelle jetzt fort sind (now) und wie viele davon nur wegen der Stelle (extra) */
+function zoneEffect(e){ const m=bildModel(weite(),keepers()), c2=Bild.clearing(m), P=Bild._build(), T=Bild.times(m.zpref), T0=Bild.times(m.zpref.filter(x=>!(x.z===e.z&&x.c===e.zc)));
+  const L=P.filter(p=>p.zone===e.z&&p.t>-1&&T0[p.i]>e.zc);
+  return {now:L.filter(p=>T[p.i]<=c2).length, extra:L.filter(p=>T[p.i]<=c2).length-L.filter(p=>T0[p.i]<=c2).length} }
+function curClearing(){ const W=weite(); return Bild.clearing({w:W,stage:stageOf(W)}) }
 function mountBild(){
   const cv=$("#bild"); if(!cv) return;
   const W=weite(), K=keepers(), st=stageOf(W);
@@ -2797,10 +3005,22 @@ function mountBild(){
   m.delay=FADE_DELAY; const info=Bild.mount(cv,m,from);
   // Tippflächen über den behaltenen Dingen
   const ov=$("#hits"); if(ov){ const Wc=cv.clientWidth, Hc=cv.clientHeight;
-    ov.innerHTML=info.hits.map(k=>{ const kk=S.keep.find(x=>x.id===k.id)||{};
+    // Tastatur: Die Flächen im Bild sind aus der Tab-Reihenfolge genommen (tabindex -1). Die Liste „Was liegt hier?“ führt zu denselben Blättern,
+    // in Lesereihenfolge und mit Namen; so stehen vor dem Rest der Seite keine bis zu 15 zusätzlichen Tab-Stopps. Für Screenreader bleiben sie benannt.
+    const hintOn=!S.mom["zonen-tipp"]||zHintNow;
+    ov.innerHTML=(info.zones||[]).filter(z=>ZONE[z.id]).map(z=>`<button class="zone-hit${hintOn?" zeig":""}" tabindex="-1" data-a="zone" data-v="${z.id}" style="left:${z.hx/Wc*100}%;top:${z.hy/Hc*100}%" aria-label="${esc(ZONE[z.id].n)}: ein kleiner Schritt"></button>`).join("")+info.hits.map(k=>{ const kk=S.keep.find(x=>x.id===k.id)||{};
       return `<button class="ding-hit" data-a="open" data-v="keepview" data-w="${k.id}" style="left:${k.hx/Wc*100}%;top:${k.hy/Hc*100}%;width:${Math.round(k.hr*2)}px;height:${Math.round(k.hr*2)}px" aria-label="${esc(kk.name||k.ding||"Behaltenes Ding")}, ${esc(AREA[k.cat]?AREA[k.cat].n:"")}, ${esc(GRUND[k.why]?GRUND[k.why].n:"bewusst behalten")}"></button>` }).join("") }
   const stUp=sh&&st>stageOf(sh.w);
-  S.shown=sig; save();
+  S.shown=sig;
+  // Liste „Was liegt hier?“: genau die Stellen, die im Bild eine Fläche haben
+  const zl=$(".zliste"); if(zl){ const Z=(info.zones||[]).filter(z=>ZONE[z.id]);
+    zl.hidden=!Z.length; zl.querySelector(".list").innerHTML=Z.map(z=>`<button class="row" data-a="zone" data-v="${z.id}"><i class="dot ${ZONE[z.id].cat}"></i><span class="t"><b>${esc(ZONE[z.id].n)}</b><span>${ZONE[z.id].min}\u00a0Min.</span></span>${chev}</button>`).join("") }
+  const zp=$(".zhint"); if(zp&&!(info.zones||[]).length) zp.remove();
+  // Einmal: zeigen, dass man ins Bild tippen kann
+  if(!S.mom["zonen-tipp"]&&!SH&&(info.zones||[]).length){ S.mom["zonen-tipp"]=now(); zHintNow=true; setTimeout(zHintOff,8000) }
+  // Nach einem Eintrag aus einer Stelle: die Stelle während der Überblendung markieren
+  if(zMarkNext&&from){ Bild.markFrom(from,zMarkNext,FADE_DELAY) } zMarkNext=null;
+  save();
   later(()=>maybeMoment(),from?(stUp?2600:1500)+FADE_DELAY-250:700);
 }
 
@@ -2816,13 +3036,17 @@ function vHome(){
   const leg=[nK&&`<span>${LEG.keep}${nK} behalten</span>`,nW&&`<span>${LEG.wish}${nW} ${plural(nW,"Wunsch wartet","Wünsche warten")}</span>`,nP&&`<span>${LEG.bag}${nP} geteilt</span>`].filter(Boolean).join("");
   return `<h1 class="sr">Freiraum</h1>
   <div class="stage"><canvas id="bild" role="img" aria-label="Dein Zimmer, Stufe ${st+1} von 10: ${esc(S1.n)}. ${esc(S1.x)}"></canvas>
-    <button class="img-hit" data-a="open" data-v="bild" aria-label="Was in deinem Zimmer zu sehen ist"></button><div id="hits"></div></div>
+    <button class="img-hit" data-a="imgtap" aria-label="Was in deinem Zimmer zu sehen ist"></button><div id="hits"></div>
+    ${!S.mom["zonen-tipp"]||zHintNow?`<p class="zhint" aria-hidden="true">Tipp auf eine Stelle im Bild</p>`:""}</div>
   ${leg?`<div class="legende" aria-hidden="true">${leg}</div>`:""}
   <button class="stufe" data-a="open" data-v="stufen" aria-label="Stufe ${st+1} von 10: ${esc(S1.n)}, ${W} Handbreit. Alle Stufen ansehen">
     <span class="stufe-kopf"><span class="stufe-n"><small>Stufe ${st+1} von 10</small><b>${esc(S1.n)}</b></span><span class="weite"><b>${W}</b> Handbreit</span></span>
     <span class="raster" aria-hidden="true">${STUFEN.map((x,i)=>`<i class="${i<=st?"v":i===st+1?"j":""}"${i===st+1?` style="--p:${Math.max(0,Math.min(100,pct))}%"`:""}></i>`).join("")}</span></button>
   <p class="stufe-p">${esc(S1.x)} ${S2?`${W<8?"Eine Handbreit ist der Platz, den ein Ding im Regal braucht. ":""}Noch <b>${hb(S2.w-W)}</b> bis „${esc(S2.n)}“.`:"Was du jetzt tust, hält es so."}</p>
-  <button class="zehn" data-a="open" data-v="timer" data-w="10"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M10 2.8h4"/></svg><span><b>10 Minuten aufräumen</b><small>Eine Stelle, ein Wecker, dann ist Schluss</small></span>${chev}</button>
+  ${st<9?`<details class="zliste" hidden><summary>Was liegt hier?</summary>
+    <p class="small muted" style="margin:0 0 6px">Tipp auf eine Stelle im Bild oder hier. Du bekommst einen kleinen Schritt fürs eigene Zimmer.</p>
+    <div class="list"></div></details>`:""}
+  <button class="zehn" data-a="open" data-v="timer" data-w="10"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M10 2.8h4"/></svg><span><b>10 Minuten aufräumen</b><small>Eine Stelle, ein Zeitgeber, dann ist Schluss</small></span>${chev}</button>
   <section class="next" aria-labelledby="nx-t">
     <div class="next-h">${MARK}Dein nächster Schritt${nx.m?" · "+esc(nx.m):""}</div>
     <h3 id="nx-t">${esc(nx.t)}</h3><p>${esc(nx.x)}</p>
@@ -3001,11 +3225,12 @@ document.addEventListener("input",e=>{ if(!SH||SH.type!=="keep"||e.target.id!=="
 function drawSheet(focus){
   if(!SH) return; const el=$("#sheet-in"); const y=el.scrollTop;
   el.innerHTML=sheetHTML(); paintMotifs(el);
+  const zc=el.querySelector("canvas.zcrop"); if(zc) Bild.crop(zc,zc.dataset.z);
   settleSel(el);
   if(focus){ el.scrollTop=0; const f=el.querySelector("[data-autofocus]:not(input):not(textarea)")||el.querySelector("#sh-t")||el.querySelector(".sh-close"); if(f) f.focus({preventScroll:true}) } else el.scrollTop=y;
 }
 function closeSheet(fromPop){
-  if(!SH) return; SH=null;
+  if(!SH) return; if(SH.type==="moment"&&SH.d.undo) undoFn=null; SH=null;
   const sh=$("#sheet"), L=$("#layer");
   const done=()=>{ if(SH) return; L.hidden=true; $("#sheet-in").innerHTML=""; sh.classList.remove("out"); sh.style.transform="" };
   if(RM()) done(); else { sh.classList.add("out"); setTimeout(done,240) }
@@ -3060,7 +3285,7 @@ function sheetHTML(){
     const st=SCHRITTE[stageOf(weite())]||SCHRITTE[0], frei=!d.step;
     return `${shTop(frei?"10 Minuten aufräumen":esc(st[0]),min+" Minuten")}
     <p>${frei?"Such dir eine Stelle aus und fang einfach an. Ein Vorschlag: "+esc(st[0])+". "+esc(st[1]):esc(st[1])}</p>
-    <div class="uhr" aria-live="off"><b id="uhr">${d.end?String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0"):min+":00"}</b><span>${d.end?(left>0?"Danach hörst du auf. Was du nicht geschafft hast, bleibt für ein anderes Mal.":"Die Zeit ist um. Gut gemacht ist, was du gemacht hast."):"Ein Wecker hilft beim Anfangen und beim Aufhören."}</span></div>
+    <div class="uhr" aria-live="off"><b id="uhr">${d.end?String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0"):min+":00"}</b><span>${d.end?(left>0?"Danach hörst du auf. Was du nicht geschafft hast, bleibt für ein anderes Mal.":"Die Zeit ist um. Gut gemacht ist, was du gemacht hast."):"Ein Zeitgeber hilft beim Anfangen und beim Aufhören."}</span></div>
     <div class="btns">${d.end?`<button class="btn" data-a="open" data-v="los">Loslassen eintragen</button><button class="btn sec2" data-a="close">${left>0?"Aufhören":"Fertig"}</button>`:`<button class="btn" data-a="timer-go" data-autofocus>Los · ${min}\u00a0Min.</button><button class="btn sec2" data-a="close">Später</button>`}</div>
     <p class="note">Die Uhr läuft nur, solange die App offen ist. Es gibt keinen Ton und keine Nachricht.</p>` }
   case "mehr": return `${shTop("Mehr")}
@@ -3207,6 +3432,25 @@ function sheetHTML(){
       return `<div class="row" style="align-items:flex-start"><span class="t"><b>${esc(a.t)}</b><span style="font-size:14px;color:var(--muted)">${esc(school()&&a.s?a.s:a.x)}</span><span>${a.art==="einmal"?"einmalig, +"+hb(a.w):"wiederholbar, +"+hb(a.w)+(n?", schon "+n+"×":"")}${S.pre[a.id]?", hattest du schon":""}</span>${a.imp&&IMP[a.imp]?`<button class="lnk inl" data-a="open" data-v="imp" data-w="${a.imp}">Der Befund dazu</button>`:""}</span>
         <span style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">${dn?`<span class="stat on" aria-label="erledigt">✓</span>`:`<button class="chip" data-a="aufg" data-v="${a.id}">Erledigt</button>${a.art==="einmal"?`<button class="lnk inl" data-a="aufg-pre" data-v="${a.id}">Hatte ich schon</button>`:""}`}</span></div>` }).join("")}</div>`).join("")}`;
   case "moment": return momentHTML();
+  case "zone": { const z=ZONE[SH.arg]; if(!z) return shTop("Nicht gefunden");
+    const zi=Bild.placed().find(x=>x.id===z.id);
+    const imp=z.imp&&IMP[z.imp], ueb=z.ueb&&UEB[z.ueb], auf=z.aufg&&AUF[z.aufg];
+    return `${shTop(esc(z.t),`<i class="dot ${z.cat}"></i> ${esc(AREA[z.cat].n)} · ein Vorschlag`)}
+    ${zi?`<canvas class="zcrop" data-z="${z.id}" role="img" aria-label="Ausschnitt aus dem Bild, markiert: ${esc(z.n)}"></canvas>`:""}
+    <div class="box zs"><b>Ein Schritt · ${z.min} Min.</b><p class="small" style="margin:4px 0 0">${esc(school()&&z.s?z.s:z.x)}</p></div>
+    <p class="note zb">${zi&&zi.jetzt?"Im Bild: Gibst du von hier etwas weiter, wird zuerst an dieser Stelle Platz frei.":"Im Bild ist diese Stelle erst später dran. Ein Eintrag von hier ändert dort jetzt nichts. Der Schritt gilt für dein eigenes Zimmer."}</p>
+    <p class="small muted zw">Alle drei Wege sind gleich gut. Wenn alles bleiben darf, ist das auch eine Antwort.</p>
+    <div class="opts drei"><button class="opt" data-a="zone-go" data-v="keep" data-w="${z.id}"><span>Mit Grund behalten</span></button>
+     <button class="opt" data-a="zone-go" data-v="kiste" data-w="${z.id}"><span>In die Vielleicht-Kiste</span></button>
+     <button class="opt" data-a="zone-go" data-v="los" data-w="${z.id}"><span>Weiter&shy;geben</span></button></div>
+    <div class="btns"><button class="btn sec2" data-a="open" data-v="timer" data-w="10">10 Minuten mit Zeitgeber</button></div>
+    <details class="mehr"><summary>Mehr dazu</summary>
+     <p class="small"><b class="ui">Wenn du magst, als Plan:</b> „${esc(z.wenn)}“</p>
+     ${z.regel?`<p class="note">Das ist eine Erfahrungsregel aus der Aufräumszene, untersucht ist sie nicht.</p>`:""}
+     ${schoolNote()}
+     ${imp||ueb||auf?`<div class="links">${imp?`<button class="lnk" data-a="open" data-v="imp" data-w="${imp.id}">Befund: ${esc(imp.t)}</button>`:""}${ueb?`<button class="lnk" data-a="open" data-v="ueb" data-w="${ueb.id}">Übung: ${esc(ueb.t)}</button>`:""}${auf?`<button class="lnk" data-a="aufg-sheet" data-v="${auf.id}">Aufgabe: ${esc(auf.t)}</button>`:""}</div>`:""}
+     <p class="note">Das Bild räumt in fester Reihenfolge auf. Innerhalb der laufenden Stufe kann ein Eintrag von einer Stelle zuerst dort Platz machen.</p>
+    </details>` }
   case "none": return shTop("");
   }
   return shTop("");
@@ -3369,7 +3613,11 @@ function bildHTML(){ const W=weite(), st=stageOf(W), K=keepers(), nW=waiting().l
    <div>${ico('<rect x="11" y="13" width="18" height="16" rx="2.5" fill="none" stroke="var(--c-pa)" stroke-width="2" stroke-dasharray="3.5 2.6"/><rect x="12" y="22" width="16" height="6" rx="1.5" fill="var(--c-pa)" opacity=".35"/>')}<p><b class="ui">Gestrichelte Pakete</b> vor der Tür sind Wünsche, die gerade warten. Mit der Wartezeit füllen sie sich von unten. ${nW?"Es "+plural(nW,"wartet einer","warten "+nW)+".":""}</p></div>
    <div>${ico('<path d="M14 15l4-6 4 6" fill="none" stroke="var(--c-ko)" stroke-width="1.8"/><rect x="11" y="14" width="14" height="17" rx="2" fill="var(--c-ko)"/><circle cx="28" cy="26" r="5" fill="var(--surface)" stroke="var(--c-ko)" stroke-width="1.4"/><text x="28" y="28.6" font-size="7" font-weight="700" text-anchor="middle" fill="var(--c-ko)" font-family="Inter">L</text>')}<p><b class="ui">Taschen an der Tür</b> gehen zu Menschen. Mit einem Namen bei „Für wen?“ hängt die Tasche einen Monat lang mit Anhänger dort. Leihen, gebraucht holen oder reparieren hängt ebenfalls eine Tasche dazu. ${nB?"Gerade "+plural(nB,"hängt eine","hängen "+nB)+".":""}</p></div>
   </div>
-  <p class="note">Tagsüber scheint die Sonne herein, abends brennt die Lampe, und gegenüber gehen die Fenster an. Über der Tasse steigt Dampf auf. Nichts, was du dir erarbeitet hast, verschwindet aus dem Bild.</p>
+  <p class="note">${(()=>{ const dk=document.documentElement.dataset.dark==="1", nacht=Bild.dayPhase(new Date(now())).k==="nacht";
+    return dk?"Im dunklen Modus ist im Bild Abend: Die Lampe brennt, und gegenüber sind die Fenster hell."+(nacht?"":" Im hellen Modus folgt das Licht der Tageszeit.")
+      :nacht?"Jetzt ist im Bild Abend: Die Lampe brennt, und gegenüber sind die Fenster hell. Tagsüber scheint die Sonne herein."
+      :"Jetzt scheint die Sonne herein. Abends brennt die Lampe, und gegenüber gehen die Fenster an." })()} Über der Tasse steigt Dampf auf. Nichts, was du dir erarbeitet hast, verschwindet aus dem Bild.</p>
+  <p class="note">Das Bild zeigt deinen Fortschritt als Ganzes, nicht dein echtes Zimmer. Es räumt in fester Reihenfolge auf. Innerhalb der laufenden Stufe kann ein Eintrag von einer Stelle zuerst dort Platz machen.</p>
   <div class="btns"><button class="btn sec2" data-a="open" data-v="stufen">Alle Stufen</button></div>` }
 
 /* ---------- Bestandsaufnahme ---------- */
@@ -3402,7 +3650,6 @@ const MOM=[
   {k:"nomiss",pri:5,c:()=>{ const s=stats(); return s.asked.length>=5 },t:"Dein eigener Beleg",x:null}
 ];
 function maybeMoment(){
-  if(undoFn){ later(()=>maybeMoment(),800); return }
   if(SH||TAB!=="home") return;
   const W=weite(), st=stageOf(W), due=[];
   if(st>0&&!S.mom["stage-"+st]) due.push({k:"stage-"+st,pri:10,t:STUFEN[st].n,x:STUFEN[st].x,art:true});
@@ -3414,22 +3661,24 @@ function maybeMoment(){
   // Ältere Stufen, die man übersprungen hat, gelten als gesehen
   for(let i=1;i<=st;i++) S.mom["stage-"+i]=now();
   due.forEach(m=>S.mom[m.k]=now()); save();
-  openSheet("moment",null,{m:main,more});
+  // Gibt es noch ein Rückgängig, wandert es aus der Meldung ins Blatt und bleibt, bis das Blatt zu ist
+  const u=!!undoFn; if(u){ clearTimeout(toastT); $("#toast").classList.remove("show") }
+  openSheet("moment",null,{m:main,more,undo:u});
 }
 function momentHTML(){ const {m,more}=SH.d;
   return `<div class="sh-top"><span class="meta">${m.k&&m.k.startsWith("stage")?"Neue Stufe":"Neu in deinem Zimmer"}</span><button class="sh-close" data-a="close">Schließen</button></div><h2 id="sh-t" tabindex="-1">${esc(m.t)}</h2><p class="lead">${esc(m.x)}</p>
   ${more&&more.length?`<p class="small muted">Auch neu: ${more.map(x=>esc(x.t)).join(", ")}.</p>`:""}
-  <div class="btns"><button class="btn" data-a="close" data-autofocus>Weiter</button></div>` }
+  <div class="btns"><button class="btn" data-a="close" data-autofocus>Weiter</button>${SH.d.undo&&undoFn?`<button class="btn quiet" data-a="undo">Rückgängig</button>`:""}</div>` }
 
 /* ---------- Meldung mit Rückgängig ---------- */
 let toastT=0, undoFn=null;
 function toast(msg,opt){ opt=opt||{};
   const t=$("#toast"); undoFn=opt.undo||null;
   t.innerHTML=`${opt.ok!==false?`<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>`:""}<span class="tx">${esc(msg)}</span>${undoFn?`<button data-a="undo">Rückgängig</button>`:""}`;
-  t.classList.add("up"); t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>{ t.classList.remove("show"); undoFn=null },opt.ms||(undoFn?6000:3500));
+  t.classList.toggle("up",TAB!=="home"); t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>{ t.classList.remove("show"); undoFn=null },opt.ms||(undoFn?6000:3500));
   $("#live").textContent=msg;
 }
-function act(msg,fn,opt){ const snap=JSON.stringify(S), w0=weite(); fn(); save(); if(weite()>w0&&TAB==="home") goTop=true; toast(msg,Object.assign({undo:()=>{ S=JSON.parse(snap); save(); render(); toast("Rückgängig gemacht",{ok:false,ms:2500}) }},opt||{})) }
+function act(msg,fn,opt){ const snap=JSON.stringify(S), w0=weite(); zHintOff(); fn(); save(); if(typeof msg==="function") msg=msg(weite()-w0); if(weite()>w0&&TAB==="home") goTop=true; toast(msg,Object.assign({undo:()=>{ S=JSON.parse(snap); save(); render(); toast("Rückgängig gemacht",{ok:false,ms:2500}) }},opt||{})) }
 
 /* ---------- Aktionen ---------- */
 function readFields(){ const g=id=>{ const e=document.getElementById(id); return e?e.value.trim():undefined };
@@ -3459,7 +3708,17 @@ const A={
   "set-dd"(el){ SH.d.dd=+el.dataset.v; drawSheet() },
   "do-los"(){ readFields(); const d=SH.d; const e={id:uid(),k:"los",ts:now(),cat:d.cat,size:d.size,weg:d.weg,name:d.name||"",ask:d.ask===false?null:now()+30*DAY};
     if(d.who&&WEG[d.weg]&&WEG[d.weg].g) e.who=d.who.slice(0,30);
-    closeSheet(); act(e.who?"Eingetragen. Die Tasche für "+e.who+" hängt an der Tür.":"Eingetragen. In deinem Zimmer wird Platz frei.",()=>{ S.log.push(e) }); render() },
+    // Die Stelle zählt fürs Bild nur, wenn dort in der laufenden Stufe noch etwas liegt
+    const zi=d.z&&ZONE[d.z]?Bild.zonesOf(bildModel(weite(),keepers())).find(x=>x.id===d.z):null;
+    if(zi&&zi.jetzt>0){ e.z=d.z; e.zc=+curClearing().toFixed(4) }
+    const full=d.weg==="mue"||d.weg==="rec"?Math.ceil(d.size/2):d.size;
+    closeSheet(); act(g=>{ const bag=e.who?"Die Tasche für "+e.who+" hängt an der Tür. ":"";
+      if(g<=0) return "Eingetragen. "+bag+"Für heute kommen keine Handbreit mehr dazu, das Bild bleibt heute so.";
+      if(g<full) return "Eingetragen. "+bag+"Heute zählen davon noch "+hb(g)+".";
+      // „zuerst an dieser Stelle“ nur, wenn der Eintrag dort wirklich etwas verschwinden lässt, das ohne ihn noch da wäre
+      const fx=e.z?zoneEffect(e):{now:0,extra:0}; if(fx.now>0) zMarkNext=e.z;
+      if(fx.extra>0) return "Eingetragen. Im Bild wird zuerst an dieser Stelle Platz frei.";
+      return e.who?"Eingetragen. Die Tasche für "+e.who+" hängt an der Tür.":"Eingetragen. In deinem Zimmer wird Platz frei." },()=>{ S.log.push(e) }); render() },
   "set-motif"(el){ readFields(); SH.d.motif=el.dataset.v; drawSheet() },
   "set-kmotif"(el){ const k=S.keep.find(x=>x.id===SH.arg); if(!k) return; k.motif=el.dataset.v; save(); drawSheet(); const dd=document.querySelector(".mot-d"); if(dd) dd.open=true; toast("Im Bild steht es jetzt als "+el.dataset.v+".") },
   "set-ask"(){ readFields(); SH.d.ask=SH.d.ask===false; drawSheet() },
@@ -3538,6 +3797,13 @@ const A={
   "aufg-pre"(el){ const id=el.dataset.v; act("Als „hatte ich schon“ markiert.",()=>{ S.pre[id]=now() }); drawSheet() },
   inflow(el){ S.inflow[el.dataset.v]=+el.dataset.w; S.hint.key=""; save(); render(); toast("Gespeichert. Du siehst es unter „Dein Weg“.") },
   hint(el){ const k=S.hint.key; if(el.dataset.v==="off") S.hint.off[k]=true; else S.hint.later=dkey(); save(); render() },
+  zone(el){ const id=el.dataset.v; if(!ZONE[id]) return; zHintOff(); Bild.mark(id); tapKind="sel"; if(SH) readFields(); openSheet("zone",id) },
+  /* Tipp ins Bild neben eine Fläche: die nächste Stelle in etwa 30 px, sonst das allgemeine Blatt */
+  imgtap(el,e){ const r=el.getBoundingClientRect(), id=e&&e.clientX!=null?Bild.zoneAt(e.clientX-r.left,e.clientY-r.top,30):null;
+    if(id&&ZONE[id]){ A.zone({dataset:{v:id}}); return } openSheet("bild") },
+  "zone-go"(el){ const z=ZONE[el.dataset.w], v=el.dataset.v; if(!z) return;
+    openSheet(v,null,v==="los"?{name:z.name,cat:z.cat,z:z.id}:{name:z.name,cat:z.cat}) },
+  "aufg-sheet"(){ openSheet("aufgaben") },
   undo(){ const f=undoFn; undoFn=null; $("#toast").classList.remove("show"); if(SH&&SH.type==="moment") closeSheet(); if(f) f() },
   ics(el){ downloadICS(el.dataset.v,+el.dataset.w) },
   export(){ const blob=new Blob([JSON.stringify(S)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="freiraum-sicherung-"+dkey()+".json"; document.body.appendChild(a); a.click(); a.remove(); S.exported=now(); save(); toast("Sicherung erstellt.") },
@@ -3569,10 +3835,10 @@ document.addEventListener("click",e=>{
   if(e.target.tagName==="INPUT"&&e.target.closest("label.hap")) e.target.blur();
   const fn=A[el.dataset.a]; if(!fn) return;
   if(el.tagName==="A") return;
-  tapKind=null;
+  tapKind=null; const q=quietTap(el);
   feedbackFor(el,e);
   fn(el,e);
-  const f=tapKind||famOf(el); if(f) vibrateNow(f);
+  const f=tapKind||(q?null:famOf(el)); if(f) vibrateNow(f);
   tapKind=null;
 });
 document.addEventListener("keydown",e=>{

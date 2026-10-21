@@ -3,7 +3,7 @@ const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="Mac
 const RM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* Familien: Aktion, Auswahl, Schalter, Logo. Navigation tickt nicht. */
 const FAM_ACT=".btn,.tile,.card[data-a],.act";
-const FAM_SEL=".chip,.opt,.scale>button,.ans";
+const FAM_SEL=".chip,.opt,.scale>button,.ans,.zone-hit,.zliste .row";
 const FAM_TASK=".aufg";
 const FAM_TOG=".switch";
 const FAM_LOGO="#logo";
@@ -11,6 +11,12 @@ const HAPSEL=[FAM_ACT,FAM_SEL,FAM_TOG,FAM_LOGO,FAM_TASK].join(",");
 const TAPSEL=HAPSEL+",.tab,.row,.lnk,summary,.chipx,.ding-hit";
 const VIB={sel:10,act:12,tog:10,logo:12,ok:[10,60,14],err:[24,60,24]};
 let tapKind=null;
+/* Eine Handlung, eine Rückmeldung: In Eintragsformularen ticken Auswahl und Schalter nicht, nur „Eintragen“.
+   Auch das Öffnen eines Formulars tickt nicht. */
+const FORMSH=new Set(["los","keep","kiste","wish","teil"]);
+function quietTap(el){ if(!el||!el.dataset) return false; const a=el.dataset.a||"";
+  if(a==="zone-go"||(a==="open"&&FORMSH.has(el.dataset.v))) return true;
+  return !!(el.closest&&el.closest("#sheet")&&typeof SH!=="undefined"&&SH&&FORMSH.has(SH.type)&&!a.startsWith("do-")) }
 function vibOn(){ return !S||!S.settings||S.settings.vib!==false }
 function famOf(el){
   if(!el) return null;
@@ -29,7 +35,7 @@ function vibrateNow(k){ if(!vibOn()||IOS||!navigator.vibrate) return; try{ navig
 function armHaptics(){
   if(!IOS||!vibOn()) return;
   document.querySelectorAll(HAPSEL).forEach(el=>{
-    if(el.tagName==="A"||el.tagName==="LABEL"||el.querySelector(":scope>label.hap")) return;
+    if(el.tagName==="A"||el.tagName==="LABEL"||el.querySelector(":scope>label.hap")||quietTap(el)) return;
     if(getComputedStyle(el).position==="static") el.style.position="relative";
     const l=document.createElement("label"); l.className="hap"; l.setAttribute("aria-hidden","true");
     l.addEventListener("click",e=>{ if(e.target===l) e.stopPropagation() });

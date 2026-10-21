@@ -15,7 +15,7 @@ const AREA=Object.fromEntries(AREAS.map(a=>[a.id,a]));
    Schwellen in Handbreit (Platz, den ein Ding im Regal braucht). */
 const STUFEN=[
   {w:0,  n:"Alles da",           x:"Hier wohnt jemand, und alles liegt irgendwo: Tisch, Stuhl, Regal und Boden sind voll."},
-  {w:3,  n:"Erste Lücke",        x:"Der Versandkarton und die Tüten vorn am Boden sind weg."},
+  {w:3,  n:"Erste Lücke",        x:"Der Versandkarton und die Versandtüten sind weg."},
   {w:8,  n:"Boden in Sicht",     x:"Ganz vorn liegt nichts mehr, der Teppich ist wieder zu sehen. Weiter hinten steht noch einiges."},
   {w:16, n:"Stuhl frei",         x:"Auf dem Stuhl liegt keine Kleidung mehr, nur die Strickjacke hängt dort. Auch die Socke hängt nicht mehr an der Lampe."},
   {w:28, n:"Tischecke frei",     x:"Die linke Hälfte vom Tisch ist frei. Dort kann man wieder etwas abstellen."},

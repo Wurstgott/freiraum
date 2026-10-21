@@ -18,6 +18,7 @@ const IMP=Object.fromEntries(IMPULSE.map(i=>[i.id,i]));
 const UEB=Object.fromEntries(UEBUNGEN.map(u=>[u.id,u]));
 const BEG=Object.fromEntries(BEGRIFFE.map(b=>[b.id,b]));
 const AUF=Object.fromEntries(AUFGABEN.map(a=>[a.id,a]));
+const ZONE=Object.fromEntries(ZONEN.map(z=>[z.id,z]));
 const AUFCAP=6;
 
 /* ---------- Zustand ---------- */
@@ -207,8 +208,19 @@ function bildModel(W,keepL,bags){
   const faded=S.wishes.filter(w=>w.st==="lass"||w.st==="leih").length;
   const Wt=waiting();
   return {r:rOf(W),w:W,stage:st,keep:keepL.map(k=>Object.assign({id:k.id,cat:k.cat,why:k.why},k.motif?{motif:k.motif}:{})),paths:B.length,bags:B,
-    wishes:Wt.map(w=>({cat:w.cat,p:Math.max(0,Math.min(1,(now()-w.ts)/Math.max(1,w.due-w.ts)))})),motes:faded,date:new Date(now())};
+    wishes:Wt.map(w=>({cat:w.cat,p:Math.max(0,Math.min(1,(now()-w.ts)/Math.max(1,w.due-w.ts)))})),motes:faded,date:new Date(now()),zpref:zpref()};
 }
+/* Loslassen aus einer Zone: Innerhalb der laufenden Stufe verschwindet im Bild zuerst Kram von dort */
+/* Hinweis auf die Stellen: beim ersten Besuch, ohne Zeitabhängigkeit sichtbar (gestrichelte Kreise und ein Etikett am oberen Bildrand).
+   Er geht beim ersten Antippen, beim ersten Eintrag oder nach 8 s weg. */
+let zHintNow=false, zMarkNext=null;
+function zHintOff(){ zHintNow=false; document.querySelectorAll(".zone-hit.zeig").forEach(e=>e.classList.remove("zeig")); const p=$(".zhint"); if(p) p.remove() }
+function zpref(){ return S.log.filter(e=>e.k==="los"&&e.z&&typeof e.zc==="number").map(e=>({z:e.z,c:e.zc})) }
+/* Was ein Eintrag aus einer Stelle im Bild bewirkt: wie viele Dinge der Stelle jetzt fort sind (now) und wie viele davon nur wegen der Stelle (extra) */
+function zoneEffect(e){ const m=bildModel(weite(),keepers()), c2=Bild.clearing(m), P=Bild._build(), T=Bild.times(m.zpref), T0=Bild.times(m.zpref.filter(x=>!(x.z===e.z&&x.c===e.zc)));
+  const L=P.filter(p=>p.zone===e.z&&p.t>-1&&T0[p.i]>e.zc);
+  return {now:L.filter(p=>T[p.i]<=c2).length, extra:L.filter(p=>T[p.i]<=c2).length-L.filter(p=>T0[p.i]<=c2).length} }
+function curClearing(){ const W=weite(); return Bild.clearing({w:W,stage:stageOf(W)}) }
 function mountBild(){
   const cv=$("#bild"); if(!cv) return;
   const W=weite(), K=keepers(), st=stageOf(W);
@@ -225,10 +237,22 @@ function mountBild(){
   m.delay=FADE_DELAY; const info=Bild.mount(cv,m,from);
   // Tippflächen über den behaltenen Dingen
   const ov=$("#hits"); if(ov){ const Wc=cv.clientWidth, Hc=cv.clientHeight;
-    ov.innerHTML=info.hits.map(k=>{ const kk=S.keep.find(x=>x.id===k.id)||{};
+    // Tastatur: Die Flächen im Bild sind aus der Tab-Reihenfolge genommen (tabindex -1). Die Liste „Was liegt hier?“ führt zu denselben Blättern,
+    // in Lesereihenfolge und mit Namen; so stehen vor dem Rest der Seite keine bis zu 15 zusätzlichen Tab-Stopps. Für Screenreader bleiben sie benannt.
+    const hintOn=!S.mom["zonen-tipp"]||zHintNow;
+    ov.innerHTML=(info.zones||[]).filter(z=>ZONE[z.id]).map(z=>`<button class="zone-hit${hintOn?" zeig":""}" tabindex="-1" data-a="zone" data-v="${z.id}" style="left:${z.hx/Wc*100}%;top:${z.hy/Hc*100}%" aria-label="${esc(ZONE[z.id].n)}: ein kleiner Schritt"></button>`).join("")+info.hits.map(k=>{ const kk=S.keep.find(x=>x.id===k.id)||{};
       return `<button class="ding-hit" data-a="open" data-v="keepview" data-w="${k.id}" style="left:${k.hx/Wc*100}%;top:${k.hy/Hc*100}%;width:${Math.round(k.hr*2)}px;height:${Math.round(k.hr*2)}px" aria-label="${esc(kk.name||k.ding||"Behaltenes Ding")}, ${esc(AREA[k.cat]?AREA[k.cat].n:"")}, ${esc(GRUND[k.why]?GRUND[k.why].n:"bewusst behalten")}"></button>` }).join("") }
   const stUp=sh&&st>stageOf(sh.w);
-  S.shown=sig; save();
+  S.shown=sig;
+  // Liste „Was liegt hier?“: genau die Stellen, die im Bild eine Fläche haben
+  const zl=$(".zliste"); if(zl){ const Z=(info.zones||[]).filter(z=>ZONE[z.id]);
+    zl.hidden=!Z.length; zl.querySelector(".list").innerHTML=Z.map(z=>`<button class="row" data-a="zone" data-v="${z.id}"><i class="dot ${ZONE[z.id].cat}"></i><span class="t"><b>${esc(ZONE[z.id].n)}</b><span>${ZONE[z.id].min}\u00a0Min.</span></span>${chev}</button>`).join("") }
+  const zp=$(".zhint"); if(zp&&!(info.zones||[]).length) zp.remove();
+  // Einmal: zeigen, dass man ins Bild tippen kann
+  if(!S.mom["zonen-tipp"]&&!SH&&(info.zones||[]).length){ S.mom["zonen-tipp"]=now(); zHintNow=true; setTimeout(zHintOff,8000) }
+  // Nach einem Eintrag aus einer Stelle: die Stelle während der Überblendung markieren
+  if(zMarkNext&&from){ Bild.markFrom(from,zMarkNext,FADE_DELAY) } zMarkNext=null;
+  save();
   later(()=>maybeMoment(),from?(stUp?2600:1500)+FADE_DELAY-250:700);
 }
 
@@ -244,13 +268,17 @@ function vHome(){
   const leg=[nK&&`<span>${LEG.keep}${nK} behalten</span>`,nW&&`<span>${LEG.wish}${nW} ${plural(nW,"Wunsch wartet","Wünsche warten")}</span>`,nP&&`<span>${LEG.bag}${nP} geteilt</span>`].filter(Boolean).join("");
   return `<h1 class="sr">Freiraum</h1>
   <div class="stage"><canvas id="bild" role="img" aria-label="Dein Zimmer, Stufe ${st+1} von 10: ${esc(S1.n)}. ${esc(S1.x)}"></canvas>
-    <button class="img-hit" data-a="open" data-v="bild" aria-label="Was in deinem Zimmer zu sehen ist"></button><div id="hits"></div></div>
+    <button class="img-hit" data-a="imgtap" aria-label="Was in deinem Zimmer zu sehen ist"></button><div id="hits"></div>
+    ${!S.mom["zonen-tipp"]||zHintNow?`<p class="zhint" aria-hidden="true">Tipp auf eine Stelle im Bild</p>`:""}</div>
   ${leg?`<div class="legende" aria-hidden="true">${leg}</div>`:""}
   <button class="stufe" data-a="open" data-v="stufen" aria-label="Stufe ${st+1} von 10: ${esc(S1.n)}, ${W} Handbreit. Alle Stufen ansehen">
     <span class="stufe-kopf"><span class="stufe-n"><small>Stufe ${st+1} von 10</small><b>${esc(S1.n)}</b></span><span class="weite"><b>${W}</b> Handbreit</span></span>
     <span class="raster" aria-hidden="true">${STUFEN.map((x,i)=>`<i class="${i<=st?"v":i===st+1?"j":""}"${i===st+1?` style="--p:${Math.max(0,Math.min(100,pct))}%"`:""}></i>`).join("")}</span></button>
   <p class="stufe-p">${esc(S1.x)} ${S2?`${W<8?"Eine Handbreit ist der Platz, den ein Ding im Regal braucht. ":""}Noch <b>${hb(S2.w-W)}</b> bis „${esc(S2.n)}“.`:"Was du jetzt tust, hält es so."}</p>
-  <button class="zehn" data-a="open" data-v="timer" data-w="10"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M10 2.8h4"/></svg><span><b>10 Minuten aufräumen</b><small>Eine Stelle, ein Wecker, dann ist Schluss</small></span>${chev}</button>
+  ${st<9?`<details class="zliste" hidden><summary>Was liegt hier?</summary>
+    <p class="small muted" style="margin:0 0 6px">Tipp auf eine Stelle im Bild oder hier. Du bekommst einen kleinen Schritt fürs eigene Zimmer.</p>
+    <div class="list"></div></details>`:""}
+  <button class="zehn" data-a="open" data-v="timer" data-w="10"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M10 2.8h4"/></svg><span><b>10 Minuten aufräumen</b><small>Eine Stelle, ein Zeitgeber, dann ist Schluss</small></span>${chev}</button>
   <section class="next" aria-labelledby="nx-t">
     <div class="next-h">${MARK}Dein nächster Schritt${nx.m?" · "+esc(nx.m):""}</div>
     <h3 id="nx-t">${esc(nx.t)}</h3><p>${esc(nx.x)}</p>
@@ -429,11 +457,12 @@ document.addEventListener("input",e=>{ if(!SH||SH.type!=="keep"||e.target.id!=="
 function drawSheet(focus){
   if(!SH) return; const el=$("#sheet-in"); const y=el.scrollTop;
   el.innerHTML=sheetHTML(); paintMotifs(el);
+  const zc=el.querySelector("canvas.zcrop"); if(zc) Bild.crop(zc,zc.dataset.z);
   settleSel(el);
   if(focus){ el.scrollTop=0; const f=el.querySelector("[data-autofocus]:not(input):not(textarea)")||el.querySelector("#sh-t")||el.querySelector(".sh-close"); if(f) f.focus({preventScroll:true}) } else el.scrollTop=y;
 }
 function closeSheet(fromPop){
-  if(!SH) return; SH=null;
+  if(!SH) return; if(SH.type==="moment"&&SH.d.undo) undoFn=null; SH=null;
   const sh=$("#sheet"), L=$("#layer");
   const done=()=>{ if(SH) return; L.hidden=true; $("#sheet-in").innerHTML=""; sh.classList.remove("out"); sh.style.transform="" };
   if(RM()) done(); else { sh.classList.add("out"); setTimeout(done,240) }
@@ -488,7 +517,7 @@ function sheetHTML(){
     const st=SCHRITTE[stageOf(weite())]||SCHRITTE[0], frei=!d.step;
     return `${shTop(frei?"10 Minuten aufräumen":esc(st[0]),min+" Minuten")}
     <p>${frei?"Such dir eine Stelle aus und fang einfach an. Ein Vorschlag: "+esc(st[0])+". "+esc(st[1]):esc(st[1])}</p>
-    <div class="uhr" aria-live="off"><b id="uhr">${d.end?String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0"):min+":00"}</b><span>${d.end?(left>0?"Danach hörst du auf. Was du nicht geschafft hast, bleibt für ein anderes Mal.":"Die Zeit ist um. Gut gemacht ist, was du gemacht hast."):"Ein Wecker hilft beim Anfangen und beim Aufhören."}</span></div>
+    <div class="uhr" aria-live="off"><b id="uhr">${d.end?String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0"):min+":00"}</b><span>${d.end?(left>0?"Danach hörst du auf. Was du nicht geschafft hast, bleibt für ein anderes Mal.":"Die Zeit ist um. Gut gemacht ist, was du gemacht hast."):"Ein Zeitgeber hilft beim Anfangen und beim Aufhören."}</span></div>
     <div class="btns">${d.end?`<button class="btn" data-a="open" data-v="los">Loslassen eintragen</button><button class="btn sec2" data-a="close">${left>0?"Aufhören":"Fertig"}</button>`:`<button class="btn" data-a="timer-go" data-autofocus>Los · ${min}\u00a0Min.</button><button class="btn sec2" data-a="close">Später</button>`}</div>
     <p class="note">Die Uhr läuft nur, solange die App offen ist. Es gibt keinen Ton und keine Nachricht.</p>` }
   case "mehr": return `${shTop("Mehr")}
@@ -635,6 +664,25 @@ function sheetHTML(){
       return `<div class="row" style="align-items:flex-start"><span class="t"><b>${esc(a.t)}</b><span style="font-size:14px;color:var(--muted)">${esc(school()&&a.s?a.s:a.x)}</span><span>${a.art==="einmal"?"einmalig, +"+hb(a.w):"wiederholbar, +"+hb(a.w)+(n?", schon "+n+"×":"")}${S.pre[a.id]?", hattest du schon":""}</span>${a.imp&&IMP[a.imp]?`<button class="lnk inl" data-a="open" data-v="imp" data-w="${a.imp}">Der Befund dazu</button>`:""}</span>
         <span style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">${dn?`<span class="stat on" aria-label="erledigt">✓</span>`:`<button class="chip" data-a="aufg" data-v="${a.id}">Erledigt</button>${a.art==="einmal"?`<button class="lnk inl" data-a="aufg-pre" data-v="${a.id}">Hatte ich schon</button>`:""}`}</span></div>` }).join("")}</div>`).join("")}`;
   case "moment": return momentHTML();
+  case "zone": { const z=ZONE[SH.arg]; if(!z) return shTop("Nicht gefunden");
+    const zi=Bild.placed().find(x=>x.id===z.id);
+    const imp=z.imp&&IMP[z.imp], ueb=z.ueb&&UEB[z.ueb], auf=z.aufg&&AUF[z.aufg];
+    return `${shTop(esc(z.t),`<i class="dot ${z.cat}"></i> ${esc(AREA[z.cat].n)} · ein Vorschlag`)}
+    ${zi?`<canvas class="zcrop" data-z="${z.id}" role="img" aria-label="Ausschnitt aus dem Bild, markiert: ${esc(z.n)}"></canvas>`:""}
+    <div class="box zs"><b>Ein Schritt · ${z.min} Min.</b><p class="small" style="margin:4px 0 0">${esc(school()&&z.s?z.s:z.x)}</p></div>
+    <p class="note zb">${zi&&zi.jetzt?"Im Bild: Gibst du von hier etwas weiter, wird zuerst an dieser Stelle Platz frei.":"Im Bild ist diese Stelle erst später dran. Ein Eintrag von hier ändert dort jetzt nichts. Der Schritt gilt für dein eigenes Zimmer."}</p>
+    <p class="small muted zw">Alle drei Wege sind gleich gut. Wenn alles bleiben darf, ist das auch eine Antwort.</p>
+    <div class="opts drei"><button class="opt" data-a="zone-go" data-v="keep" data-w="${z.id}"><span>Mit Grund behalten</span></button>
+     <button class="opt" data-a="zone-go" data-v="kiste" data-w="${z.id}"><span>In die Vielleicht-Kiste</span></button>
+     <button class="opt" data-a="zone-go" data-v="los" data-w="${z.id}"><span>Weiter&shy;geben</span></button></div>
+    <div class="btns"><button class="btn sec2" data-a="open" data-v="timer" data-w="10">10 Minuten mit Zeitgeber</button></div>
+    <details class="mehr"><summary>Mehr dazu</summary>
+     <p class="small"><b class="ui">Wenn du magst, als Plan:</b> „${esc(z.wenn)}“</p>
+     ${z.regel?`<p class="note">Das ist eine Erfahrungsregel aus der Aufräumszene, untersucht ist sie nicht.</p>`:""}
+     ${schoolNote()}
+     ${imp||ueb||auf?`<div class="links">${imp?`<button class="lnk" data-a="open" data-v="imp" data-w="${imp.id}">Befund: ${esc(imp.t)}</button>`:""}${ueb?`<button class="lnk" data-a="open" data-v="ueb" data-w="${ueb.id}">Übung: ${esc(ueb.t)}</button>`:""}${auf?`<button class="lnk" data-a="aufg-sheet" data-v="${auf.id}">Aufgabe: ${esc(auf.t)}</button>`:""}</div>`:""}
+     <p class="note">Das Bild räumt in fester Reihenfolge auf. Innerhalb der laufenden Stufe kann ein Eintrag von einer Stelle zuerst dort Platz machen.</p>
+    </details>` }
   case "none": return shTop("");
   }
   return shTop("");
@@ -797,7 +845,11 @@ function bildHTML(){ const W=weite(), st=stageOf(W), K=keepers(), nW=waiting().l
    <div>${ico('<rect x="11" y="13" width="18" height="16" rx="2.5" fill="none" stroke="var(--c-pa)" stroke-width="2" stroke-dasharray="3.5 2.6"/><rect x="12" y="22" width="16" height="6" rx="1.5" fill="var(--c-pa)" opacity=".35"/>')}<p><b class="ui">Gestrichelte Pakete</b> vor der Tür sind Wünsche, die gerade warten. Mit der Wartezeit füllen sie sich von unten. ${nW?"Es "+plural(nW,"wartet einer","warten "+nW)+".":""}</p></div>
    <div>${ico('<path d="M14 15l4-6 4 6" fill="none" stroke="var(--c-ko)" stroke-width="1.8"/><rect x="11" y="14" width="14" height="17" rx="2" fill="var(--c-ko)"/><circle cx="28" cy="26" r="5" fill="var(--surface)" stroke="var(--c-ko)" stroke-width="1.4"/><text x="28" y="28.6" font-size="7" font-weight="700" text-anchor="middle" fill="var(--c-ko)" font-family="Inter">L</text>')}<p><b class="ui">Taschen an der Tür</b> gehen zu Menschen. Mit einem Namen bei „Für wen?“ hängt die Tasche einen Monat lang mit Anhänger dort. Leihen, gebraucht holen oder reparieren hängt ebenfalls eine Tasche dazu. ${nB?"Gerade "+plural(nB,"hängt eine","hängen "+nB)+".":""}</p></div>
   </div>
-  <p class="note">Tagsüber scheint die Sonne herein, abends brennt die Lampe, und gegenüber gehen die Fenster an. Über der Tasse steigt Dampf auf. Nichts, was du dir erarbeitet hast, verschwindet aus dem Bild.</p>
+  <p class="note">${(()=>{ const dk=document.documentElement.dataset.dark==="1", nacht=Bild.dayPhase(new Date(now())).k==="nacht";
+    return dk?"Im dunklen Modus ist im Bild Abend: Die Lampe brennt, und gegenüber sind die Fenster hell."+(nacht?"":" Im hellen Modus folgt das Licht der Tageszeit.")
+      :nacht?"Jetzt ist im Bild Abend: Die Lampe brennt, und gegenüber sind die Fenster hell. Tagsüber scheint die Sonne herein."
+      :"Jetzt scheint die Sonne herein. Abends brennt die Lampe, und gegenüber gehen die Fenster an." })()} Über der Tasse steigt Dampf auf. Nichts, was du dir erarbeitet hast, verschwindet aus dem Bild.</p>
+  <p class="note">Das Bild zeigt deinen Fortschritt als Ganzes, nicht dein echtes Zimmer. Es räumt in fester Reihenfolge auf. Innerhalb der laufenden Stufe kann ein Eintrag von einer Stelle zuerst dort Platz machen.</p>
   <div class="btns"><button class="btn sec2" data-a="open" data-v="stufen">Alle Stufen</button></div>` }
 
 /* ---------- Bestandsaufnahme ---------- */
@@ -830,7 +882,6 @@ const MOM=[
   {k:"nomiss",pri:5,c:()=>{ const s=stats(); return s.asked.length>=5 },t:"Dein eigener Beleg",x:null}
 ];
 function maybeMoment(){
-  if(undoFn){ later(()=>maybeMoment(),800); return }
   if(SH||TAB!=="home") return;
   const W=weite(), st=stageOf(W), due=[];
   if(st>0&&!S.mom["stage-"+st]) due.push({k:"stage-"+st,pri:10,t:STUFEN[st].n,x:STUFEN[st].x,art:true});
@@ -842,22 +893,24 @@ function maybeMoment(){
   // Ältere Stufen, die man übersprungen hat, gelten als gesehen
   for(let i=1;i<=st;i++) S.mom["stage-"+i]=now();
   due.forEach(m=>S.mom[m.k]=now()); save();
-  openSheet("moment",null,{m:main,more});
+  // Gibt es noch ein Rückgängig, wandert es aus der Meldung ins Blatt und bleibt, bis das Blatt zu ist
+  const u=!!undoFn; if(u){ clearTimeout(toastT); $("#toast").classList.remove("show") }
+  openSheet("moment",null,{m:main,more,undo:u});
 }
 function momentHTML(){ const {m,more}=SH.d;
   return `<div class="sh-top"><span class="meta">${m.k&&m.k.startsWith("stage")?"Neue Stufe":"Neu in deinem Zimmer"}</span><button class="sh-close" data-a="close">Schließen</button></div><h2 id="sh-t" tabindex="-1">${esc(m.t)}</h2><p class="lead">${esc(m.x)}</p>
   ${more&&more.length?`<p class="small muted">Auch neu: ${more.map(x=>esc(x.t)).join(", ")}.</p>`:""}
-  <div class="btns"><button class="btn" data-a="close" data-autofocus>Weiter</button></div>` }
+  <div class="btns"><button class="btn" data-a="close" data-autofocus>Weiter</button>${SH.d.undo&&undoFn?`<button class="btn quiet" data-a="undo">Rückgängig</button>`:""}</div>` }
 
 /* ---------- Meldung mit Rückgängig ---------- */
 let toastT=0, undoFn=null;
 function toast(msg,opt){ opt=opt||{};
   const t=$("#toast"); undoFn=opt.undo||null;
   t.innerHTML=`${opt.ok!==false?`<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>`:""}<span class="tx">${esc(msg)}</span>${undoFn?`<button data-a="undo">Rückgängig</button>`:""}`;
-  t.classList.add("up"); t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>{ t.classList.remove("show"); undoFn=null },opt.ms||(undoFn?6000:3500));
+  t.classList.toggle("up",TAB!=="home"); t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>{ t.classList.remove("show"); undoFn=null },opt.ms||(undoFn?6000:3500));
   $("#live").textContent=msg;
 }
-function act(msg,fn,opt){ const snap=JSON.stringify(S), w0=weite(); fn(); save(); if(weite()>w0&&TAB==="home") goTop=true; toast(msg,Object.assign({undo:()=>{ S=JSON.parse(snap); save(); render(); toast("Rückgängig gemacht",{ok:false,ms:2500}) }},opt||{})) }
+function act(msg,fn,opt){ const snap=JSON.stringify(S), w0=weite(); zHintOff(); fn(); save(); if(typeof msg==="function") msg=msg(weite()-w0); if(weite()>w0&&TAB==="home") goTop=true; toast(msg,Object.assign({undo:()=>{ S=JSON.parse(snap); save(); render(); toast("Rückgängig gemacht",{ok:false,ms:2500}) }},opt||{})) }
 
 /* ---------- Aktionen ---------- */
 function readFields(){ const g=id=>{ const e=document.getElementById(id); return e?e.value.trim():undefined };
@@ -887,7 +940,17 @@ const A={
   "set-dd"(el){ SH.d.dd=+el.dataset.v; drawSheet() },
   "do-los"(){ readFields(); const d=SH.d; const e={id:uid(),k:"los",ts:now(),cat:d.cat,size:d.size,weg:d.weg,name:d.name||"",ask:d.ask===false?null:now()+30*DAY};
     if(d.who&&WEG[d.weg]&&WEG[d.weg].g) e.who=d.who.slice(0,30);
-    closeSheet(); act(e.who?"Eingetragen. Die Tasche für "+e.who+" hängt an der Tür.":"Eingetragen. In deinem Zimmer wird Platz frei.",()=>{ S.log.push(e) }); render() },
+    // Die Stelle zählt fürs Bild nur, wenn dort in der laufenden Stufe noch etwas liegt
+    const zi=d.z&&ZONE[d.z]?Bild.zonesOf(bildModel(weite(),keepers())).find(x=>x.id===d.z):null;
+    if(zi&&zi.jetzt>0){ e.z=d.z; e.zc=+curClearing().toFixed(4) }
+    const full=d.weg==="mue"||d.weg==="rec"?Math.ceil(d.size/2):d.size;
+    closeSheet(); act(g=>{ const bag=e.who?"Die Tasche für "+e.who+" hängt an der Tür. ":"";
+      if(g<=0) return "Eingetragen. "+bag+"Für heute kommen keine Handbreit mehr dazu, das Bild bleibt heute so.";
+      if(g<full) return "Eingetragen. "+bag+"Heute zählen davon noch "+hb(g)+".";
+      // „zuerst an dieser Stelle“ nur, wenn der Eintrag dort wirklich etwas verschwinden lässt, das ohne ihn noch da wäre
+      const fx=e.z?zoneEffect(e):{now:0,extra:0}; if(fx.now>0) zMarkNext=e.z;
+      if(fx.extra>0) return "Eingetragen. Im Bild wird zuerst an dieser Stelle Platz frei.";
+      return e.who?"Eingetragen. Die Tasche für "+e.who+" hängt an der Tür.":"Eingetragen. In deinem Zimmer wird Platz frei." },()=>{ S.log.push(e) }); render() },
   "set-motif"(el){ readFields(); SH.d.motif=el.dataset.v; drawSheet() },
   "set-kmotif"(el){ const k=S.keep.find(x=>x.id===SH.arg); if(!k) return; k.motif=el.dataset.v; save(); drawSheet(); const dd=document.querySelector(".mot-d"); if(dd) dd.open=true; toast("Im Bild steht es jetzt als "+el.dataset.v+".") },
   "set-ask"(){ readFields(); SH.d.ask=SH.d.ask===false; drawSheet() },
@@ -966,6 +1029,13 @@ const A={
   "aufg-pre"(el){ const id=el.dataset.v; act("Als „hatte ich schon“ markiert.",()=>{ S.pre[id]=now() }); drawSheet() },
   inflow(el){ S.inflow[el.dataset.v]=+el.dataset.w; S.hint.key=""; save(); render(); toast("Gespeichert. Du siehst es unter „Dein Weg“.") },
   hint(el){ const k=S.hint.key; if(el.dataset.v==="off") S.hint.off[k]=true; else S.hint.later=dkey(); save(); render() },
+  zone(el){ const id=el.dataset.v; if(!ZONE[id]) return; zHintOff(); Bild.mark(id); tapKind="sel"; if(SH) readFields(); openSheet("zone",id) },
+  /* Tipp ins Bild neben eine Fläche: die nächste Stelle in etwa 30 px, sonst das allgemeine Blatt */
+  imgtap(el,e){ const r=el.getBoundingClientRect(), id=e&&e.clientX!=null?Bild.zoneAt(e.clientX-r.left,e.clientY-r.top,30):null;
+    if(id&&ZONE[id]){ A.zone({dataset:{v:id}}); return } openSheet("bild") },
+  "zone-go"(el){ const z=ZONE[el.dataset.w], v=el.dataset.v; if(!z) return;
+    openSheet(v,null,v==="los"?{name:z.name,cat:z.cat,z:z.id}:{name:z.name,cat:z.cat}) },
+  "aufg-sheet"(){ openSheet("aufgaben") },
   undo(){ const f=undoFn; undoFn=null; $("#toast").classList.remove("show"); if(SH&&SH.type==="moment") closeSheet(); if(f) f() },
   ics(el){ downloadICS(el.dataset.v,+el.dataset.w) },
   export(){ const blob=new Blob([JSON.stringify(S)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="freiraum-sicherung-"+dkey()+".json"; document.body.appendChild(a); a.click(); a.remove(); S.exported=now(); save(); toast("Sicherung erstellt.") },
@@ -997,10 +1067,10 @@ document.addEventListener("click",e=>{
   if(e.target.tagName==="INPUT"&&e.target.closest("label.hap")) e.target.blur();
   const fn=A[el.dataset.a]; if(!fn) return;
   if(el.tagName==="A") return;
-  tapKind=null;
+  tapKind=null; const q=quietTap(el);
   feedbackFor(el,e);
   fn(el,e);
-  const f=tapKind||famOf(el); if(f) vibrateNow(f);
+  const f=tapKind||(q?null:famOf(el)); if(f) vibrateNow(f);
   tapKind=null;
 });
 document.addEventListener("keydown",e=>{

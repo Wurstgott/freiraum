@@ -27,3 +27,11 @@
   if(warn.length) console.log("Hinweise:\n  "+warn.join("\n  "));
   if(err.length){ console.error("Fehler:\n  "+err.join("\n  ")); process.exit(1) }
 })();
+/* Zonen im Bild: Verweise und Pflichtfelder */
+(function(){ if(typeof ZONEN==="undefined") return; const err=[]; const I=new Set(IMPULSE.map(i=>i.id)), U=new Set(UEBUNGEN.map(u=>u.id)), A=new Set(AUFGABEN.map(a=>a.id)), C=new Set(AREAS.map(a=>a.id));
+  ZONEN.forEach(z=>{ ["id","n","t","x","wenn","name","cat"].forEach(k=>{ if(!z[k]) err.push(z.id+": "+k+" fehlt") });
+    if(!C.has(z.cat)) err.push(z.id+": Bereich"); if(!(z.min>=2&&z.min<=10)) err.push(z.id+": Minuten "+z.min);
+    if(z.imp&&!I.has(z.imp)) err.push(z.id+": Impuls "+z.imp); if(z.ueb&&!U.has(z.ueb)) err.push(z.id+": Übung "+z.ueb); if(z.aufg&&!A.has(z.aufg)) err.push(z.id+": Aufgabe "+z.aufg);
+    if(/\b(kaufen|ausgeben|Guthaben|musst)\b/i.test(z.t+z.x+z.wenn)) err.push(z.id+": Wortwahl") });
+  if(ZONEN.length<15||ZONEN.length>20) err.push("ZONEN: "+ZONEN.length);
+  if(err.length){ console.error("Fehler Zonen:\n  "+err.join("\n  ")); process.exit(1) } else console.log("Zonen: "+ZONEN.length) })();

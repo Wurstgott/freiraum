@@ -1,5 +1,5 @@
 """Abläufe von Freiraum im iPhone-Profil durchspielen: python3 test_flows.py"""
-import json, sys
+import json, sys, re
 from playwright.sync_api import sync_playwright
 URL = "http://127.0.0.1:8765/index.html"
 DAY = 864e5
@@ -61,7 +61,7 @@ with sync_playwright() as p:
     tap(pg, '.btn[data-a="do-los"]', 1500)
     ok(W(pg) == 3, "Weite 3 nach Tüte")
     ok(pg.evaluate("scrollY") == 0, "nach dem Eintrag zurück beim Bild: " + str(pg.evaluate("scrollY")))
-    ok(pg.locator("#toast.up").count() == 1, "Meldung steht oben")
+    ok(pg.locator("#toast.up").count() == 0, "Meldung steht auf der Startseite unten, nicht über dem Bild")
     ok(pg.locator("#toast.show").count() == 1, "Meldung sichtbar")
     tap(pg, '#toast button[data-a="undo"]', 400)
     ok(W(pg) == 0, "Rückgängig setzt Weite zurück")
@@ -214,24 +214,30 @@ with sync_playwright() as p:
     ios = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
     ctx, pg, errs = new({"seen": True, "settings": {"theme": "system", "vib": True, "mode": None}}, ua=ios)
     pg.wait_for_timeout(300)
-    n_btn = pg.evaluate("document.querySelectorAll('.btn,.tile,.chip').length")
-    n_hap = pg.evaluate("[...document.querySelectorAll('.btn,.tile,.chip')].filter(e=>e.querySelector(':scope>label.hap>input[switch]')).length")
+    n_btn = pg.evaluate("[...document.querySelectorAll('.btn,.tile,.chip')].filter(e=>!quietTap(e)).length")
+    n_hap = pg.evaluate("[...document.querySelectorAll('.btn,.tile,.chip')].filter(e=>!quietTap(e)&&e.querySelector(':scope>label.hap>input[switch]')).length")
+    ok(pg.evaluate("document.querySelector('.tile[data-v=\"los\"] label.hap')") is None, "Öffnen des Loslassen-Formulars tickt nicht")
     ok(n_btn > 0 and n_btn == n_hap, f"Schalter in allen Tick-Elementen {n_hap}/{n_btn}")
-    ok(pg.evaluate("document.querySelectorAll('a label.hap,.tab label.hap,.row label.hap').length") == 0, "keine Schalter in Links und Navigation")
+    ok(pg.evaluate("[...document.querySelectorAll('a label.hap,.tab label.hap,.row label.hap')].filter(l=>!l.closest('.zliste')).length") == 0, "keine Schalter in Links und Navigation")
     tap(pg, '.tile[data-v="los"]', 400)
     ok(pg.locator("#sheet-in h2").inner_text() == "Loslassen", "Tippen über den Schalter löst die Aktion genau einmal aus")
+    ok(pg.evaluate("document.querySelectorAll('#sheet .chip label.hap').length") == 0 and pg.evaluate("document.querySelectorAll('#sheet [data-a=\"do-los\"] label.hap').length") == 1, "im Formular tickt nur „Eintragen“")
+    pg.evaluate("closeSheet()"); pg.wait_for_timeout(300); pg.evaluate("openSheet('mehr')"); pg.wait_for_timeout(300)
     ok(pg.evaluate("document.querySelectorAll('#sheet .chip label.hap').length") > 0, "neu gezeichnete Elemente bekommen Schalter")
     ctx.close()
 
     # 13b. Android: Vibrationsmuster je Familie
     andr = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Mobile Safari/537.36"
     ctx, pg, errs = new({"seen": True, "settings": {"theme": "system", "vib": True, "mode": None}}, ua=andr)
-    tap(pg, '.tile[data-v="los"]'); tap(pg, '#sheet .chip[data-v="kl"]')
+    tap(pg, '.tile[data-v="los"]'); tap(pg, '#sheet .chip[data-v="kl"]'); tap(pg, '#sheet .opt[data-v="3"]'); tap(pg, '#sheet .chip[data-v="spe"]')
+    pg.evaluate("document.querySelector('#sheet-in').scrollTop=9999"); tap(pg, '.btn[data-a="do-los"]', 600)
+    ok(pg.evaluate("window.__vib") == [12], "ein Loslassen-Eintrag: genau eine Vibration: " + str(pg.evaluate("window.__vib")))
+    pg.evaluate("window.__vib=[];openSheet('mehr')"); pg.wait_for_timeout(300); tap(pg, '#sheet .chip[data-v="light"]')
     pg.evaluate("openSheet('quiz')"); pg.wait_for_timeout(300); tap(pg, '.ans[data-v="0"]')
     v = pg.evaluate("window.__vib")
-    ok(v[:2] == [12, 10] and v[2] in ([10, 60, 14], [24, 60, 24]), "Android: Aktion 12, Auswahl 10, Erfolg/Fehler: " + str(v))
-    pg.evaluate("closeSheet();S.settings.vib=false;save()"); pg.wait_for_timeout(300); tap(pg, '.tile[data-v="los"]')
-    ok(len(pg.evaluate("window.__vib")) == 3, "Vibration abschaltbar")
+    ok(v[:1] == [10] and v[1] in ([10, 60, 14], [24, 60, 24]), "Android: Auswahl 10, Erfolg/Fehler: " + str(v))
+    pg.evaluate("closeSheet();S.settings.vib=false;save()"); pg.wait_for_timeout(300); tap(pg, '.btn[data-a="nxalt"]')
+    ok(len(pg.evaluate("window.__vib")) == 2, "Vibration abschaltbar")
     ctx.close()
 
     # 13c. Handbreit: Größen 1/3/6/10, Entsorgtes halb, Für wen? ergibt Tasche mit Namen
@@ -377,6 +383,184 @@ with sync_playwright() as p:
     ok(0 < lk < 50, "„Alle N“ ohne Umbruch: " + str(lk))
     ok(all("+" in t for t in pg.evaluate("[...document.querySelectorAll('.aufg-m')].map(e=>e.textContent)")), "Aufgaben zeigen ihren Wert")
     ok(not errs, "320 px ohne Fehler")
+    ctx.close()
+
+    # 13i. Fassung C: Stellen im Bild
+    andr2 = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Mobile Safari/537.36"
+    OVL = """(()=>{const Z=[...document.querySelectorAll('.zone-hit')],K=[...document.querySelectorAll('.ding-hit')];const c=e=>{const r=e.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2,r.width/2]};
+      let n=0; Z.forEach(a=>{K.concat(Z.filter(b=>b!==a)).forEach(b=>{const [x1,y1,r1]=c(a),[x2,y2,r2]=c(b); if(Math.hypot(x1-x2,y1-y2)<r1+r2) n++})}); return n})()"""
+    ONSTUFF = """(()=>{const cv=document.querySelector('#bild'), r0=cv.getBoundingClientRect(), u=r0.width/Bild.VW, m=bildModel(weite(),keepers()), c=Bild.clearing(m), T=Bild.times(m.zpref);
+      return [...document.querySelectorAll('.zone-hit')].every(e=>{const r=e.getBoundingClientRect(), x=(r.left+r.width/2-r0.left)/u, y=(r.top+r.height/2-r0.top)/u;
+        return Bild._build().some(p=>p.zone===e.dataset.v&&c<T[p.i]&&x>=p.x-3&&x<=p.x+p.w+3&&(['wand','chair','lamp'].includes(p.z)?(y>=p.y-3&&y<=p.y+p.h+3):(y>=p.y-p.h-3&&y<=p.y+3)))})})()"""
+    st5 = json.load(open("/tmp/claude-0/s5.json"))
+    ctx, pg, errs = new(st5, ua=andr2)
+    if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    nz = pg.locator(".zone-hit").count()
+    ok(8 <= nz <= 20, "Stellen im Bild antippbar bei Stufe 3: " + str(nz))
+    R = pg.evaluate("[...document.querySelectorAll('.zone-hit')].map(e=>{const r=e.getBoundingClientRect();return [r.width,r.height]})")
+    ok(all(r[0] >= 44 and r[1] >= 44 for r in R), "Tippflächen der Stellen mindestens 44 px")
+    ok(pg.evaluate(ONSTUFF), "jede Tippfläche liegt auf sichtbarem Kram ihrer Stelle")
+    ok(pg.evaluate(OVL) == 0, "keine Überlappung der Tippflächen")
+    ok(pg.locator(".zliste").count() == 1 and not re.search(r"\d", pg.locator(".zliste summary").inner_text()), "Liste „Was liegt hier?“ ohne Zähler: " + pg.locator(".zliste summary").inner_text())
+    ok(pg.evaluate("[...document.querySelectorAll('.zliste .row')].map(e=>e.dataset.v).sort().join()") == pg.evaluate("[...document.querySelectorAll('.zone-hit')].map(e=>e.dataset.v).sort().join()"), "Liste und Bild nennen dieselben Stellen")
+    ok(pg.evaluate("[...document.querySelectorAll('.zone-hit')].every(e=>e.tabIndex===-1)"), "Tastatur: Flächen im Bild nicht in der Tab-Reihenfolge, die Liste führt dorthin")
+    # gleiche Rückmeldung aus der Liste
+    pg.evaluate("window.__vib=[];document.querySelector('.zliste').open=true"); pg.wait_for_timeout(200)
+    pg.locator(".zliste .row").first.tap(); pg.wait_for_timeout(500)
+    ok(pg.evaluate("window.__vib") == [10] and pg.evaluate("SH&&SH.type") == "zone", "Tipp in der Liste tickt wie ein Tipp im Bild: " + str(pg.evaluate("window.__vib")))
+    pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    # Tipp knapp neben eine Fläche: nächste Stelle, weit weg: allgemeines Blatt
+    pg.evaluate("scrollTo(0,0)"); pg.wait_for_timeout(300)
+    pt = pg.evaluate("""(()=>{ const cv=document.querySelector('#bild').getBoundingClientRect(), Z=Bild.placed(), H=[...document.querySelectorAll('.zone-hit,.ding-hit')].map(e=>{const r=e.getBoundingClientRect();return [r.left+r.width/2-cv.left,r.top+r.height/2-cv.top]});
+      for(const z of Z) for(const [x,y,w,h] of z.rects){ for(const [px,py] of [[x+w/2,y+h/2],[x+2,y+2],[x+w-2,y+h-2]]){ if(H.every(([a,b])=>Math.hypot(a-px,b-py)>26)&&px>4&&py>4&&px<cv.width-4&&py<cv.height-4) return [z.id,Bild.zoneAt(px,py,30),px+cv.left,py+cv.top] } } return null })()""")
+    if pt:
+        pg.touchscreen.tap(pt[2], pt[3]); pg.wait_for_timeout(500)
+        ok(pg.evaluate("SH&&SH.type") == "zone" and pg.evaluate("SH.arg") == pt[1], "Tipp neben die Fläche öffnet die nächste Stelle: " + str(pt[:2]) + " " + str(pg.evaluate("SH&&[SH.type,SH.arg]")))
+        pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    else: ok(False, "kein Punkt für den Fehltipp-Test gefunden")
+    ok(not pg.evaluate("'order' in S") and pg.locator(".wahl").count() == 0 and pg.locator('[data-a="zone-next"]').count() == 0, "kein „Platz verteilen“ mehr")
+    w0 = W(pg); pg.evaluate("window.__vib=[]")
+    zid = pg.locator(".zone-hit").first.get_attribute("data-v")
+    tap(pg, f'.zone-hit[data-v="{zid}"]', 600)
+    ok(pg.evaluate("SH&&SH.type") == "zone" and pg.evaluate("SH.arg") == zid, "Tippen auf eine Stelle öffnet ihr Blatt")
+    ok("Min." in pg.locator("#sheet-in").inner_text() and "Wenn du magst, als Plan:" in pg.locator("details.mehr").text_content(), "Blatt: Frage, Schritt mit Minuten, Wenn-dann als Angebot hinter „Mehr dazu“")
+    ok(pg.evaluate("(()=>{const c=document.querySelector('#sheet canvas.zcrop');if(!c||c.width<50)return false;const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=0;i<d.length;i+=4)if(d[i+3])n++;return n>c.width*c.height*0.9})()"), "Blatt zeigt den markierten Ausschnitt aus dem Bild")
+    ok(pg.evaluate("window.__vib") == [10], "Android vibriert einmal wie bei einer Auswahl: " + str(pg.evaluate("window.__vib")))
+    ok(W(pg) == w0, "Tippen bringt keine Handbreit")
+    ok(pg.locator("#sheet-in").evaluate("e=>e.scrollHeight") <= 760 and pg.locator("details.mehr").count() == 1, "Blatt einer Stelle etwa eine Bildschirmhöhe, Rest hinter „Mehr dazu“: " + str(pg.locator("#sheet-in").evaluate("e=>e.scrollHeight")))
+    ok(pg.locator("#sheet-in").inner_text().count("nicht dein echtes Zimmer") == 0 and "Wecker" not in pg.locator("#sheet-in").inner_text() and "Zeitgeber" in pg.locator("#sheet-in").inner_text(), "Blatt: Zeitgeber, kein Wecker, kein wiederholter Hinweis")
+    pg.evaluate("window.__vib=[]")
+    tap(pg, '[data-a="zone-go"][data-v="los"]', 400)
+    ok(pg.evaluate("[SH.type,SH.d.cat,SH.d.size===undefined,SH.d.name,SH.d.z].join()") == "los," + pg.evaluate(f"ZONE['{zid}'].cat") + ",true," + pg.evaluate(f"ZONE['{zid}'].name") + "," + zid, "Weitergeben: Bereich und Name vorbelegt, keine Menge: " + pg.evaluate("JSON.stringify(SH.d)"))
+    ok(pg.locator("#sheet .opt.on").count() == 0, "keine Größe vorausgewählt")
+    ok(pg.evaluate("window.__vib") == [], "Öffnen des Formulars vibriert nicht")
+    pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    ok(not errs, "Stellen ohne Fehler: " + "; ".join(errs[:2]))
+    ctx.close()
+    # Eintrag und Bild: Kram der Stelle geht innerhalb der Stufe zuerst, die Stufen bleiben gleich
+    ctx, pg, errs = new({"seen": True, "gv": 2, "settings": {"theme": "system", "vib": True, "mode": None}, "mom": {"zonen-tipp": 1}, "log": []})
+    if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    r = pg.evaluate("""(()=>{ const P=Bild._build(), out=[];
+      for(const [z,c] of [['boden-kleidung',1.05],['tisch-papier',3.2],['regal',4.1],['spielzeug',5.0]]){
+        const T0=Bild.times([]), T=Bild.times([{z,c}]), k=Math.floor(c)+1;
+        const same=[...Array(10).keys()].every(s=>JSON.stringify(Bild.gone(s,[])) ===JSON.stringify(Bild.gone(s,[{z,c}])));
+        const back=P.some(p=>T0[p.i]<=c&&T[p.i]>c);
+        const G=P.filter(p=>p.g===k&&T[p.i]>c&&!p.stackOn), zn=G.filter(p=>p.zone===z), ot=G.filter(p=>p.zone!==z);
+        const first=!zn.length||!ot.length||Math.max(...zn.map(p=>T[p.i]))<=Math.min(...ot.map(p=>T[p.i]));
+        out.push([z,same,!back,first,zn.length]) } return out })()""")
+    ok(all(x[1] for x in r), "Am Ende jeder Stufe ist dasselbe fort wie ohne Eintrag: " + str(r))
+    ok(all(x[2] for x in r), "nichts kommt zurück: " + str(r))
+    ok(all(x[3] for x in r), "innerhalb der Stufe geht der Kram der Stelle zuerst: " + str(r))
+    ok(any(x[4] > 0 for x in r), "die Prüfung trifft Stellen mit Kram in der laufenden Stufe")
+    # echter Ablauf: aus einer Stelle weitergeben
+    pg.evaluate("S.log=[{id:'p1',k:'los',ts:Date.now()-3*864e5,cat:'kl',size:3,weg:'ver'}];save();render()"); pg.wait_for_timeout(600)
+    if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    zid = pg.evaluate("Bild.placed().find(z=>z.jetzt>0).id")
+    pg.evaluate(f"A.zone({{dataset:{{v:'{zid}'}}}})"); pg.wait_for_timeout(400)
+    ok("zuerst an dieser Stelle Platz frei" in pg.locator("#sheet-in").inner_text(), "Blatt sagt ehrlich, dass hier zuerst Platz entsteht")
+    tap(pg, '[data-a="zone-go"][data-v="los"]', 400)
+    tap(pg, '#sheet .opt[data-v="1"]'); tap(pg, '#sheet .chip[data-v="ver"]')
+    pg.evaluate("document.querySelector('#sheet-in').scrollTop=9999"); tap(pg, '.btn[data-a="do-los"]', 600)
+    e = S(pg)["log"][-1]
+    ok(e.get("z") == zid and isinstance(e.get("zc"), (int, float)) and e.get("size") == 1, "Eintrag merkt sich die Stelle: " + str(e))
+    gz = pg.evaluate(f"(()=>{{const m=bildModel(weite(),keepers()), c=Bild.clearing(m), T=Bild.times(m.zpref), T0=Bild.times([]); return Bild._build().filter(p=>p.zone==='{zid}'&&T[p.i]<=c&&T0[p.i]>c).length}})()")
+    ok(gz > 0, "im Bild ist an dieser Stelle jetzt zuerst etwas fort: " + str(gz))
+    ok("zuerst an dieser Stelle" in pg.locator("#toast .tx").inner_text(), "Meldung nennt die Stelle, weil dort wirklich etwas fort ist")
+    # Stelle, die in der laufenden Stufe nichts beiträgt: kein Versprechen, keine falsche Meldung
+    pg.evaluate("closeSheet&&SH&&closeSheet()"); pg.wait_for_timeout(300)
+    z0 = pg.evaluate("(Bild.placed().find(z=>z.jetzt===0)||{}).id")
+    if z0:
+        pg.evaluate(f"A.zone({{dataset:{{v:'{z0}'}}}})"); pg.wait_for_timeout(400)
+        tx = pg.locator("#sheet-in").inner_text()
+        ok("Gibst du von hier" not in tx and "erst später dran" in tx, "Blatt einer Stelle ohne Wirkung sagt das vorher klar")
+        tap(pg, '[data-a="zone-go"][data-v="los"]', 400); tap(pg, '#sheet .opt[data-v="1"]'); tap(pg, '#sheet .chip[data-v="ver"]')
+        pg.evaluate("document.querySelector('#sheet-in').scrollTop=9999"); tap(pg, '.btn[data-a="do-los"]', 600)
+        ok("zuerst" not in pg.locator("#toast .tx").inner_text() and not S(pg)["log"][-1].get("z"), "ohne Wirkung: Meldung ohne „zuerst an dieser Stelle“: " + pg.locator("#toast .tx").inner_text())
+    else: ok(False, "keine Stelle ohne Wirkung gefunden")
+    pg.reload(); pg.wait_for_timeout(700)
+    ok(not errs, "Eintrag aus einer Stelle ohne Fehler: " + "; ".join(errs[:2]))
+    ctx.close()
+    # Tagesdeckel: ehrliche Meldung
+    ctx, pg, errs = new({"seen": True, "gv": 2, "settings": {"theme": "system", "vib": True, "mode": None}, "mom": {"zonen-tipp": 1, "stage-1": 1, "stage-2": 1, "stage-3": 1, "stage-4": 1},
+                         "log": [{"id": "c%d" % i, "k": "los", "ts": 1760864400000 + i, "cat": "wo", "size": 10, "weg": "ver"} for i in range(3)]})
+    pg.evaluate("S.log.forEach(e=>e.ts=now());save();render()"); pg.wait_for_timeout(300)
+    if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    pg.evaluate("openSheet('los',null,{cat:'wo',size:6,weg:'ver'})"); pg.wait_for_timeout(300)
+    w1 = W(pg); pg.evaluate("A['do-los']()"); pg.wait_for_timeout(300)
+    msg = pg.locator("#toast .tx").inner_text()
+    ok(W(pg) == w1 and "keine Handbreit" in msg and "Platz frei" not in msg, "Tagesdeckel: Meldung sagt, dass heute nichts dazukommt: " + msg)
+    ctx.close()
+    # Zuordnung der Stellen: jedes Ding dort, wo es steht; Bücher immer bei Bücherstellen mit Bereich „Papier & Digitales“
+    ctx, pg, errs = new({"seen": True, "gv": 2, "settings": {"theme": "system", "vib": True, "mode": None}, "mom": {"zonen-tipp": 1}, "log": []})
+    if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    za = pg.evaluate("""(()=>{ const P=Bild._build(), out={}; P.forEach(p=>{ (out[p.zone]=out[p.zone]||[]).push([p.k,p.x+p.w/2,p.z]) }); return out })()""")
+    ok(set(za) == set(pg.evaluate("ZONEN.map(z=>z.id)")) and 15 <= len(za) <= 20, "jede Stelle hat Dinge, jedes Ding eine Stelle: " + str(len(za)))
+    books = [(z, k) for z, L in za.items() for k, x, zz in L if k in ("buch", "buchq", "stapelbuch", "buecherstapel", "ordner")]
+    ok(all(pg.evaluate(f"ZONE['{z}'].cat") == "pa" for z, k in books), "Bücher liegen in Stellen mit dem Bereich „Papier & Digitales“: " + str(sorted(set(z for z, k in books))))
+    ok(all(z == "boden-buecher" for z, L in za.items() for k, x, zz in L if k == "stapelbuch"), "Bücherstapel am Boden (auch links neben dem Sessel) gehören zu „Bücherstapel am Boden“")
+    side = [(z, k, round(x)) for z, L in za.items() for k, x, zz in L if ("rechts" in pg.evaluate(f"ZONE['{z}'].n+ZONE['{z}'].t") and x < 180) or ("links" in pg.evaluate(f"ZONE['{z}'].n+ZONE['{z}'].t") and x > 180)]
+    ok(not side, "keine Stelle nennt eine Seite, auf der ihre Dinge nicht liegen: " + str(side))
+    ok(all(zz == "regalq" for k, x, zz in za["regal-quer"]) and all(zz in ("deskB", "deskF") for k, x, zz in za["tisch-papier"]+za["tisch-tassen"]+za["tisch-kabel"]), "Regal quer und Tisch-Stellen enthalten nur Dinge von dort")
+    ctx.close()
+    # Hinweis beim ersten Besuch: ohne Zeitabhängigkeit sichtbar, auch mit festgestellter Uhr
+    ctx, pg, errs = new({"seen": True, "gv": 2, "settings": {"theme": "system", "vib": True, "mode": None}, "log": []})
+    pg.clock.pause_at("2026-10-19T10:00:05")
+    ok(pg.locator(".zone-hit.zeig").count() >= 8 and pg.locator(".zhint").inner_text() == "Tipp auf eine Stelle im Bild", "Hinweis beim ersten Besuch sichtbar (Kreise und Etikett)")
+    tap(pg, ".zone-hit.zeig", 500); pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    ok(pg.locator(".zone-hit.zeig").count() == 0 and pg.locator(".zhint").count() == 0, "Hinweis geht nach dem ersten Antippen weg")
+    ctx.close()
+    # Text der Stelle passt zum Bild: bei s75 liegt im Regal nichts mehr quer, also gibt es die Stelle nicht
+    ctx, pg, errs = new(json.load(open("/tmp/claude-0/s75.json")))
+    if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    ok("nichts mehr quer" in pg.locator(".stufe-p").inner_text() and pg.locator('[data-v="regal-quer"]').count() == 0, "s75: keine Stelle „Bücher quer im Regal“, wenn der Stufentext sagt, dass nichts mehr quer liegt")
+    pg.evaluate("openSheet('stufen');closeSheet()"); pg.wait_for_timeout(300)
+    pg.touchscreen.tap(*pg.evaluate("(()=>{const r=document.querySelector('#bild').getBoundingClientRect();return [r.left+r.width*0.62,r.top+6]})()")); pg.wait_for_timeout(500)
+    ok(pg.evaluate("SH&&SH.type") in ("bild", "zone"), "Tipp ins Bild öffnet eine Stelle oder das allgemeine Blatt")
+    ctx.close()
+    # Freie Stellen sind nicht antippbar; s75 mit Behaltenem: keine Überlappung
+    for sf, w in [("/tmp/claude-0/s75.json", 393), ("/tmp/claude-0/s75.json", 320), ("/tmp/claude-0/k12b.json", 393), ("/tmp/claude-0/k12b.json", 320), ("/tmp/claude-0/k12.json", 320)]:
+        ctx, pg, errs = new(json.load(open(sf)), w=w)
+        if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+        nk = pg.locator(".ding-hit").count()
+        ok(pg.evaluate(OVL) == 0, f"{sf.split('/')[-1]} {w}px: keine Überlappung mit {nk} Behaltenen ({pg.locator('.zone-hit').count()} Stellen)")
+        ok(pg.evaluate(ONSTUFF), f"{sf.split('/')[-1]} {w}px: Stellen liegen auf sichtbarem Kram")
+        if "s75" in sf:
+            ok(pg.locator('.zone-hit[data-v="stuhl"]').count() == 0 and pg.locator('.zone-hit[data-v="boden-vorn"]').count() == 0, "freie Stellen (Stuhl, Boden vorn) sind nicht antippbar")
+        ok(not errs, "ohne Fehler")
+        ctx.close()
+    # Alter Stand mit S.order (aus Variante B) lädt, das Feld wird ignoriert
+    o = json.load(open("/tmp/claude-0/s5.json")); o["order"] = [{"s": 2, "z": "regal", "c": 2.3}]
+    ctx, pg, errs = new(o)
+    ok(pg.evaluate("stageOf(weite())") == 2 and pg.evaluate("STUFEN[2].n") in pg.locator(".stufe").inner_text() and not errs, "Stand mit altem S.order lädt ohne Fehler, Stufennamen fest")
+    ctx.close()
+    # Stufen-Moment: früher, mit Rückgängig im Blatt
+    up = {"seen": True, "gv": 2, "settings": {"theme": "system", "vib": True, "mode": None}, "mom": {"zonen-tipp": 1}, "log": []}
+    ctx, pg, errs = new(up)
+    if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    tap(pg, '.tile[data-v="los"]'); tap(pg, '#sheet .chip[data-v="kl"]'); tap(pg, '#sheet .opt[data-v="3"]'); tap(pg, '#sheet .chip[data-v="spe"]')
+    pg.evaluate("document.querySelector('#sheet-in').scrollTop=9999"); tap(pg, '.btn[data-a="do-los"]', 100)
+    t0 = pg.evaluate("Date.now()"); seen = None
+    for i in range(40):
+        pg.wait_for_timeout(100)
+        if pg.evaluate("SH&&SH.type") == "moment": seen = pg.evaluate("Date.now()") - t0; break
+    ok(seen is not None and 1500 <= seen <= 4000, "Stufen-Moment nach der Überblendung, vor Ablauf des Rückgängig: %s ms" % seen)
+    ok(pg.locator('#sheet [data-a="undo"]').count() == 1, "Rückgängig steht im Moment")
+    tap(pg, '#sheet [data-a="undo"]', 500)
+    ok(W(pg) == 0 and pg.locator("#layer").get_attribute("hidden") is not None, "Rückgängig aus dem Moment nimmt den Eintrag zurück")
+    ok(not errs, "Moment ohne Fehler")
+    ctx.close()
+    # Dunkelmodus am Nachmittag: der Text spricht nicht von Sonne
+    ctx, pg, errs = new({"seen": True, "settings": {"theme": "dark", "vib": True, "mode": None}}, t="2026-10-20T16:00:00")
+    if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    pg.evaluate("openSheet('bild')"); pg.wait_for_timeout(300)
+    tx = pg.locator("#sheet-in").inner_text()
+    ok("Sonne" not in tx and "Abend" in tx and tx.count("nicht dein echtes Zimmer") == 1, "Dunkelmodus: Text passt zum Abendbild, Hinweis einmal")
+    ctx.close()
+    # iOS: Stellen haben den Schalter für den Tick
+    ctx, pg, errs = new(st5, ua=ios)
+    if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(400)
+    pg.wait_for_timeout(300)
+    ok(pg.evaluate("[...document.querySelectorAll('.zone-hit')].every(e=>e.querySelector(':scope>label.hap>input[switch]'))"), "iOS: Schalter in allen Tippflächen der Stellen")
     ctx.close()
 
     # 14. Breiten

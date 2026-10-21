@@ -68,6 +68,87 @@ const Bild=(function(){
     return {dark,night,eve:dark||night,T:dark?TH.dunkel:night?TH.abend:TH.hell,se:season(dt)};
   }
 
+  /* ---------- Zonen: antippbare Stellen (Texte in zonen.js) ----------
+     Jedes Kramding gehört zu der Stelle, an der es im Bild steht, und nach seinem Inhalt (Bücher immer zu Bücherstellen).
+     Was auf einem anderen liegt, gehört zur Stelle seiner Unterlage. Die Tippfläche liegt immer auf einem sichtbaren Ding. */
+  const ZIDS=["regal-oben","regal","regal-quer","regal-kisten","wand","fensterbank","pinnwand","tisch-papier","tisch-tassen","tisch-kabel","stuhl","unter-tisch","waesche","boden-vorn","boden-kleidung","boden-buecher","spielzeug","boden-flaschen"];
+  function zoneOf(p){ const k=p.k, cx=p.x+p.w/2;
+    if(p.z==="regaltop") return "regal-oben";
+    if(p.z==="regalq") return "regal-quer";
+    if(p.z==="regal") return (k==="buch"||k==="ordner")?"regal":"regal-kisten";
+    if(p.z==="wand") return (cx>240&&cx<316&&p.y>70)?"pinnwand":"wand";
+    if(p.z==="sill") return "fensterbank";
+    if(p.z==="deskB"||p.z==="deskF"){ if(p.stackOn) return "tisch-papier";
+      return ["tasse","teller","chips","dose","flasche"].includes(k)?"tisch-tassen":["kabel","lader","lego","controller","stifte"].includes(k)?"tisch-kabel":"tisch-papier" }
+    if(p.z==="chair"||p.z==="lamp") return "stuhl";
+    if(p.z==="under") return "unter-tisch";
+    if(k==="waeschekorb") return "waesche";
+    if(k==="stapelbuch") return "boden-buecher";
+    if(p.stackOn||["versand","versandtuete","tuete","karton"].includes(k)) return "boden-vorn";
+    if(["kleidhaufen","pulli","rucksack","schuhe"].includes(k)) return "boden-kleidung";
+    if(k==="lego"||k==="ball") return "spielzeug";
+    return "boden-flaschen";
+  }
+
+  /* ---------- Eintrag und Bild ----------
+     Die Menge je Stufe bleibt fest (Gruppen 1..9). Kommt ein Eintrag aus einer Zone, verschwindet innerhalb der
+     laufenden Gruppe zuerst Kram aus dieser Zone. Die Zeitpunkte der noch sichtbaren Dinge dieser Gruppe werden nur
+     neu verteilt; was schon fort ist, bleibt fort, und am Ende der Stufe ist genau dasselbe fort wie ohne Eintrag.
+     Dinge, die auf anderen liegen, gehen immer vor ihrer Unterlage. */
+  const TCACHE=new Map();
+  function times(pref){
+    const L=(pref||[]).filter(x=>x&&ZIDS.includes(x.z)&&typeof x.c==="number"&&x.c>=0&&x.c<9);
+    const key=JSON.stringify(L); if(TCACHE.has(key)) return TCACHE.get(key);
+    const P=build(), T=P.map(p=>p.t);
+    L.forEach(x=>{ const k=Math.floor(x.c)+1, R=P.filter(p=>p.g===k&&T[p.i]>x.c); if(!R.some(p=>p.zone===x.z)) return;
+      const vals=R.map(p=>T[p.i]).sort((a,b)=>a-b), rank=p=>p.stackOn?0:p.zone===x.z?1:2;
+      R.slice().sort((a,b)=>rank(a)-rank(b)||T[a.i]-T[b.i]).forEach((p,j)=>{ T[p.i]=vals[j] }) });
+    TCACHE.set(key,T); if(TCACHE.size>20) TCACHE.delete(TCACHE.keys().next().value);
+    return T;
+  }
+  /* Zonen im aktuellen Zustand: sichtbare Dinge, Umriss, Kandidaten für die Tippfläche. Zwischengespeichert, bis sich der Zustand ändert. */
+  const ZCACHE=new Map();
+  const isTop=p=>p.z==="wand"||p.z==="chair"||p.z==="lamp";
+  const rectOf=p=>isTop(p)?[p.x,p.y,p.w,p.h]:[p.x,p.y-p.h,p.w,p.h];
+  function zonesOf(m){
+    const c=clearing(m), K=(m.keep||[]).slice(0,MAXK), key=JSON.stringify([c.toFixed(4),K.map(k=>[k.id,k.cat,k.why,k.motif]),m.zpref||[]]);
+    if(ZCACHE.has(key)) return ZCACHE.get(key);
+    const P=build(), T=times(m.zpref), B=blockedSet(K), out=[];
+    // Der Sessel vorn links (fest) verdeckt, was am Boden hinter ihm liegt
+    const behind=p=>p.z==="floor"&&p.y<=270, inS=(x,y)=>x>5&&x<62&&y>228&&y<298;
+    ZIDS.forEach(z=>{ const L=P.filter(p=>p.zone===z&&c<T[p.i]&&!B.has(p.i)&&!(behind(p)&&inS(p.x,p.y-p.h)&&inS(p.x+p.w,p.y))); if(!L.length) return;
+      let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+      L.forEach(p=>{ const [x,y,w,h]=rectOf(p); x0=Math.min(x0,x); x1=Math.max(x1,x+w); y0=Math.min(y0,y); y1=Math.max(y1,y+h) });
+      // Kandidaten: ein Raster aus 3 x 3 Punkten auf jedem Ding, größte Dinge zuerst
+      const cand=L.slice().sort((a,b)=>b.a-a.a).flatMap(p=>{ const [x,y,w,h]=rectOf(p), Q=[];
+        [0.5,0.25,0.75].forEach(fy=>[0.5,0.25,0.75].forEach(fx=>Q.push([x+w*fx,y+h*fy]))); return Q.filter(([qx,qy])=>!(behind(p)&&inS(qx,qy))) });
+      const k=Math.floor(c)+1, jetzt=L.filter(p=>p.g===k).length;
+      out.push({id:z,n:L.length,a:L.reduce((s,p)=>s+p.a,0),box:[x0-2,y0-2,x1-x0+4,y1-y0+4],cand,jetzt,rects:L.map(rectOf)}) });
+    out.sort((a,b)=>b.a-a.a);
+    ZCACHE.set(key,out); if(ZCACHE.size>12) ZCACHE.delete(ZCACHE.keys().next().value);
+    return out;
+  }
+  /* Tippflächen setzen: Kreise mit 44 px, Mittelpunkte mindestens 46 px auseinander, nie über einem behaltenen Ding,
+     ganz im Bild. Stellen mit wenig freien Punkten kommen zuerst dran, damit möglichst jede Stelle eine Fläche bekommt.
+     Eine Stelle ohne Fläche fällt auch aus der Liste. */
+  function placeZones(Z,hits,u,W,H){
+    const S=46, keep=hits.map(h=>[h.hx,h.hy]);
+    const okPt=([cx,cy])=>{ const x=cx*u, y=cy*u; return x>=22&&x<=W-22&&y>=22&&y<=H-22&&!keep.some(([a,b])=>Math.hypot(a-x,b-y)<S) };
+    const V=Z.map(z=>({z,c:z.cand.filter(okPt).map(([x,y])=>[x*u,y*u])}));
+    let best=null;
+    // zwei Reihenfolgen probieren: wenig Kandidaten zuerst, große Stellen zuerst; die mit mehr gesetzten Flächen gewinnt
+    [V.slice().sort((a,b)=>a.c.length-b.c.length), V.slice()].forEach(order=>{ const taken=[], got={};
+      order.forEach(({z,c})=>{ const p=c.find(([x,y])=>!taken.some(([a,b])=>Math.hypot(a-x,b-y)<S)); if(p){ taken.push(p); got[z.id]=p } });
+      if(!best||Object.keys(got).length>Object.keys(best).length) best=got });
+    return Z.filter(z=>best[z.id]).map(z=>({id:z.id,hx:best[z.id][0],hy:best[z.id][1],hr:22,n:z.n,jetzt:z.jetzt,box:z.box.map(v=>v*u),rects:z.rects.map(r=>r.map(v=>v*u))}))
+      .sort((a,b)=>(Math.round(a.hy/40)-Math.round(b.hy/40))||(a.hx-b.hx));
+  }
+  /* Tipp knapp neben eine Fläche: nächstgelegene Stelle, deren Kram höchstens r px entfernt ist */
+  function zoneAt(x,y,r){ if(!info) return null; let best=null, bd=1e9;
+    (info.zones||[]).forEach(z=>{ z.rects.forEach(([rx,ry,rw,rh])=>{ const dx=Math.max(rx-x,0,x-rx-rw), dy=Math.max(ry-y,0,y-ry-rh), d=Math.hypot(dx,dy); if(d<bd){ bd=d; best=z.id } });
+      const dc=Math.max(0,Math.hypot(z.hx-x,z.hy-y)-22); if(dc<bd){ bd=dc; best=z.id } });
+    return bd<=(r==null?30:r)?best:null }
+
   /* ---------- Gruppen (= Stufe, ab der sie ganz fort sind) ----------
      1 Erste Lücke      Versandkarton und Tüten vorn am Boden
      2 Boden in Sicht   vordere Bodenreihe, Kleinzeug obenauf, Stapel auf dem Tisch
@@ -142,7 +223,7 @@ const Bild=(function(){
     const st={}; P.forEach(p=>{ if(p.stack!=null)(st[p.stack]=st[p.stack]||[]).push(p) });
     Object.values(st).forEach(L=>{ const us=L.map(p=>p.u).sort((a,b)=>a-b); L.sort((a,b)=>b.lvl-a.lvl).forEach((p,i)=>p.u=us[i]) });
     P.forEach(p=>{ if(p.stackOn) p.u=Math.min(p.u,0.3) });
-    P.forEach((p,i)=>{ p.i=i; p.t=(p.g-1)+p.u*0.999; p.a=Math.max(8,p.w*p.h) });
+    P.forEach((p,i)=>{ p.i=i; p.t=(p.g-1)+p.u*0.999; p.a=Math.max(8,p.w*p.h); p.zone=zoneOf(p) });
     JUNK=P; return P;
   }
 
@@ -370,8 +451,8 @@ const Bild=(function(){
   function scene(g,m){
     const E=env(m), {dark,eve,se,T}=E, c=clearing(m), k=c/9;
     const P=build(), calm=0.55*Math.pow(k,1.2);
-    const K=(m.keep||[]).slice(0,MAXK), B=blockedSet(K);
-    const vis=p=>c<p.t&&!B.has(p.i);
+    const K=(m.keep||[]).slice(0,MAXK), B=blockedSet(K), TT=times(m.zpref);
+    const vis=p=>c<TT[p.i]&&!B.has(p.i);
     const J=z=>P.filter(p=>p.z===z&&vis(p));
     const dj=p=>drawJunk(g,p,T,calm,dark);
 
@@ -632,13 +713,14 @@ const Bild=(function(){
   }
   function size(){ const W=cv.clientWidth||360; return {W,H:Math.round(W*VH/VW),dpr:Math.min(3,window.devicePixelRatio||1)} }
   const cache=new Map();
-  function keyOf(m,W,dpr){ const e=env(m); return JSON.stringify([W,dpr,e.dark,e.night,e.se,clearing(m).toFixed(4),m.keep,(m.bags||[]).map(b=>b.n),m.paths,(m.wishes||[]).map(w=>[w.cat,Math.round(w.p*10)])]) }
+  function keyOf(m,W,dpr){ const e=env(m); return JSON.stringify([W,dpr,e.dark,e.night,e.se,clearing(m).toFixed(4),m.keep,(m.bags||[]).map(b=>b.n),m.paths,(m.wishes||[]).map(w=>[w.cat,Math.round(w.p*10)]),m.zpref||[]]) }
   function layerFor(W,H,dpr,m){ const k=keyOf(m,W,dpr); let L=cache.get(k); if(!L){ L=layer(W,H,dpr,m); cache.set(k,L); if(cache.size>4) cache.delete(cache.keys().next().value) } return L }
   function mount(canvas,m,fromModel){
     cv=canvas; ctx=cv.getContext("2d"); model=m; m.dark=document.documentElement.dataset.dark==="1";
     const {W,H,dpr}=size(); cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.height=H+"px";
     const t1=performance.now(); cur=layerFor(W,H,dpr,m); Bild.lastBuild=performance.now()-t1; const u=W/VW;
     info={hits:cur.hits.map(h=>({id:h.id,hx:h.x*u,hy:h.y*u,hr:22,cat:h.cat,why:h.why,ding:h.ding})),cx:180*u,cy:190*u,rx:120*u,ry:80*u,ph:dayPhase(m.date||new Date()),W,H};
+    info.zones=placeZones(zonesOf(m),info.hits,u,W,H);
     prev=null; fadeT0=0; ringAt=null; full=true;
     if(fromModel&&!RMq()){ fromModel.dark=m.dark; fromModel.date=m.date; prev=layerFor(W,H,dpr,fromModel); fadeT0=performance.now()+(m.delay||250) }
     if(m.ringKeep&&!RMq()){ const hk=info.hits.find(x=>x.id===m.ringKeep); if(hk) ringAt={x:hk.hx,y:hk.hy,r:hk.hr} }
@@ -665,8 +747,10 @@ const Bild=(function(){
       if(prev){ ctx.globalAlpha=k; ctx.drawImage(cur.top,0,0); ctx.globalAlpha=1-k; ctx.drawImage(prev.top,0,0); ctx.globalAlpha=1 }
       else ctx.drawImage(cur.top,0,0);
       full=!!prev;
-      if(ringAt){ const q=(t-ringT0)/1600; if(q>0&&q<1){ ctx.setTransform(dpr,0,0,dpr,0,0); ctx.save(); ctx.strokeStyle=model.dark?"#E8826A":"#B4472E"; ctx.globalAlpha=Math.sin(q*Math.PI)*0.85; ctx.setLineDash([4,3.5]); ctx.lineWidth=1.6;
-          ctx.beginPath(); ctx.arc(ringAt.x,ringAt.y,ringAt.r*(0.9+q*0.25),0,7); ctx.stroke(); ctx.restore() } else if(q>=1){ ringAt=null; full=true } }
+      if(ringAt){ const dur=ringAt.dur||1600, q=still&&(ringAt.box||ringAt.dots)?0.5:(t-ringT0)/dur; if(q>0&&q<1){ ctx.setTransform(dpr,0,0,dpr,0,0); ctx.save(); ctx.strokeStyle=model.dark?"#E8826A":"#B4472E"; ctx.globalAlpha=Math.sin(q*Math.PI)*0.85; ctx.setLineDash([4,3.5]); ctx.lineWidth=1.6;
+          if(ringAt.box){ const [bx,by,bw,bh]=ringAt.box, e=still?0:(1-q)*3; ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,6); ctx.stroke() }
+          else if(ringAt.dots){ ctx.setLineDash([3,3]); ringAt.dots.forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(x,y,13+(still?0:q*3),0,7); ctx.stroke() }) }
+          else { ctx.beginPath(); ctx.arc(ringAt.x,ringAt.y,ringAt.r*(0.9+q*0.25),0,7); ctx.stroke() } ctx.restore() } else if(q>=1){ ringAt=null; full=true } }
     } else {
       // Nur der Dampf: Ausschnitt aus dem Standbild zurücksetzen, Dampf und Behaltenes darüber
       const s=dpr*u, sx=Math.floor(STEAM.x*s), sy=Math.floor(STEAM.y*s), sw=Math.ceil(STEAM.w*s), sh=Math.ceil(STEAM.h*s);
@@ -678,12 +762,34 @@ const Bild=(function(){
     Bild.lastFrame=performance.now()-t1;
   }
   function stop(){ cancelAnimationFrame(raf); if(io) io.disconnect(); cv=null }
+  /* Markierung einer Zone nach dem Antippen; einmaliger Hinweis auf alle Tippflächen. Bei reduzierter Bewegung steht sie still und geht nach kurzer Zeit weg. */
+  let markT=0;
+  function ring(r,delay){ if(!cv||!info) return; ringAt=r; ringT0=performance.now()+(delay||0); full=true; clearTimeout(markT);
+    if(RMq()){ frame(performance.now()); markT=setTimeout(()=>{ ringAt=null; full=true; if(cv) frame(performance.now()) },(r.dur||1600)-200) } else loop() }
+  function mark(id){ const z=info&&(info.zones||[]).find(x=>x.id===id); if(z) ring({box:z.box}) }
+  /* Nach einem Eintrag aus einer Stelle: ihren Umriss (aus dem Zustand davor) während der Überblendung zeigen */
+  function markFrom(m,id,delay){ if(!cv||!info) return; const z=zonesOf(m).find(x=>x.id===id); if(!z) return; const u=info.W/VW;
+    ring({box:z.box.map(v=>v*u),dur:2000},delay||0) }
+  /* Ausschnitt um eine Zone für das Blatt: aus dem Standbild, mit gestricheltem Rahmen */
+  function crop(el,id){ if(!cur||!info||!el) return false; const z=(info.zones||[]).find(x=>x.id===id); if(!z) return false;
+    const {W,H,dpr}=size(), ew=el.clientWidth||320, eh=el.clientHeight||120, A=ew/eh, [bx,by,bw,bh]=z.box;
+    let cw=Math.max(bw+40,(bh+40)*A,150); cw=Math.min(cw,W,H*A); const ch=cw/A;
+    const x=Math.min(W-cw,Math.max(0,bx+bw/2-cw/2)), y=Math.min(H-ch,Math.max(0,by+bh/2-ch/2)), d2=Math.min(3,window.devicePixelRatio||1);
+    el.width=Math.round(ew*d2); el.height=Math.round(eh*d2); const g=el.getContext("2d"), s=ew/cw;
+    [cur.base,cur.top].forEach(L=>g.drawImage(L,x*dpr,y*dpr,cw*dpr,ch*dpr,0,0,el.width,el.height));
+    g.setTransform(d2*s,0,0,d2*s,-x*d2*s,-y*d2*s);
+    // außerhalb der Stelle leicht abdunkeln bzw. aufhellen, damit sie heraussticht
+    g.fillStyle=model&&model.dark?"rgba(20,16,14,.42)":"rgba(246,244,239,.5)"; g.beginPath(); g.rect(x,y,cw,ch); g.roundRect(bx,by,bw,bh,6/s); g.fill("evenodd");
+    g.strokeStyle=model&&model.dark?"#E8826A":"#B4472E"; g.lineWidth=1.8/s; g.setLineDash([5/s,4/s]);
+    g.beginPath(); g.roundRect(bx,by,bw,bh,6/s); g.stroke(); return true }
   /* Standbild für Tests und Übersichten */
   function paint(canvas,m,W,time){ W=W||360; const H=Math.round(W*VH/VW), dpr=Math.min(3,window.devicePixelRatio||1);
     if(m.dark==null) m.dark=document.documentElement.dataset.dark==="1";
     canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr); canvas.style.width=W+"px"; canvas.style.height=H+"px";
     const g=canvas.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); return draw(g,W,H,Object.assign({},m,{time:time==null?2:time})) }
   /* Kramfläche (Summe der Grundflächen) bei Fortschritt c, für die Messung der Reduktionskurve */
-  function flaeche(c,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)); return build().filter(p=>c<p.t&&!B.has(p.i)).reduce((s,p)=>s+p.a,0) }
-  return {mount,stop,paint,draw,season,dayPhase,clearing,flaeche,SLOTS,DING,MOTIVE,motifOf,guessMotif,motifIcon,VW,VH,hitY,lastBuild:0,lastFrame:0,_build:build};
+  function flaeche(c,keep,pref){ const B=blockedSet((keep||[]).slice(0,MAXK)), T=times(pref); return build().filter(p=>c<T[p.i]&&!B.has(p.i)).reduce((s,p)=>s+p.a,0) }
+  function zoneArea(z,c,pref){ const T=times(pref); return build().filter(p=>p.zone===z&&c<T[p.i]).reduce((s,p)=>s+p.a,0) }
+  function gone(c,pref,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)), T=times(pref); return build().filter(p=>!(c<T[p.i])&&!B.has(p.i)).map(p=>p.i) }
+  return {placed:()=>info&&info.zones||[],zonesOf,zoneArea,gone,mark,markFrom,zoneAt,crop,times,ZIDS,mount,stop,paint,draw,season,dayPhase,clearing,flaeche,SLOTS,DING,MOTIVE,motifOf,guessMotif,motifIcon,VW,VH,hitY,lastBuild:0,lastFrame:0,_build:build};
 })();
