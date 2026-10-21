@@ -18,6 +18,12 @@ Zielgruppe: Erwachsene und Jugendliche ab etwa 14 Jahren. Alle Texte müssen fü
 - Sie verkauft nichts und verlinkt keine Shops.
 - Sie lobt nicht überschwänglich. Rückmeldungen sind sachlich.
 
+## Fassung D (Runde 5): Sorten, Handbreit einsetzen, Führung
+- Das Bild steht für neun Sorten, die es fast überall gibt (KATEGORIEN in zonen.js): Kleidung, Bücher und Medien, Papier, Erinnerungen, Küche, Kabel und Technik, Deko und Kleinkram, Kartons und Tüten, Hobby/Sport/Spielzeug. Je Sorte drei Aufgaben (5–15 Min.), Befunde mit Belegstufe, „Eher aufheben“, „Gut loslassen“. Quelle: runde5/EVIDENZ5.md.
+- Handbreit ist die einzige Einheit. Man bekommt sie für den Vorgang, nicht für die Menge: Aufgabe nach Dauer (2–5, höchstens 8 am Tag), jede Entscheidung 2 (Loslassen, Behalten, Vielleicht-Kiste; Entsorgtes 1; zusammen höchstens 16 am Tag), Wunsch nach voller Wartezeit 2, Statt neu, Übungen, kleine Aufgaben wie bisher.
+- Im Bild setzt man Handbreit selbst ein (3 je Abräumen, in der gewählten Sorte, zuerst an der angetippten Stelle). Fläche fort = Gesamtfläche · (eingesetzt/210)^0,6. Stufen nach eingesetzten Handbreit. Nichts verfällt, keine Serien, kein Zufall, nichts zu kaufen. „Selbst abräumen lassen“ setzt automatisch ein.
+- Führung: Karte „Vorschlag für heute“ in drei Schritten (Aufgabe mit Zeitgeber, abräumen, eintragen oder „Alles bleibt“), Dringendes zuerst mit „Später“. Jede Wissenskarte endet mit „Probier es so“ und einem Knopf (tun.js).
+
 ## Fünf Bereiche
 
 | id | Name | Farbe |

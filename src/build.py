@@ -19,7 +19,7 @@ fonts = "\n".join([
 ])
 
 # Inhalte: echte Dateien, fehlende Teile aus dem Platzhalter
-content = [f for f in ("wissen_a.js", "wissen_b.js", "praxis.js", "aufgaben.js") if os.path.exists(f)]
+content = [f for f in ("wissen_a.js", "wissen_b.js", "praxis.js", "aufgaben.js", "tun.js") if os.path.exists(f)]
 data = R("kern.js") + "\n" + R("zonen.js") + "\n" + "\n".join(R(f) for f in content)
 stub = R("stub.js")
 blocks = re.split(r"\n(?=var [A-Z_]+=)", stub)

@@ -27,11 +27,18 @@
   if(warn.length) console.log("Hinweise:\n  "+warn.join("\n  "));
   if(err.length){ console.error("Fehler:\n  "+err.join("\n  ")); process.exit(1) }
 })();
-/* Zonen im Bild: Verweise und Pflichtfelder */
-(function(){ if(typeof ZONEN==="undefined") return; const err=[]; const I=new Set(IMPULSE.map(i=>i.id)), U=new Set(UEBUNGEN.map(u=>u.id)), A=new Set(AUFGABEN.map(a=>a.id)), C=new Set(AREAS.map(a=>a.id));
-  ZONEN.forEach(z=>{ ["id","n","t","x","wenn","name","cat"].forEach(k=>{ if(!z[k]) err.push(z.id+": "+k+" fehlt") });
-    if(!C.has(z.cat)) err.push(z.id+": Bereich"); if(!(z.min>=2&&z.min<=10)) err.push(z.id+": Minuten "+z.min);
-    if(z.imp&&!I.has(z.imp)) err.push(z.id+": Impuls "+z.imp); if(z.ueb&&!U.has(z.ueb)) err.push(z.id+": Übung "+z.ueb); if(z.aufg&&!A.has(z.aufg)) err.push(z.id+": Aufgabe "+z.aufg);
-    if(/\b(kaufen|ausgeben|Guthaben|musst)\b/i.test(z.t+z.x+z.wenn)) err.push(z.id+": Wortwahl") });
-  if(ZONEN.length<15||ZONEN.length>20) err.push("ZONEN: "+ZONEN.length);
-  if(err.length){ console.error("Fehler Zonen:\n  "+err.join("\n  ")); process.exit(1) } else console.log("Zonen: "+ZONEN.length) })();
+/* Kategorien im Bild: Verweise, Pflichtfelder, Aufgaben */
+(function(){ if(typeof KATEGORIEN==="undefined") return; const err=[]; const I=new Set(IMPULSE.map(i=>i.id)), C=new Set(AREAS.map(a=>a.id)), ids=new Set();
+  KATEGORIEN.forEach(k=>{ ["id","n","kurz","cat","name"].forEach(f=>{ if(!k[f]) err.push(k.id+": "+f+" fehlt") });
+    if(!C.has(k.cat)) err.push(k.id+": Bereich"); if(k.imp&&!I.has(k.imp)) err.push(k.id+": Impuls "+k.imp);
+    if(!Array.isArray(k.fakt)) err.push(k.id+": fakt"); (k.fakt||[]).forEach((f,i)=>{ if(!f.t||!f.q||!(f.ev>=0&&f.ev<=3)) err.push(k.id+": Befund "+i); if(f.u&&!/^https:\/\//.test(f.u)) err.push(k.id+": Link "+f.u) });
+    if(!k.ch||k.ch.length<2) err.push(k.id+": Aufgaben");
+    (k.ch||[]).forEach(c=>{ if(ids.has(c.id)) err.push("doppelte Aufgabe "+c.id); ids.add(c.id);
+      if(!c.t||!c.x||!(c.min>=2&&c.min<=20)) err.push(c.id+": Felder"); const w={5:2,10:3,15:4,20:5}[c.min]; if(w!==c.w) err.push(c.id+": Schwung passt nicht zur Dauer");
+      if(/\b(kaufen|Guthaben|musst|wegwerfen)\b/i.test(c.t+c.x)) err.push(c.id+": Wortwahl") }) });
+  if(err.length){ console.error("Fehler Kategorien:\n  "+err.join("\n  ")); process.exit(1) } else console.log("Kategorien: "+KATEGORIEN.length+", Aufgaben im Bild: "+ids.size) })();
+/* Ein Schritt je Wissenskarte */
+(function(){ if(typeof TUN==="undefined") return; const err=[]; const CH=new Set(KATEGORIEN.flatMap(k=>k.ch.map(c=>c.id))), U=new Set(UEBUNGEN.map(u=>u.id)), A=new Set(AUFGABEN.map(a=>a.id));
+  IMPULSE.forEach(i=>{ const t=TUN[i.id]; if(!t){ err.push(i.id+": kein Schritt"); return }
+    if(!t.tun||!t.b) err.push(i.id+": Felder"); const ok=t.a==="chal"?CH.has(t.v):t.a==="ueb"?U.has(t.v):t.a==="aufg"?A.has(t.v):t.a==="open"&&["los","keep","wish","teil","pruef","kiste","timer"].includes(t.v); if(!ok) err.push(i.id+": Ziel "+t.a+" "+t.v) });
+  if(err.length){ console.error("Fehler Schritte:\n  "+err.join("\n  ")); process.exit(1) } else console.log("Schritte: "+Object.keys(TUN).length) })();

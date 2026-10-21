@@ -11,31 +11,31 @@ const AREAS=[
 ];
 const AREA=Object.fromEntries(AREAS.map(a=>[a.id,a]));
 
-/* Stufen: benannt nach dem, was im Bild frei wird. Name, Text und Bild sind deckungsgleich.
-   Schwellen in Handbreit (Platz, den ein Ding im Regal braucht). */
+/* Stufen: wie viel vom Kram im Bild abgeräumt ist. Schwellen in Schwung, der im Bild eingesetzt ist.
+   Die Namen sagen nur, wie viel frei ist, nicht wo: Was geht, wählt man selbst. */
 const STUFEN=[
   {w:0,  n:"Alles da",           x:"Hier wohnt jemand, und alles liegt irgendwo: Tisch, Stuhl, Regal und Boden sind voll."},
-  {w:3,  n:"Erste Lücke",        x:"Der Versandkarton und die Versandtüten sind weg."},
-  {w:8,  n:"Boden in Sicht",     x:"Ganz vorn liegt nichts mehr, der Teppich ist wieder zu sehen. Weiter hinten steht noch einiges."},
-  {w:16, n:"Stuhl frei",         x:"Auf dem Stuhl liegt keine Kleidung mehr, nur die Strickjacke hängt dort. Auch die Socke hängt nicht mehr an der Lampe."},
-  {w:28, n:"Tischecke frei",     x:"Die linke Hälfte vom Tisch ist frei. Dort kann man wieder etwas abstellen."},
-  {w:45, n:"Regal mit Lücken",   x:"Im Regal liegt nichts mehr quer, zwischen den Büchern sind Lücken. Auch am Boden wird es frei."},
-  {w:70, n:"Wand ohne Zettel",   x:"Die losen Zettel sind ab. Das Bild und die Pinnwand bleiben."},
-  {w:105,n:"Tisch frei",         x:"Auf dem Tisch stehen Laptop, Lampe, Tasse und was du behältst."},
-  {w:150,n:"Boden frei",         x:"Am Boden und unter dem Tisch liegt nichts mehr. Das Licht fällt auf die Dielen."},
+  {w:3,  n:"Erste Lücke",        x:"Zum ersten Mal ist etwas fort. Man sieht, wo vorher etwas lag."},
+  {w:8,  n:"Etwas Luft",         x:"Etwa ein Siebtel vom Kram im Bild ist weg. Das Zimmer ist noch voll, aber nicht mehr ganz."},
+  {w:16, n:"Ein Fünftel frei",   x:"Ein Fünftel vom Kram im Bild ist abgeräumt."},
+  {w:28, n:"Wege frei",          x:"Fast ein Drittel vom Kram im Bild ist fort. Der Rest wirkt schon ruhiger."},
+  {w:45, n:"Viel Luft",          x:"Zwei Fünftel vom Kram im Bild sind abgeräumt. Die Wand wird heller."},
+  {w:70, n:"Halb frei",          x:"Gut die Hälfte vom Kram im Bild ist fort. Man sieht wieder Flächen."},
+  {w:105,n:"Zwei Drittel frei",  x:"Zwei Drittel vom Kram im Bild sind abgeräumt."},
+  {w:150,n:"Fast ruhig",         x:"Nur noch ein Fünftel liegt herum. Die Farben sind ruhig."},
   {w:210,n:"Genug",              x:"Ein bewohntes Zimmer mit Platz dazwischen. Was hier steht, hat einen Grund."}
 ];
-/* Ein Schritt im eigenen Zimmer je Stufe: was man jetzt tun kann (Titel, Text, Minuten) */
+/* Allgemeine Schritte für den Zeitgeber, für fast jedes Zuhause */
 const SCHRITTE=[
-  ["Den Versandkarton vorn","Pack aus, was noch drin ist, und bring den Karton zum Altpapier. Das ist der schnellste sichtbare Schritt.",5],
-  ["Die Tüten am Boden","Leere zwei Tüten. Was du brauchst, bekommt einen Platz. Der Rest kommt in eine Tüte zum Weitergeben.",10],
-  ["Den Stuhl leer räumen","Was du trägst, kommt in den Schrank oder in die Wäsche. Was du nicht mehr trägst, kommt in eine Tüte für später.",5],
-  ["Eine Tischecke freiräumen","Nimm dir die linke Hälfte vom Tisch vor. Was du jeden Tag brauchst, bleibt. Alles andere bekommt einen Platz oder kommt in eine Tüte.",10],
-  ["Ein Regalfach als Grenze","Wähle ein Fach. Stell zuerst die Bücher hinein, die du wirklich liest. Was nicht mehr passt, kommt in die Vielleicht-Kiste.",15],
-  ["Fünf Zettel von der Wand","Lies jeden Zettel einmal. Erledigtes kommt weg, Wichtiges an die Pinnwand oder als Foto ins Handy.",5],
-  ["Den Tisch ganz frei","Räum den Tisch leer und stell nur zurück, was du diese Woche benutzt hast.",15],
-  ["Unter dem Tisch","Hol alles unter dem Tisch hervor und entscheide Stück für Stück: behalten, weitergeben, Vielleicht-Kiste.",15],
-  ["Eine Ecke am Boden","Such dir eine Ecke, in der noch etwas steht. Zehn Minuten, dann hörst du auf.",10],
+  ["Eine Ablage frei","Such dir eine Fläche, auf der sich etwas gesammelt hat: Tisch, Kommode, Fensterbank. Was dort hingehört, bleibt. Der Rest bekommt einen Platz oder kommt in eine Tüte zum Entscheiden.",10],
+  ["Eine Schublade","Nimm eine einzige Schublade. Was du kennst und nutzt, bleibt. Was du nicht erkennst, kommt in die Vielleicht-Kiste.",10],
+  ["Der Stuhl, auf dem Kleidung liegt","Was du trägst, kommt in den Schrank oder in die Wäsche. Was du nicht mehr trägst, kommt in eine Tüte für später.",5],
+  ["Ein Regalbrett","Wähle ein Brett. Stell zuerst zurück, was du wirklich benutzt oder liest. Was nicht mehr passt, kommt auf einen Stapel zum Entscheiden.",15],
+  ["Ein Stapel Papier","Nimm einen Stapel Briefe oder Zettel. Erledigtes kommt weg, Wichtiges in einen Ordner, Offenes an einen festen Platz.",10],
+  ["Ein Karton, der lange zu ist","Öffne einen Karton, der lange nicht offen war. Wenn du nicht mehr weißt, was drin ist, ist das schon eine Antwort.",15],
+  ["Eine Ecke am Boden","Such dir eine Ecke, in der etwas steht. Zehn Minuten, dann hörst du auf.",10],
+  ["Was doppelt da ist","Such in einem Bereich nach Dingen, die du doppelt hast: Scheren, Ladekabel, Tassen. Lass eins oder zwei, der Rest kann weiter.",10],
+  ["Unter dem Bett oder dem Tisch","Hol alles hervor und entscheide Stück für Stück: behalten, weitergeben, Vielleicht-Kiste.",15],
   ["Ein Platz für Neues","Wenn etwas Neues kommt: Wo soll es stehen? Hat es keinen Platz, lass es als Wunsch warten.",5]
 ];
 

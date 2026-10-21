@@ -68,85 +68,105 @@ const Bild=(function(){
     return {dark,night,eve:dark||night,T:dark?TH.dunkel:night?TH.abend:TH.hell,se:season(dt)};
   }
 
-  /* ---------- Zonen: antippbare Stellen (Texte in zonen.js) ----------
-     Jedes Kramding gehört zu der Stelle, an der es im Bild steht, und nach seinem Inhalt (Bücher immer zu Bücherstellen).
-     Was auf einem anderen liegt, gehört zur Stelle seiner Unterlage. Die Tippfläche liegt immer auf einem sichtbaren Ding. */
-  const ZIDS=["regal-oben","regal","regal-quer","regal-kisten","wand","fensterbank","pinnwand","tisch-papier","tisch-tassen","tisch-kabel","stuhl","unter-tisch","waesche","boden-vorn","boden-kleidung","boden-buecher","spielzeug","boden-flaschen"];
-  function zoneOf(p){ const k=p.k, cx=p.x+p.w/2;
-    if(p.z==="regaltop") return "regal-oben";
-    if(p.z==="regalq") return "regal-quer";
-    if(p.z==="regal") return (k==="buch"||k==="ordner")?"regal":"regal-kisten";
-    if(p.z==="wand") return (cx>240&&cx<316&&p.y>70)?"pinnwand":"wand";
-    if(p.z==="sill") return "fensterbank";
-    if(p.z==="deskB"||p.z==="deskF"){ if(p.stackOn) return "tisch-papier";
-      return ["tasse","teller","chips","dose","flasche"].includes(k)?"tisch-tassen":["kabel","lader","lego","controller","stifte"].includes(k)?"tisch-kabel":"tisch-papier" }
-    if(p.z==="chair"||p.z==="lamp") return "stuhl";
-    if(p.z==="under") return "unter-tisch";
-    if(k==="waeschekorb") return "waesche";
-    if(k==="stapelbuch") return "boden-buecher";
-    if(p.stackOn||["versand","versandtuete","tuete","karton"].includes(k)) return "boden-vorn";
-    if(["kleidhaufen","pulli","rucksack","schuhe"].includes(k)) return "boden-kleidung";
-    if(k==="lego"||k==="ball") return "spielzeug";
-    return "boden-flaschen";
+  /* ---------- Kategorien: Das Bild steht für Sorten von Dingen, nicht für ein bestimmtes Zimmer ----------
+     Jedes Kramding gehört nach seiner Art zu genau einer Kategorie (Texte in zonen.js). Eine Stelle ist eine Kategorie
+     an einem Ort im Bild (z. B. Bücher im Regal). Die Tippfläche liegt immer auf einem sichtbaren Ding. */
+  const KIDS=["kleidung","buecher","papier","erinnerung","kueche","technik","deko","verpackung","hobby"];
+  function katOf(p){ const k=p.k;
+    if(["jeans","pullb","shirtb","tuchb","socke","rucksack","schuhe","kleidhaufen","pulli","waeschekorb"].includes(k)) return "kleidung";
+    if(["buch","buchq","buchq3","stapelbuch","buecherstapel"].includes(k)) return "buecher";
+    if(["ordner","poster","zettel","kalender","papierstapel","brief","blatt","stifte"].includes(k)) return "papier";
+    if(k==="foto"||k==="pluesch"||p.z==="regaltop") return "erinnerung";
+    if(["tasse","teller","flasche","flaschen","chips","becher"].includes(k)||(k==="dose"&&(p.z==="deskB"||p.z==="deskF"))) return "kueche";
+    if(["kabel","lader","kabelknaeuel","controller"].includes(k)) return "technik";
+    if(["versand","versandtuete","tuete"].includes(k)||(k==="karton"&&(p.z==="floor"||p.z==="under"))) return "verpackung";
+    if(k==="lego"||k==="ball") return "hobby";
+    return "deko";
   }
+  function ortOf(p){ const z=p.z;
+    if(z==="regal"||z==="regalq") return "regal"; if(z==="regaltop") return "oben"; if(z==="wand") return (p.x+p.w/2>240&&p.y>70)?"pinn":"wand";
+    if(z==="sill") return "fenster"; if(z==="deskB"||z==="deskF") return "tisch"; if(z==="chair"||z==="lamp") return "stuhl"; if(z==="under") return "unter";
+    return p.y>=280?"vorn":"boden" }
 
-  /* ---------- Eintrag und Bild ----------
-     Die Menge je Stufe bleibt fest (Gruppen 1..9). Kommt ein Eintrag aus einer Zone, verschwindet innerhalb der
-     laufenden Gruppe zuerst Kram aus dieser Zone. Die Zeitpunkte der noch sichtbaren Dinge dieser Gruppe werden nur
-     neu verteilt; was schon fort ist, bleibt fort, und am Ende der Stufe ist genau dasselbe fort wie ohne Eintrag.
-     Dinge, die auf anderen liegen, gehen immer vor ihrer Unterlage. */
+  /* ---------- Abräumen: was im Bild fort ist ----------
+     m.spend ist die Liste der Einsätze in Schwung: {k: Kategorie oder "_alt", z: Stelle (optional), n}.
+     Eine Einheit räumt 1/EINH der ganzen Kramfläche. Ein Einsatz räumt in seiner Kategorie, zuerst an der angetippten Stelle,
+     sonst in der festen Reihenfolge des Bildes (Gruppen, oben auf dem Stapel zuerst). "_alt" räumt in der festen Reihenfolge
+     über alle Kategorien (Fortschritt aus früheren Fassungen und „Irgendwo abräumen“). Ein Ding geht, sobald das Guthaben
+     seiner Kategorie mindestens die Hälfte seiner Fläche deckt. */
+  const EINH=210;
+  /* Wie viel Fläche bei R eingesetzten Handbreit insgesamt fort ist: Anteil (R/210)^0,6. Am Anfang räumt eine Handbreit
+     mehr als später (3 Handbreit: etwa 8 %, Hälfte bei etwa 66 Handbreit), ohne eine Sorte auf einen Schlag zu leeren. */
+  function areaAt(R){ if(R<=0) return 0; const A=build().reduce((s,p)=>s+p.a,0); return A*Math.min(1,Math.pow(R/EINH,0.6)) }
+  function rawStageW(W){ let s=0; if(typeof STUFEN!=="undefined") STUFEN.forEach((x,i)=>{ if(W>=x.w) s=i }); return s }
   const TCACHE=new Map();
-  function times(pref){
-    const L=(pref||[]).filter(x=>x&&ZIDS.includes(x.z)&&typeof x.c==="number"&&x.c>=0&&x.c<9);
-    const key=JSON.stringify(L); if(TCACHE.has(key)) return TCACHE.get(key);
-    const P=build(), T=P.map(p=>p.t);
-    L.forEach(x=>{ const k=Math.floor(x.c)+1, R=P.filter(p=>p.g===k&&T[p.i]>x.c); if(!R.some(p=>p.zone===x.z)) return;
-      const vals=R.map(p=>T[p.i]).sort((a,b)=>a-b), rank=p=>p.stackOn?0:p.zone===x.z?1:2;
-      R.slice().sort((a,b)=>rank(a)-rank(b)||T[a.i]-T[b.i]).forEach((p,j)=>{ T[p.i]=vals[j] }) });
-    TCACHE.set(key,T); if(TCACHE.size>20) TCACHE.delete(TCACHE.keys().next().value);
-    return T;
-  }
-  /* Zonen im aktuellen Zustand: sichtbare Dinge, Umriss, Kandidaten für die Tippfläche. Zwischengespeichert, bis sich der Zustand ändert. */
+  function goneSet(spend,B){
+    const L=(spend||[]).filter(x=>x&&x.n>0&&(x.k==="_alt"||KIDS.includes(x.k)));
+    const key=JSON.stringify([L.map(x=>[x.k,x.z||"",x.n,x.alt?1:0]),B?[...B]:[]]); if(TCACHE.has(key)) return TCACHE.get(key);
+    const P=build(), out=new Set(), carry={};
+    const byT=P.slice().sort((a,b)=>a.t-b.t); let cum=0;
+    L.forEach(x=>{ const kk=x.k, a0=areaAt(cum); cum+=x.n; const add=areaAt(cum)-a0;
+      // Fortschritt aus früheren Fassungen: genau wie früher, alles mit t unter der alten Grenze
+      if(x.alt){ const st=rawStageW(cum), c=clearing({w:cum,stage:st}); byT.forEach(p=>{ if(p.t<c&&!(B&&B.has(p.i))) out.add(p.i) }); return }
+      carry[kk]=(carry[kk]||0)+add;
+      const R=byT.filter(p=>!out.has(p.i)&&!(B&&B.has(p.i))&&(kk==="_alt"||p.kat===kk));
+      // An der angetippten Stelle räumt ein Einsatz zusammenhängend: Reihe für Reihe, von links nach rechts. So sieht man eine echte Lücke.
+      const band=p=>p.row!=null?p.row:Math.round(p.y/24);
+      const first=x.z?R.filter(p=>p.stelle===x.z).sort((a,b)=>band(a)-band(b)||a.x-b.x):[], rest=R.filter(p=>!first.includes(p));
+      // Was auf anderem liegt, geht vor seiner Unterlage: das sichert die Reihenfolge nach t schon
+      const take=p=>{ P.filter(d=>d.on===p.i&&!out.has(d.i)).forEach(take); out.add(p.i); carry[kk]-=p.a };
+      for(const p of [...first,...rest]){ if(out.has(p.i)) continue; if(carry[kk]<p.a/2) break; take(p) } });
+    TCACHE.set(key,out); if(TCACHE.size>24) TCACHE.delete(TCACHE.keys().next().value);
+    return out }
+  /* Wie viel Schwung eine Kategorie noch braucht, bis dort alles fort ist */
+  function restOf(spend,kat,B){ const P=build(), G=goneSet(spend,B), cum=(spend||[]).reduce((s,x)=>s+(x.n||0),0);
+    const a=P.filter(p=>p.kat===kat&&!G.has(p.i)&&!(B&&B.has(p.i))).reduce((s,p)=>s+p.a,0); if(a<=0) return 0;
+    // so viele Handbreit, bis die Kurve diese Fläche hergibt (höchstens bis zum Ende)
+    const base=areaAt(cum); let n=1; while(n<EINH&&areaAt(cum+n)-base<a-1) n++; return n }
+  /* Kompatibel: T[i] = -1 fort, 99 sichtbar */
+  function times(spend,B){ const G=goneSet(spend,B); return build().map(p=>G.has(p.i)?-1:99) }
+
+  /* Stellen im aktuellen Zustand: sichtbare Dinge je Kategorie und Ort, Umriss, Kandidaten für die Tippfläche. */
   const ZCACHE=new Map();
   const isTop=p=>p.z==="wand"||p.z==="chair"||p.z==="lamp";
   const rectOf=p=>isTop(p)?[p.x,p.y,p.w,p.h]:[p.x,p.y-p.h,p.w,p.h];
   function zonesOf(m){
-    const c=clearing(m), K=(m.keep||[]).slice(0,MAXK), key=JSON.stringify([c.toFixed(4),K.map(k=>[k.id,k.cat,k.why,k.motif]),m.zpref||[]]);
+    const K=(m.keep||[]).slice(0,MAXK), key=JSON.stringify([K.map(k=>[k.id,k.cat,k.why,k.motif]),m.spend||[]]);
     if(ZCACHE.has(key)) return ZCACHE.get(key);
-    const P=build(), T=times(m.zpref), B=blockedSet(K), out=[];
+    const P=build(), B=blockedSet(K), G=goneSet(m.spend,B), out=[];
     // Der Sessel vorn links (fest) verdeckt, was am Boden hinter ihm liegt
     const behind=p=>p.z==="floor"&&p.y<=270, inS=(x,y)=>x>5&&x<62&&y>228&&y<298;
-    ZIDS.forEach(z=>{ const L=P.filter(p=>p.zone===z&&c<T[p.i]&&!B.has(p.i)&&!(behind(p)&&inS(p.x,p.y-p.h)&&inS(p.x+p.w,p.y))); if(!L.length) return;
+    const groups={}; P.forEach(p=>{ if(G.has(p.i)||B.has(p.i)||(behind(p)&&inS(p.x,p.y-p.h)&&inS(p.x+p.w,p.y))) return; (groups[p.stelle]=groups[p.stelle]||[]).push(p) });
+    Object.entries(groups).forEach(([z,L])=>{
       let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
       L.forEach(p=>{ const [x,y,w,h]=rectOf(p); x0=Math.min(x0,x); x1=Math.max(x1,x+w); y0=Math.min(y0,y); y1=Math.max(y1,y+h) });
-      // Kandidaten: ein Raster aus 3 x 3 Punkten auf jedem Ding, größte Dinge zuerst
       const cand=L.slice().sort((a,b)=>b.a-a.a).flatMap(p=>{ const [x,y,w,h]=rectOf(p), Q=[];
         [0.5,0.25,0.75].forEach(fy=>[0.5,0.25,0.75].forEach(fx=>Q.push([x+w*fx,y+h*fy]))); return Q.filter(([qx,qy])=>!(behind(p)&&inS(qx,qy))) });
-      const k=Math.floor(c)+1, jetzt=L.filter(p=>p.g===k).length;
-      out.push({id:z,n:L.length,a:L.reduce((s,p)=>s+p.a,0),box:[x0-2,y0-2,x1-x0+4,y1-y0+4],cand,jetzt,rects:L.map(rectOf)}) });
+      out.push({id:z,kat:L[0].kat,n:L.length,a:L.reduce((s,p)=>s+p.a,0),box:[x0-2,y0-2,x1-x0+4,y1-y0+4],cand,rects:L.map(rectOf)}) });
     out.sort((a,b)=>b.a-a.a);
     ZCACHE.set(key,out); if(ZCACHE.size>12) ZCACHE.delete(ZCACHE.keys().next().value);
     return out;
   }
   /* Tippflächen setzen: Kreise mit 44 px, Mittelpunkte mindestens 46 px auseinander, nie über einem behaltenen Ding,
-     ganz im Bild. Stellen mit wenig freien Punkten kommen zuerst dran, damit möglichst jede Stelle eine Fläche bekommt.
-     Eine Stelle ohne Fläche fällt auch aus der Liste. */
+     ganz im Bild. Zuerst bekommt jede Kategorie eine Fläche (an ihrer größten Stelle), dann weitere Stellen, höchstens 14. */
   function placeZones(Z,hits,u,W,H){
     const S=46, keep=hits.map(h=>[h.hx,h.hy]);
     const okPt=([cx,cy])=>{ const x=cx*u, y=cy*u; return x>=22&&x<=W-22&&y>=22&&y<=H-22&&!keep.some(([a,b])=>Math.hypot(a-x,b-y)<S) };
     const V=Z.map(z=>({z,c:z.cand.filter(okPt).map(([x,y])=>[x*u,y*u])}));
+    const seen=new Set(), firsts=[], others=[];
+    V.forEach(v=>{ if(!seen.has(v.z.kat)){ seen.add(v.z.kat); firsts.push(v) } else others.push(v) });
     let best=null;
-    // zwei Reihenfolgen probieren: wenig Kandidaten zuerst, große Stellen zuerst; die mit mehr gesetzten Flächen gewinnt
-    [V.slice().sort((a,b)=>a.c.length-b.c.length), V.slice()].forEach(order=>{ const taken=[], got={};
-      order.forEach(({z,c})=>{ const p=c.find(([x,y])=>!taken.some(([a,b])=>Math.hypot(a-x,b-y)<S)); if(p){ taken.push(p); got[z.id]=p } });
-      if(!best||Object.keys(got).length>Object.keys(best).length) best=got });
-    return Z.filter(z=>best[z.id]).map(z=>({id:z.id,hx:best[z.id][0],hy:best[z.id][1],hr:22,n:z.n,jetzt:z.jetzt,box:z.box.map(v=>v*u),rects:z.rects.map(r=>r.map(v=>v*u))}))
-      .sort((a,b)=>(Math.round(a.hy/40)-Math.round(b.hy/40))||(a.hx-b.hx));
+    [[firsts.slice().sort((a,b)=>a.c.length-b.c.length),others],[firsts,others]].forEach(([A,Bo])=>{ const taken=[], got={};
+      [...A,...Bo].forEach(({z,c})=>{ if(Object.keys(got).length>=14) return; const p=c.find(([x,y])=>!taken.some(([a,b])=>Math.hypot(a-x,b-y)<S)); if(p){ taken.push(p); got[z.id]=p } });
+      const kats=new Set(Object.keys(got).map(id=>Z.find(z=>z.id===id).kat)).size;
+      if(!best||kats>best.k||(kats===best.k&&Object.keys(got).length>Object.keys(best.g).length)) best={g:got,k:kats} });
+    return Z.map(z=>({id:z.id,kat:z.kat,hx:best.g[z.id]?best.g[z.id][0]:null,hy:best.g[z.id]?best.g[z.id][1]:null,dot:!!best.g[z.id],hr:22,n:z.n,box:z.box.map(v=>v*u),rects:z.rects.map(r=>r.map(v=>v*u))}))
+      .sort((a,b)=>(b.dot-a.dot)||(Math.round((a.hy||0)/40)-Math.round((b.hy||0)/40))||((a.hx||0)-(b.hx||0)));
   }
-  /* Tipp knapp neben eine Fläche: nächstgelegene Stelle, deren Kram höchstens r px entfernt ist */
+  /* Tipp ins Bild: nächstgelegene Stelle, deren Kram höchstens r px entfernt ist */
   function zoneAt(x,y,r){ if(!info) return null; let best=null, bd=1e9;
     (info.zones||[]).forEach(z=>{ z.rects.forEach(([rx,ry,rw,rh])=>{ const dx=Math.max(rx-x,0,x-rx-rw), dy=Math.max(ry-y,0,y-ry-rh), d=Math.hypot(dx,dy); if(d<bd){ bd=d; best=z.id } });
-      const dc=Math.max(0,Math.hypot(z.hx-x,z.hy-y)-22); if(dc<bd){ bd=dc; best=z.id } });
+      if(z.dot){ const dc=Math.max(0,Math.hypot(z.hx-x,z.hy-y)-22); if(dc<bd){ bd=dc; best=z.id } } });
     return bd<=(r==null?30:r)?best:null }
 
   /* ---------- Gruppen (= Stufe, ab der sie ganz fort sind) ----------
@@ -223,7 +243,12 @@ const Bild=(function(){
     const st={}; P.forEach(p=>{ if(p.stack!=null)(st[p.stack]=st[p.stack]||[]).push(p) });
     Object.values(st).forEach(L=>{ const us=L.map(p=>p.u).sort((a,b)=>a-b); L.sort((a,b)=>b.lvl-a.lvl).forEach((p,i)=>p.u=us[i]) });
     P.forEach(p=>{ if(p.stackOn) p.u=Math.min(p.u,0.3) });
-    P.forEach((p,i)=>{ p.i=i; p.t=(p.g-1)+p.u*0.999; p.a=Math.max(8,p.w*p.h); p.zone=zoneOf(p) });
+    P.forEach((p,i)=>{ p.i=i; p.t=(p.g-1)+p.u*0.999; p.a=Math.max(8,p.w*p.h); p.kat=katOf(p); p.stelle=p.kat+"@"+ortOf(p) });
+    // Worauf ein Ding liegt (Stapel, obenauf): Wer die Unterlage abräumt, räumt das Obere mit
+    P.forEach(p=>{ if(!(p.stackOn||(p.stack!=null&&p.lvl>0))) return; let best=null, bd=99;
+      P.forEach(q=>{ if(q===p||q.z!==p.z) return; if(p.stack!=null&&!(q.stack===p.stack&&q.lvl===p.lvl-1)) return;
+        const d=Math.abs(p.y-(q.y-q.h)), ov=Math.min(p.x+p.w,q.x+q.w)-Math.max(p.x,q.x); if(ov>2&&d<bd){ bd=d; best=q } });
+      if(best&&bd<=6) p.on=best.i });
     JUNK=P; return P;
   }
 
@@ -451,7 +476,7 @@ const Bild=(function(){
   function scene(g,m){
     const E=env(m), {dark,eve,se,T}=E, c=clearing(m), k=c/9;
     const P=build(), calm=0.55*Math.pow(k,1.2);
-    const K=(m.keep||[]).slice(0,MAXK), B=blockedSet(K), TT=times(m.zpref);
+    const K=(m.keep||[]).slice(0,MAXK), B=blockedSet(K), TT=times(m.spend,B);
     const vis=p=>c<TT[p.i]&&!B.has(p.i);
     const J=z=>P.filter(p=>p.z===z&&vis(p));
     const dj=p=>drawJunk(g,p,T,calm,dark);
@@ -713,7 +738,7 @@ const Bild=(function(){
   }
   function size(){ const W=cv.clientWidth||360; return {W,H:Math.round(W*VH/VW),dpr:Math.min(3,window.devicePixelRatio||1)} }
   const cache=new Map();
-  function keyOf(m,W,dpr){ const e=env(m); return JSON.stringify([W,dpr,e.dark,e.night,e.se,clearing(m).toFixed(4),m.keep,(m.bags||[]).map(b=>b.n),m.paths,(m.wishes||[]).map(w=>[w.cat,Math.round(w.p*10)]),m.zpref||[]]) }
+  function keyOf(m,W,dpr){ const e=env(m); return JSON.stringify([W,dpr,e.dark,e.night,e.se,clearing(m).toFixed(4),m.keep,(m.bags||[]).map(b=>b.n),m.paths,(m.wishes||[]).map(w=>[w.cat,Math.round(w.p*10)]),m.spend||[]]) }
   function layerFor(W,H,dpr,m){ const k=keyOf(m,W,dpr); let L=cache.get(k); if(!L){ L=layer(W,H,dpr,m); cache.set(k,L); if(cache.size>4) cache.delete(cache.keys().next().value) } return L }
   function mount(canvas,m,fromModel){
     cv=canvas; ctx=cv.getContext("2d"); model=m; m.dark=document.documentElement.dataset.dark==="1";
@@ -748,7 +773,8 @@ const Bild=(function(){
       else ctx.drawImage(cur.top,0,0);
       full=!!prev;
       if(ringAt){ const dur=ringAt.dur||1600, q=still&&(ringAt.box||ringAt.dots)?0.5:(t-ringT0)/dur; if(q>0&&q<1){ ctx.setTransform(dpr,0,0,dpr,0,0); ctx.save(); ctx.strokeStyle=model.dark?"#E8826A":"#B4472E"; ctx.globalAlpha=Math.sin(q*Math.PI)*0.85; ctx.setLineDash([4,3.5]); ctx.lineWidth=1.6;
-          if(ringAt.box){ const [bx,by,bw,bh]=ringAt.box, e=still?0:(1-q)*3; ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,6); ctx.stroke() }
+          if(ringAt.boxes){ const e=still?0:(1-q)*3; ringAt.boxes.forEach(([bx,by,bw,bh])=>{ ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,5); ctx.stroke() }) }
+          else if(ringAt.box){ const [bx,by,bw,bh]=ringAt.box, e=still?0:(1-q)*3; ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,6); ctx.stroke() }
           else if(ringAt.dots){ ctx.setLineDash([3,3]); ringAt.dots.forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(x,y,13+(still?0:q*3),0,7); ctx.stroke() }) }
           else { ctx.beginPath(); ctx.arc(ringAt.x,ringAt.y,ringAt.r*(0.9+q*0.25),0,7); ctx.stroke() } ctx.restore() } else if(q>=1){ ringAt=null; full=true } }
     } else {
@@ -766,10 +792,15 @@ const Bild=(function(){
   let markT=0;
   function ring(r,delay){ if(!cv||!info) return; ringAt=r; ringT0=performance.now()+(delay||0); full=true; clearTimeout(markT);
     if(RMq()){ frame(performance.now()); markT=setTimeout(()=>{ ringAt=null; full=true; if(cv) frame(performance.now()) },(r.dur||1600)-200) } else loop() }
-  function mark(id){ const z=info&&(info.zones||[]).find(x=>x.id===id); if(z) ring({box:z.box}) }
+  function mark(id){ const z=info&&(info.zones||[]).find(x=>x.id===id); if(z) ring({boxes:z.rects.slice(0,16).map(([x,y,w,h])=>[x-2,y-2,w+4,h+4])}) }
   /* Nach einem Eintrag aus einer Stelle: ihren Umriss (aus dem Zustand davor) während der Überblendung zeigen */
   function markFrom(m,id,delay){ if(!cv||!info) return; const z=zonesOf(m).find(x=>x.id===id); if(!z) return; const u=info.W/VW;
     ring({box:z.box.map(v=>v*u),dur:2000},delay||0) }
+  /* Nach dem Abräumen: genau die Dinge umranden, die gerade gehen (aus dem Zustand davor) */
+  function markGone(fromM,toM,delay){ if(!cv||!info) return; const u=info.W/VW, Kf=(fromM.keep||[]).slice(0,MAXK), Bf=blockedSet(Kf);
+    const g0=goneSet(fromM.spend,Bf), g1=goneSet(toM.spend,blockedSet((toM.keep||[]).slice(0,MAXK))), P=build();
+    const L=P.filter(p=>g1.has(p.i)&&!g0.has(p.i)&&!Bf.has(p.i)); if(!L.length) return;
+    ring({boxes:L.slice(0,12).map(p=>rectOf(p).map((v,i)=>i<2?(v-2)*u:(v+4)*u)),dur:2000},delay||0) }
   /* Ausschnitt um eine Zone für das Blatt: aus dem Standbild, mit gestricheltem Rahmen */
   function crop(el,id){ if(!cur||!info||!el) return false; const z=(info.zones||[]).find(x=>x.id===id); if(!z) return false;
     const {W,H,dpr}=size(), ew=el.clientWidth||320, eh=el.clientHeight||120, A=ew/eh, [bx,by,bw,bh]=z.box;
@@ -788,8 +819,8 @@ const Bild=(function(){
     canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr); canvas.style.width=W+"px"; canvas.style.height=H+"px";
     const g=canvas.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); return draw(g,W,H,Object.assign({},m,{time:time==null?2:time})) }
   /* Kramfläche (Summe der Grundflächen) bei Fortschritt c, für die Messung der Reduktionskurve */
-  function flaeche(c,keep,pref){ const B=blockedSet((keep||[]).slice(0,MAXK)), T=times(pref); return build().filter(p=>c<T[p.i]&&!B.has(p.i)).reduce((s,p)=>s+p.a,0) }
-  function zoneArea(z,c,pref){ const T=times(pref); return build().filter(p=>p.zone===z&&c<T[p.i]).reduce((s,p)=>s+p.a,0) }
-  function gone(c,pref,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)), T=times(pref); return build().filter(p=>!(c<T[p.i])&&!B.has(p.i)).map(p=>p.i) }
-  return {placed:()=>info&&info.zones||[],zonesOf,zoneArea,gone,mark,markFrom,zoneAt,crop,times,ZIDS,mount,stop,paint,draw,season,dayPhase,clearing,flaeche,SLOTS,DING,MOTIVE,motifOf,guessMotif,motifIcon,VW,VH,hitY,lastBuild:0,lastFrame:0,_build:build};
+  function flaeche(spend,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)), G=goneSet(spend,B); return build().filter(p=>!G.has(p.i)&&!B.has(p.i)).reduce((s,p)=>s+p.a,0) }
+  function gone(spend,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)); return [...goneSet(spend,B)] }
+  function restKat(spend,kat,keep){ return restOf(spend,kat,blockedSet((keep||[]).slice(0,MAXK))) }
+  return {placed:()=>info&&info.zones||[],zonesOf,restKat,KIDS,EINH,gone,mark,markFrom,markGone,zoneAt,crop,times,mount,stop,paint,draw,season,dayPhase,clearing,flaeche,SLOTS,DING,MOTIVE,motifOf,guessMotif,motifIcon,VW,VH,hitY,lastBuild:0,lastFrame:0,_build:build};
 })();

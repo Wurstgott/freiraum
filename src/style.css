@@ -112,6 +112,14 @@ b,strong{font-weight:600}
 .zone-hit.zeig::after{content:"";position:absolute;inset:9px;border-radius:50%;border:2px dashed var(--primary);background:rgba(255,255,255,.28);pointer-events:none}
 .box.zs{margin-top:10px;padding:10px 14px}
 .zw{margin:8px 0 0}
+.box.abr{margin-top:14px;padding:12px 14px}
+.abr-z{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+.abr-z>span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.abr-z .btn{width:100%}
+.zh{font-size:17px;margin:18px 0 2px}
+.row.chal .cx{font-size:14px;color:var(--muted)}
+.zw2{margin:14px 0 6px}
+.weite:not(.voll){background:var(--surface2);color:var(--muted)}
 .note.zb{margin-top:8px}
 .opts.drei{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
 .opts.drei .opt{min-height:52px;padding:6px 6px;justify-content:center;text-align:center;font-size:14.5px;line-height:1.2;hyphens:auto}
@@ -410,3 +418,16 @@ ul.steps li{margin:6px 0}
 .aufg:active:not(.nopress){filter:brightness(.97)}
 .aufg-fuss{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
 .sec>h2{font-size:21px}
+/* Heute: geführter Weg */
+.heute .next-h span:first-of-type{flex:1}
+.hdots{display:inline-flex;gap:5px;margin-left:auto}
+.hdots i{width:18px;height:5px;border-radius:3px;background:var(--line)}
+.hdots i.on{background:var(--primary)}
+.hdots i.cur{background:var(--primary);opacity:.45}
+.hk{display:flex;align-items:center;gap:6px;font:500 14px/1.3 var(--f-ui)!important;color:var(--muted);margin:0 0 4px!important}
+.hfuss{font-size:14px!important;margin:12px 0 0!important}
+.lnk.inl{display:inline;padding:0;min-height:0}
+.anf{display:block;width:fit-content;font:600 12px/1.2 var(--f-ui);color:var(--brand-ink);background:var(--sel);padding:3px 8px;border-radius:10px;margin-bottom:4px;align-self:flex-start}
+.box.tun{margin-top:16px}
+.box.tun .btn{width:auto;padding:0 20px}
+.row.chal.hl{background:var(--sel);border-radius:12px;padding-left:10px;padding-right:10px}
