@@ -57,5 +57,6 @@ const TUN={
   i55:{tun:"Nimm heute ein Ding, das dir keine Freude macht, und prüf es mit den anderen Gründen: Nutze ich es oft, macht es mich fähig, trägt es Bedeutung?",a:"open",v:"keep",b:"Mit Grund behalten"},
   i56:{tun:"Lass ein frei gewordenes Fach zwei Wochen lang leer. Parke jeden Wunsch, der dafür auftaucht.",s:"Lass ein freies Fach in deinem Zimmer zwei Wochen lang leer. Parke jeden Wunsch, der dafür auftaucht.",a:"open",v:"wish",b:"Wunsch parken"},
   i57:{tun:"Schau dir diese Woche drei Abraten-Videos an. Notiere bei jedem, ob am Ende ein Produkt, ein Link oder ein Rabattcode kommt.",a:"ueb",v:"u35",b:"Übung ansehen"},
+  i59:{tun:"Öffne heute einen Schrank, den du selten öffnest, und geh ihn Fach für Fach durch. Frag nur: Habe ich das im letzten Jahr benutzt, und wo hätte es sonst Platz?",s:"Geh heute ein Fach in deinem Zimmer durch. Frag nur: Habe ich das im letzten Jahr benutzt?",a:"chal",v:"c-mo1",b:"Zur Aufgabe"},
   i58:{tun:"Such heute in einem Bereich nach Doppeltem, etwa Scheren oder Vasen. Lass das Fach, das dadurch frei wird, leer bleiben.",s:"Such in deinem Zimmer nach Doppeltem, etwa Stiften oder Scheren. Lass das Fach, das dadurch frei wird, leer bleiben.",a:"open",v:"timer",b:"Zeitgeber starten"}
 };

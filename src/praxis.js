@@ -394,7 +394,8 @@ const CHECK=[
   o:["Fast nie.","Ein paar Mal im Monat.","Ungefähr jede Woche.","Fast jeden Tag."] },
 { id:"c04", cat:"wo", q:"Wie viele Flächen in deinem Zimmer oder deiner Wohnung sind gerade so zugestellt, dass du sie nicht benutzen kannst?",
   o:["Keine.","Eine.","Zwei oder drei.","Mehr als drei."] },
-{ id:"c05", cat:"pa", q:"Wie sieht es mit Papieren aus, um die du dich kümmern müsstest, zum Beispiel Briefe, Formulare oder Zettel aus der Schule?",
+{ id:"c05", cat:"pa", q:"Wie sieht es mit Papieren aus, um die du dich kümmern müsstest, zum Beispiel Briefe, Formulare oder Rechnungen?",
+  s:"Wie sieht es mit Papieren aus, um die du dich kümmern müsstest, zum Beispiel Briefe, Formulare oder Zettel aus der Schule?",
   o:["Es liegt nichts herum.","Es gibt einen kleinen Stapel, den ich im Blick habe.","Es gibt einen Stapel, bei dem ich nicht genau weiß, was darin ist.","Ich habe schon einmal etwas verpasst, weil es in einem Stapel untergegangen ist."] },
 { id:"c06", cat:"pa", q:"Wie oft meldet dein Handy oder Computer, dass der Speicher fast voll ist?",
   o:["Nie.","Selten.","Ab und zu, dann lösche ich schnell etwas.","Ständig, ich klicke die Meldung meistens weg."] },
@@ -405,5 +406,8 @@ const CHECK=[
 { id:"c09", cat:"ko", q:"Wie oft kaufst du etwas, das du kurz danach bereust oder kaum benutzt?",
   o:["Fast nie.","Ein paar Mal im Jahr.","Ungefähr jeden Monat.","Mehrmals im Monat."] },
 { id:"c10", cat:"ko", q:"Wie oft schaust du dir Shops oder Angebote an, ohne etwas Bestimmtes zu brauchen?",
-  o:["Fast nie.","Ab und zu.","Mehrmals pro Woche.","Fast jeden Tag."] }
+  o:["Fast nie.","Ab und zu.","Mehrmals pro Woche.","Fast jeden Tag."] },
+{ id:"c11", cat:"wo", fokus:true, q:"Hast du Möbel, die vor allem Dinge aufbewahren, die du kaum nutzt?",
+  s:"Gibt es in deinem Zimmer Fächer oder Kisten, in denen vor allem Dinge liegen, die du kaum nutzt?",
+  o:["Nein, meine Möbel werden genutzt.","Ich weiß es nicht genau.","Ja, ein oder zwei.","Ja, mehrere Schränke oder ein ganzes Zimmer."] }
 ];

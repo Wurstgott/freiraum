@@ -431,3 +431,5 @@ ul.steps li{margin:6px 0}
 .box.tun{margin-top:16px}
 .box.tun .btn{width:auto;padding:0 20px}
 .row.chal.hl{background:var(--sel);border-radius:12px;padding-left:10px;padding-right:10px}
+.box.schwer{margin-top:14px}
+.fokus-z{font:400 14px/1.4 var(--f-ui);color:var(--muted);margin:6px 2px 0}

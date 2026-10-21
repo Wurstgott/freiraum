@@ -399,6 +399,16 @@ const IMPULSE_B=[
   ev:2, typ:"Übersicht",
   tip:"Das kann heißen: Bevor du ein Ding durch ein sparsameres ersetzt, lohnt die Frage, ob du es überhaupt brauchst. Ein Gerät weniger oder ein Fach, das leer bleiben darf, ist Suffizienz im Kleinen.",
   s:"Das kann heißen: Über die Wohnung entscheiden deine Eltern, über deine eigenen Dinge du. Ein Wunsch, der verblasst, oder ein Fach, das leer bleiben darf, ist Suffizienz im Kleinen.",
+  myth:false },
+{ id:"i59", cat:"wo",
+  t:"Mehr Zimmer, mehr Dinge?",
+  x:"In einer großen US-Befragung sagten 60 Prozent der Menschen ab 60 Jahren, sie hätten mehr Dinge, als sie brauchen. Wer mehr Zimmer hatte, sagte das häufiger. Fast die Hälfte wäre sehr ungern bereit, die eigenen Dinge in eine andere Wohnung zu bringen. Ob der Platz die Dinge anzieht oder ob es andere Gründe gibt, etwa Alter, Einkommen oder lange Wohndauer, zeigt die Studie nicht.",
+  c:"Das ist ein Zusammenhang aus einer Befragung, berichtet in einem kurzen, nicht begutachteten Beitrag, keine Ursache. Die begutachtete Folgestudie hat die Zimmerzahl nicht gemessen. Der Spruch, Dinge füllten jeden Platz, ist nicht geprüft. Platz, den du nutzt, ist kein Problem: Freie Zimmer werden oft für Besuch, Hobbys oder Pflege gebraucht. Wer sehr wenig Platz hat, hat eher zu wenig Stauraum als zu viel. In Deutschland wohnten 2025 etwa 12 Prozent der Menschen zu eng.",
+  src:"Ekerdt, D. J. (2012). Kurzer Beitrag im Newsletter Consumers, Commodities & Consumption, 13(2), nicht begutachtet (Daten: Health and Retirement Study 2010). Ekerdt, D. J., & Baker, L. A. (2014). The material convoy after age 50. Journals of Gerontology, Series B, 69(3), 442–450. Destatis, EU-SILC 2025.",
+  u:"https://doi.org/10.1093/geronb/gbu003",
+  ev:1, typ:"Beobachtung",
+  tip:"Das kann heißen: Ein Schrank, der zugeht, sagt noch nicht, ob du ihn brauchst. Die Frage ist, was darin liegt und ob du es nutzt.",
+  s:"Das kann heißen: Über Möbel entscheiden meist deine Eltern. Du kannst bei deinen eigenen Fächern anfangen.",
   myth:false }
 ];
 

@@ -22,6 +22,14 @@ const KAT=Object.fromEntries(KATEGORIEN.map(k=>[k.id,k]));
 const CHAL=Object.fromEntries(KATEGORIEN.flatMap(k=>k.ch.map(c=>[c.id,Object.assign({kat:k.id,cat:k.cat},c)])));
 const CHALCAP=8;
 const ORT={regal:"im Regal",oben:"oben auf dem Regal",wand:"an der Wand",pinn:"an der Pinnwand",fenster:"auf der Fensterbank",tisch:"auf dem Tisch",stuhl:"auf dem Stuhl",unter:"unter dem Tisch",vorn:"vorn am Boden",boden:"am Boden"};
+/* Schwerpunkt aus der Bestandsaufnahme: welche Sorten im Bild nach vorn treten. Die Menge im Bild ändert sich nicht. */
+const Q2K={c01:["kleidung"],c02:["kleidung"],c03:["deko","moebel"],c04:["moebel","kueche"],c05:["papier"],c06:["technik"],c07:["erinnerung","deko"],c08:["erinnerung"],c09:["verpackung"],c10:["verpackung"],c11:["moebel"]};
+function focusKats(ans){ if(!ans&&S.settings&&S.settings.nofocus) return []; ans=ans||(S.check&&S.check.ans); if(!ans) return []; const sc={};
+  Object.entries(ans).forEach(([q,v])=>(Q2K[q]||[]).forEach(k=>sc[k]=(sc[k]||0)+(+v||0)));
+  let F=Object.keys(sc).filter(k=>sc[k]>=2&&KAT[k]).sort((a,b)=>sc[b]-sc[a]||KATEGORIEN.findIndex(x=>x.id===a)-KATEGORIEN.findIndex(x=>x.id===b)).slice(0,3);
+  // Wer bei der Möbelfrage „ein oder zwei“ oder mehr sagt, bekommt Möbel sicher in den Schwerpunkt
+  if((+ans.c11||0)>=2&&!F.includes("moebel")){ F=F.slice(0,2); F.push("moebel") }
+  return F }
 const katOfStelle=id=>String(id||"").split("@")[0];
 const AUFCAP=6;
 
@@ -153,7 +161,7 @@ function nextStep(){
   const kd=keepAskDue(); if(kd.length) return {m:"Nachfrage",t:"Stimmt der Grund noch?",x:"Du hast „"+kd[0].name+"“ bewusst behalten. Gilt dein Grund noch?",a:"open",v:"keepask",w:kd[0].id,b:"Nachsehen"};
   const ee=exEvalDue(); if(ee.length) return {m:"Übung vorbei",t:UEB[ee[0][0]].t,x:"Das war der letzte Tag. Wie ist es gelaufen?",a:"open",v:"ueb",w:ee[0][0],b:"Auswerten"};
   const et=exTodayOpen(); if(et.length) return {m:"Übung läuft",t:UEB[et[0][0]].t,x:"Tag "+exDay(et[0][1])+" von "+UEB[et[0][0]].d+". Wie lief es heute?",a:"open",v:"ueb",w:et[0][0],b:"Eintragen"};
-  if(!S.check) return {m:"Zum Anfang",t:"Mach die Bestandsaufnahme",x:"Zehn kurze Fragen zeigen, wo Besitz dir gerade am meisten Druck macht. Das dauert etwa zwei Minuten.",a:"open",v:"check",b:"Beginnen"};
+  if(!S.check) return {m:"Zum Anfang",t:"Mach die Bestandsaufnahme",x:"Kurze Fragen zeigen, wo Besitz dir gerade am meisten Druck macht. Das dauert etwa zwei Minuten.",a:"open",v:"check",b:"Beginnen"};
   for(const a of areaOrder()){
     const st=stations(a), i=st.indexOf(false); if(i<0) continue;
     const n=AREA[a].n;
@@ -231,7 +239,7 @@ function bildModel(R,keepL,bags,spend){
   const Wt=waiting();
   return {r:rOf(R),w:R,stage:st,keep:keepL.map(k=>Object.assign({id:k.id,cat:k.cat,why:k.why},k.motif?{motif:k.motif}:{})),paths:B.length,bags:B,
     wishes:Wt.map(w=>({cat:w.cat,p:Math.max(0,Math.min(1,(now()-w.ts)/Math.max(1,w.due-w.ts)))})),motes:faded,date:new Date(now()),
-    spend:(spend||S.spend||[]).map(x=>Object.assign({k:x.k,z:x.z,n:x.n},x.alt?{alt:1}:{}))};
+    focus:focusKats(),spend:(spend||S.spend||[]).map(x=>Object.assign({k:x.k,z:x.z,n:x.n},x.alt?{alt:1}:{}))};
 }
 /* Hinweis auf die Stellen: beim ersten Besuch (gestrichelte Kreise und ein Etikett am oberen Bildrand).
    Er geht beim ersten Antippen, beim ersten Eintrag oder nach 8 s weg. */
@@ -245,13 +253,15 @@ function autoSpend(){ if(!S.settings.auto) return; const G=guthaben(); if(G>0) S
 function mountBild(){
   const cv=$("#bild"); if(!cv) return; autoSpend();
   const R=raum(), K=keepers(), st=stageOf(R);
-  const BL=bagList(), sig={w:R,ns:S.spend.length,k:K.map(k=>k.id).join(","),p:BL.length,s:waiting().length};
+  const BL=bagList(), sig={w:R,ns:S.spend.length,k:K.map(k=>k.id).join(","),p:BL.length,s:waiting().length,f:focusKats().join()};
   const sh=S.shown;
   let from=null;
-  if(sh&&(sh.w!==R||sh.k!==sig.k||sh.p!==sig.p)){
+  const fChange=sh&&sh.f!=null&&sh.f!==sig.f;
+  if(sh&&(sh.w!==R||sh.k!==sig.k||sh.p!==sig.p||fChange)){
     const oldK=K.filter(k=>sh.k.split(",").includes(k.id)), ns=sh.ns==null?S.spend.length:Math.min(sh.ns,S.spend.length);
     const oldSp=sh.w<R?S.spend.slice(0,ns):S.spend, oldR=oldSp.reduce((s,x)=>s+x.n,0);
     from=bildModel(oldR,oldK,BL.slice(BL.length-Math.min(sh.p,sig.p)),oldSp);
+    if(fChange) from.focus=sh.f?sh.f.split(","):[];
   }
   const m=bildModel(R,K,BL);
   const newK=from?K.filter(k=>!sh.k.split(",").includes(k.id)):[];
@@ -265,12 +275,12 @@ function mountBild(){
   const stUp=from&&st>stageOf(from.w);
   S.shown=sig;
   // Liste „Was liegt hier?“: die Kategorien, die im Bild noch etwas haben, je mit ihrer größten Stelle
-  const zl=$(".zliste"); if(zl){ const seen=new Set(), Z=(info.zones||[]).filter(z=>KAT[z.kat]&&!seen.has(z.kat)&&seen.add(z.kat));
-    zl.hidden=!Z.length; zl.querySelector(".list").innerHTML=Z.map(z=>`<button class="row" data-a="zone" data-v="${z.id}"><i class="dot ${KAT[z.kat].cat}"></i><span class="t"><b>${esc(KAT[z.kat].n)}</b><span>${esc(KAT[z.kat].kurz)}</span></span>${chev}</button>`).join("") }
+  const zl=$(".zliste"); if(zl){ const seen=new Set(), F=m.focus||[], Z=(info.zones||[]).filter(z=>KAT[z.kat]&&!seen.has(z.kat)&&seen.add(z.kat)).sort((a,b)=>(F.includes(a.kat)?0:1)-(F.includes(b.kat)?0:1));
+    zl.hidden=!Z.length; zl.querySelector(".list").innerHTML=Z.map(z=>`<button class="row" data-a="zone" data-v="${z.id}"><i class="dot ${KAT[z.kat].cat}"></i><span class="t"><b>${esc(KAT[z.kat].n)}</b><span>${F.includes(z.kat)?"Dein Schwerpunkt · ":""}${esc(KAT[z.kat].kurz)}</span></span>${chev}</button>`).join("") }
   const zp=$(".zhint"); if(zp&&!(info.zones||[]).length) zp.remove();
   if(!S.mom["zonen-tipp"]&&!SH&&(info.zones||[]).length){ S.mom["zonen-tipp"]=now(); zHintNow=true; setTimeout(zHintOff,8000) }
   // Nach dem Abräumen: die Stelle während der Überblendung markieren
-  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } zMarkNext=null;
+  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } else if(fChange&&m.focus.length) Bild.markFocus(m,FADE_DELAY+1000); zMarkNext=null;
   save();
   later(()=>maybeMoment(),from?(stUp?2600:1500)+FADE_DELAY-250:700);
 }
@@ -281,7 +291,7 @@ let NXALT=0;
    Die Sorte des Tages folgt den Bereichen aus der Bestandsaufnahme; „Andere Sorte“ wechselt. */
 const KAT_AREA=k=>({kl:0,pa:1,er:2,wo:3,ko:4})[KAT[k].cat];
 function heuteKat(n){ const L=katOffen(); if(!L.length) return null; const ord=areaOrder();
-  const sc=k=>ord.indexOf(k.cat)*10+(S.log.some(e=>e.k==="chal"&&e.kat===k.id&&now()-e.ts<3*DAY)?50:0)+hsh(k.id+dkey())%7;
+  const F=focusKats(), sc=k=>(F.includes(k.id)?F.indexOf(k.id)*3-100:0)+ord.indexOf(k.cat)*10+(S.log.some(e=>e.k==="chal"&&e.kat===k.id&&now()-e.ts<3*DAY)?50:0)+hsh(k.id+dkey())%7;
   const A=L.slice().sort((a,b)=>sc(a)-sc(b)); return A[(n||0)%A.length].id }
 function heute(){ const d=dkey();
   if(!S.heute||S.heute.day!==d||!KAT[S.heute.kat]) S.heute={day:d,n:0,kat:heuteKat(0)};
@@ -341,11 +351,12 @@ function vHome(){
     <button class="img-hit" data-a="imgtap" aria-label="Was in deinem Zimmer zu sehen ist"></button><div id="hits"></div>
     ${!S.mom["zonen-tipp"]||zHintNow?`<p class="zhint" aria-hidden="true">Tipp auf etwas im Bild</p>`:""}</div>
   ${leg?`<div class="legende" aria-hidden="true">${leg}</div>`:""}
+  ${focusKats().length?`<p class="fokus-z">Schwerpunkt: ${focusKats().map(k=>esc(KAT[k].n)).join(", ")} <button class="lnk inl" data-a="fokus-off">ausblenden</button></p>`:S.settings.nofocus&&S.check?`<p class="fokus-z"><button class="lnk inl" data-a="fokus-off">Schwerpunkt wieder zeigen</button></p>`:""}
   ${heuteHTML()}
   <button class="stufe" data-a="open" data-v="stufen" aria-label="Stufe ${st+1} von 10: ${esc(S1.n)}. ${G} ${EIN} zum Einsetzen. Alle Stufen ansehen">
     <span class="stufe-kopf"><span class="stufe-n"><small>Stufe ${st+1} von 10</small><b>${esc(S1.n)}</b></span>${st>=9?`<span class="weite">Zimmer frei</span>`:`<span class="weite${G>=1?" voll":""}"><b>${G}</b> ${EIN}</span>`}</span>
     <span class="raster" aria-hidden="true">${STUFEN.map((x,i)=>`<i class="${i<=st?"v":i===st+1?"j":""}"${i===st+1?` style="--p:${Math.max(0,Math.min(100,pct))}%"`:""}></i>`).join("")}</span></button>
-  <p class="stufe-p">${G>=PREIS&&st<9?`<b>Du hast ${hb(G)}.</b> Tipp im Bild auf etwas, das gehen darf, und räum es dort ab.`:`${esc(S1.x)} ${st>=9?"Handbreit zählen jetzt nur noch für dich. ":""}${S2?`Noch <b>${hb(S2.w-W)}</b> einsetzen bis „${esc(S2.n)}“.`:"Was du jetzt tust, hält es so."}`}${weite()<1&&!S.spend.length?` Handbreit bekommst du für Aufgaben und Entscheidungen: Loslassen, Behalten, Vielleicht-Kiste.`:""}</p>
+  <p class="stufe-p">${G>=PREIS&&st<9?`<b>Du hast ${hb(G)}.</b> Tipp im Bild auf etwas, das du abräumen willst. Was bleibt, entscheidest du.`:`${esc(S1.x)} ${st>=9?"Handbreit zählen jetzt nur noch für dich. ":""}${S2?`Noch <b>${hb(S2.w-W)}</b> einsetzen bis „${esc(S2.n)}“.`:"Was du jetzt tust, hält es so."}`}${weite()<1&&!S.spend.length?` Handbreit bekommst du für Aufgaben und Entscheidungen: Loslassen, Behalten, Vielleicht-Kiste.`:""}</p>
   ${st<9?`<details class="zliste" hidden><summary>Was liegt hier?</summary>
     <p class="small muted" style="margin:0 0 6px">Jedes Ding im Bild steht für eine Sorte, die es fast überall gibt. Tipp auf eine, um zu sehen, was du in deinem Zuhause tun kannst.</p>
     <div class="list"></div></details>`:""}
@@ -563,11 +574,11 @@ function sheetHTML(){
     <div class="chips">${[["school","Ich gehe zur Schule"],["adult","Ich bin erwachsen"]].map(([v,n])=>`<button class="chip${S.settings.mode===v?" on":""}" aria-pressed="${S.settings.mode===v}" data-a="mode" data-v="${v}">${n}</button>`).join("")}</div>
     <p class="note">Für die Schule gibt es eigene Fassungen der Übungen. Ohne Auswahl siehst du die Fassung für Erwachsene. Du kannst das jederzeit unter „Dein Weg“ ändern.</p>
     <div class="btns"><button class="btn" data-a="open" data-v="check">Bestandsaufnahme machen</button><button class="btn sec2" data-a="close">Erst umsehen</button></div>
-    <p class="note">Die Bestandsaufnahme hat zehn Fragen und dauert etwa zwei Minuten.</p>`;
+    <p class="note">Die Bestandsaufnahme hat ${CHECK.length} Fragen und dauert etwa zwei Minuten.</p>`;
   case "check": { const i=SH.step, ans=d.ans||(d.ans={});
     if(i>=CHECK.length) return checkResult();
     const q=CHECK[i];
-    return `${shTop("Bestandsaufnahme","Frage "+(i+1)+" von "+CHECK.length)}${prog(i,CHECK.length)}<p class="meta"><i class="dot ${q.cat}"></i> ${esc(AREA[q.cat].n)}</p><h3 style="margin:6px 0 14px">${esc(q.q)}</h3>
+    return `${shTop("Bestandsaufnahme","Frage "+(i+1)+" von "+CHECK.length)}${prog(i,CHECK.length)}<p class="meta"><i class="dot ${q.cat}"></i> ${esc(AREA[q.cat].n)}</p><h3 style="margin:6px 0 14px">${esc(school()&&q.s?q.s:q.q)}</h3>
     <div class="opts">${q.o.map((o,k)=>`<button class="opt${ans[q.id]===k?" on":""}" aria-pressed="${ans[q.id]===k}" data-a="checkans" data-v="${k}">${esc(o)}</button>`).join("")}</div>
     <div class="btns">${i>0?`<button class="btn sec2" data-a="step" data-v="-1">Zurück</button>`:""}</div>` }
   case "los": { const v=d.size&&d.weg?losGain(d.size,d.weg):0, nominal=d.weg?(d.weg==="mue"||d.weg==="rec"?1:2):0, ask=d.ask!==false;
@@ -740,17 +751,19 @@ function sheetHTML(){
     const chs=k.ch.map((c,ci)=>{ const dn=S.log.some(e=>e.k==="chal"&&e.cid===c.id&&dkey(e.ts)===dkey()), n=S.log.filter(e=>e.k==="chal"&&e.cid===c.id).length;
       return `<div class="row chal${SH.d&&SH.d.hl===c.id?" hl":""}" style="align-items:flex-start"><span class="t">${ci===0?`<span class="anf">Fang hiermit an</span>`:""}<b>${esc(c.t)}</b><span class="cx">${esc(school()&&c.s?c.s:c.x)}</span><span>${c.min}\u00a0Min. · +${hb(c.w)}${n?" · schon "+n+"×":""}</span></span>
         <span>${dn?`<span class="stat on" aria-label="heute erledigt">✓</span>`:`<button class="chip" data-a="chal" data-v="${c.id}" aria-label="${esc(c.t)}: erledigt">Erledigt</button>`}</span></div>` }).join("");
-    return `${shTop(esc(k.n),`<i class="dot ${k.cat}"></i> ${esc(k.kurz)}`)}
-    ${zi?`<canvas class="zcrop" data-z="${esc(SH.arg)}" role="img" aria-label="Ausschnitt aus dem Bild, markiert: ${esc(k.n)}"></canvas>`:""}
-    <h3 class="zh">Aufgaben für dein Zuhause</h3>
-    <div class="list">${chs}</div>
-    <div class="box abr">${rest<=0?`<b>Im Bild ist hier alles abgeräumt.</b>`:G>=cost?`<div class="abr-z"><span><b>${kid==="erinnerung"?"Im Bild in eine Kiste räumen":"Im Bild abräumen"}</b><span class="small">Du hast ${hb(G)}.${S.spend.some(x=>!x.alt)?"":" Das Bild ist nicht dein echtes Zimmer. Was du abräumst, steht für das, was du getan hast."}</span></span><button class="btn" data-a="spend" data-v="${esc(SH.arg)}">${kid==="erinnerung"?"Wegräumen":"Abräumen"} · ${hb(cost)}</button></div>`
+    const ABR=`<div class="box abr">${rest<=0?`<b>Im Bild ist hier alles abgeräumt.</b>`:G>=cost?`<div class="abr-z"><span><b>${kid==="erinnerung"?"Im Bild in eine Kiste räumen":"Im Bild abräumen"}</b><span class="small">Du hast ${hb(G)}.${S.spend.some(x=>!x.alt)?"":" Das Bild ist nicht dein echtes Zimmer. Was du abräumst, steht für das, was du getan hast."}</span></span><button class="btn" data-a="spend" data-v="${esc(SH.arg)}">${kid==="erinnerung"?"Wegräumen":"Abräumen"} · ${hb(cost)}</button></div>`
       :`<b>Im Bild abräumen · ${hb(cost)}</b><p class="small" style="margin:4px 0 0">${G?"Du hast "+hb(G)+". Dir "+(cost-G===1?"fehlt":"fehlen")+" noch "+hb(cost-G)+".":"Du hast noch keine Handbreit."} Handbreit bekommst du für die Aufgaben unten und für jeden Eintrag.</p>`}</div>
-    <p class="small muted zw">Behalten ist dabei genauso gut wie Weggeben. Es zählt, dass du hingesehen und entschieden hast.</p>
+`, WAYS=kid=>`<p class="small muted zw">Behalten ist dabei genauso gut wie Weggeben. Es zählt, dass du hingesehen und entschieden hast.</p>
      <p class="small zw2"><b class="ui">Hast du schon entschieden?</b> Trag es ein, das bringt auch Handbreit.</p>
      <div class="opts drei"><button class="opt" data-a="zone-go" data-v="keep" data-w="${kid}"><span>Mit Grund behalten</span></button>
       <button class="opt" data-a="zone-go" data-v="kiste" data-w="${kid}"><span>In die Vielleicht-Kiste</span></button>
       <button class="opt" data-a="zone-go" data-v="los" data-w="${kid}"><span>Weiter&shy;geben</span></button></div>
+`;
+    return `${shTop(esc(k.n),`<i class="dot ${k.cat}"></i> ${esc(k.kurz)}`)}
+    ${zi?`<canvas class="zcrop" data-z="${esc(SH.arg)}" role="img" aria-label="Ausschnitt aus dem Bild, markiert: ${esc(k.n)}"></canvas>`:""}
+    <h3 class="zh">Aufgaben für dein Zuhause</h3>
+    <div class="list">${chs}</div>
+    ${kid==="moebel"?WAYS(kid)+ABR:ABR+WAYS(kid)}
     <div class="box zs"><b>Was die Forschung sagt</b>${k.fakt.slice(0,1).map(f=>`<p class="small" style="margin:4px 0 0">${esc(f.t)} ${evDots(f.ev)}</p>`).join("")}
       ${k.halten?`<p class="small" style="margin:8px 0 0"><b class="ui">Eher aufheben:</b> ${esc(k.halten)}</p>`:""}${k.los?`<p class="small" style="margin:6px 0 0"><b class="ui">Gut loslassen:</b> ${esc(k.los)}</p>`:""}</div>
     <details class="mehr"><summary>Mehr dazu</summary>
@@ -933,15 +946,15 @@ function bildHTML(){ const W=raum(), st=stageOf(W), K=keepers(), nW=waiting().le
     return dk?"Im dunklen Modus ist im Bild Abend: Die Lampe brennt, und gegenüber sind die Fenster hell."+(nacht?"":" Im hellen Modus folgt das Licht der Tageszeit.")
       :nacht?"Jetzt ist im Bild Abend: Die Lampe brennt, und gegenüber sind die Fenster hell. Tagsüber scheint die Sonne herein."
       :"Jetzt scheint die Sonne herein. Abends brennt die Lampe, und gegenüber gehen die Fenster an." })()} Über der Tasse steigt Dampf auf. Nichts, was du dir erarbeitet hast, verschwindet aus dem Bild.</p>
-  <p class="note">Das Bild ist nicht dein echtes Zimmer. Es zeigt, wie viele Handbreit du eingesetzt hast, und was du abräumst, wählst du selbst.</p>
+  ${focusKats().length?`<p class="note">Nach deiner Bestandsaufnahme haben ${focusKats().map(k=>"„"+esc(KAT[k].n)+"“").join(", ")} im Bild volle Farbe, der übrige Kram ist etwas ruhiger. Das ist dein Schwerpunkt.</p>`:""}<p class="note">Das Bild ist nicht dein echtes Zimmer. Es zeigt, wie viele Handbreit du eingesetzt hast, und was du abräumst, wählst du selbst.</p>
   <div class="btns"><button class="btn sec2" data-a="open" data-v="stufen">Alle Stufen</button></div>` }
 
 /* ---------- Bestandsaufnahme ---------- */
 function checkResult(){
   const d=SH.d, ans=d.ans, sum={};
-  AREAS.forEach(a=>sum[a.id]=0); CHECK.forEach(c=>{ sum[c.cat]+=ans[c.id]||0 });
+  AREAS.forEach(a=>sum[a.id]=0); CHECK.forEach(c=>{ if(!c.fokus) sum[c.cat]+=ans[c.id]||0 }); /* Fragen mit fokus zählen nur für den Schwerpunkt im Bild */
   const top3=AREAS.map(a=>a.id).sort((x,y)=>sum[y]-sum[x]||AREAS.findIndex(a=>a.id===x)-AREAS.findIndex(a=>a.id===y)).slice(0,3);
-  if(!d.saved){ d.saved=true; S.check={ts:now(),ans:Object.assign({},ans),top:top3,sum}; save() }
+  if(!d.saved){ d.saved=true; S.check={ts:now(),ans:Object.assign({},ans),top:top3,sum}; S.settings.nofocus=false; save() }
   const names=top3.map(a=>"„"+AREA[a].n+"“");
   const max=Math.max(...Object.values(sum));
   return `${shTop("Deine Bestandsaufnahme","Ergebnis")}
@@ -952,7 +965,10 @@ function checkResult(){
      return "Gleich stark drücken gerade "+list(G)+". Wir fangen mit "+names[0]+" an." })()}</p>
    <div class="list" style="margin-top:12px">${AREAS.map(a=>a.id).sort((x,y)=>sum[y]-sum[x]).map(a=>`<div class="row"><i class="dot ${a}"></i><span class="t"><b style="font-weight:500">${esc(AREA[a].n)}</b></span><span class="weg" style="width:auto;border:0;min-height:0;padding:0"><span class="st">${[0,1,2,3,4,5].map(k=>`<i class="${k<sum[a]?"on":""}" style="width:12px"></i>`).join("")}</span></span></div>`).join("")}</div>
    ${Object.values(ans).filter(v=>v===3).length>=4?`<div class="box"><p class="small" style="margin:0">Wenn dich das stark belastet, findest du unter „Wenn es schwer wird“ Anlaufstellen.</p><button class="lnk" data-a="open" data-v="hilfe">Wenn es schwer wird</button></div>`:""}
-   <p class="small muted" style="margin-top:12px">Dein nächster Schritt richtet sich jetzt nach diesen Bereichen. In drei Monaten kannst du die Bestandsaufnahme wiederholen und vergleichen.</p>
+   ${(()=>{ const F=focusKats(ans); return F.length?`<div class="box schwer"><b>Dein Zimmer bekommt einen Schwerpunkt</b><p class="small" style="margin:4px 0 0">Gleich treten im Bild ${F.map(k=>"„"+esc(KAT[k].n)+"“"+(AREA[KAT[k].cat].n!==KAT[k].n?" ("+esc(AREA[KAT[k].cat].n)+")":"")).join(F.length>2?", ":" und ").replace(/, (?=[^,]*$)/," und ")} nach vorn, der übrige Kram wird etwas ruhiger. ${F.includes("moebel")?"„Möbel und Stauraum“ kommt aus deiner Antwort zu Möbeln, die vor allem aufbewahren. ":""}Dein Fortschritt bleibt, wie er ist. Unter dem Bild kannst du den Schwerpunkt ausblenden.</p></div>`:"" })()}
+   ${(+ans.c11||0)>=1?`<p class="small muted" style="margin-top:8px">Deine Antwort zu Möbeln zählt nicht in die Balken. Sie bestimmt, ob „Möbel und Stauraum“ im Bild nach vorn tritt.</p>`:""}
+   ${ans.c11===3&&Object.values(ans).filter(v=>v===3).length<4?`<p class="small" style="margin-top:10px">Wenn ganze Zimmer nicht mehr nutzbar sind oder Loslassen dir große Angst macht, findest du unter „Wenn es schwer wird“ Anlaufstellen.</p>`:""}
+   <p class="small muted" style="margin-top:12px">Dein nächster Schritt richtet sich jetzt nach diesen Bereichen. In drei Monaten kannst du die Bestandsaufnahme wiederholen.${focusKats(ans).length?" Dann verschiebt sich höchstens der Schwerpunkt im Bild, dein Fortschritt bleibt.":""}</p>
    <div class="btns"><button class="btn" data-a="close">Zum Zimmer</button></div>`;
 }
 
@@ -963,7 +979,7 @@ const MOM=[
   {k:"first-box",pri:5,c:()=>S.box.some(b=>b.st!=="in"),t:"Die erste Kiste ist offen",x:"Du hast nach dreißig Tagen nachgesehen. Was du nicht gebraucht hast, weißt du jetzt aus eigener Erfahrung."},
   {k:"first-ex",pri:6,c:()=>Object.values(S.ex).some(e=>e.st==="done"&&e.lived),t:"Eine Übung durchgezogen",x:"Du hast eine Übung an genug Tagen gemacht. Aus einem Vorsatz ist etwas geworden, das du kennst."},
   {k:"first-teil",pri:4,c:()=>S.log.some(e=>e.k==="teil"),t:"Die erste Tasche an der Tür",x:"Du hast etwas bekommen, ohne dass es neu hergestellt wurde. In deinem Zimmer hängt jetzt eine Tasche an der Tür."},
-  {k:"neu-d",pri:9,c:()=>S.spend.some(x=>x.alt),t:"Neu: Du räumst selbst ab",x:"Deine bisherigen Handbreit stecken schon im Bild, es sieht aus wie vorher. Ab jetzt sammelst du neue Handbreit für Aufgaben und Entscheidungen und setzt sie selbst ein: Tipp im Bild auf etwas, das gehen darf. Jedes Ding steht für eine Sorte, die es fast überall gibt."},
+  {k:"neu-d",pri:9,c:()=>S.spend.some(x=>x.alt),t:"Neu: Du räumst selbst ab",x:"Deine bisherigen Handbreit stecken schon im Bild, es sieht aus wie vorher. Ab jetzt sammelst du neue Handbreit für Aufgaben und Entscheidungen und setzt sie selbst ein: Tipp im Bild auf etwas, das du abräumen willst. Jedes Ding steht für eine Sorte, die es fast überall gibt."},
   {k:"nomiss",pri:5,c:()=>{ const s=stats(); return s.asked.length>=5 },t:"Dein eigener Beleg",x:null}
 ];
 function maybeMoment(){
@@ -1032,7 +1048,7 @@ const A={
     closeSheet(); act(g=>{ const bag=e.who?"Die Tasche für "+e.who+" hängt an der Tür. ":"";
       if(g<=0) return "Eingetragen. "+bag+"Für heute kommen keine Handbreit mehr dazu.";
       if(g<full) return "Eingetragen. "+bag+"Heute zählen davon noch "+hb(g)+".";
-      return "Eingetragen, +"+hb(g)+". "+bag+"Tipp im Bild auf etwas, das gehen darf." },()=>{ S.log.push(e) }); render() },
+      return "Eingetragen, +"+hb(g)+". "+bag+"Im Bild kannst du jetzt etwas abräumen." },()=>{ S.log.push(e) }); render() },
   "set-motif"(el){ readFields(); SH.d.motif=el.dataset.v; drawSheet() },
   "set-kmotif"(el){ const k=S.keep.find(x=>x.id===SH.arg); if(!k) return; k.motif=el.dataset.v; save(); drawSheet(); const dd=document.querySelector(".mot-d"); if(dd) dd.open=true; toast("Im Bild steht es jetzt als "+el.dataset.v+".") },
   "set-ask"(){ readFields(); SH.d.ask=SH.d.ask===false; drawSheet() },
@@ -1120,6 +1136,7 @@ const A={
     closeSheet(); zMarkNext=id; goTop=true; buzz("ok");
     act("Abgeräumt: "+KAT[k].n+", "+hb(cost)+".",()=>{ S.spend.push({k,z:id,n:cost,ts:now()}) }); render() },
   "heute-go"(){ const h=heute(); if(!h) return; openSheet("timer",String(h.c.min),{cid:h.c.id,end:now()+h.c.min*60000}); timerTick() },
+  "fokus-off"(){ S.settings.nofocus=!S.settings.nofocus; save(); render(); toast(S.settings.nofocus?"Schwerpunkt ausgeblendet. Alle Sorten sehen gleich aus.":"Schwerpunkt wird wieder gezeigt.") },
   "urg-later"(){ S.urgLater=dkey(); save(); render(); const b=document.querySelector(".next .btn"); if(b) b.focus({preventScroll:true}) },
   "heute-alt"(){ S.heute.n=(S.heute.n||0)+1; S.heute.kat=heuteKat(S.heute.n); S.heute.fertig=false; save(); render(); const b=document.querySelector(".heute .btn"); if(b) b.focus({preventScroll:true}) },
   "heute-fertig"(){ S.heute.fertig=true; save(); buzz("ok"); render(); toast("Gut. Alles darf bleiben, das war eine Entscheidung.") },

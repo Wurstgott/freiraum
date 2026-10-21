@@ -71,7 +71,7 @@ const Bild=(function(){
   /* ---------- Kategorien: Das Bild steht für Sorten von Dingen, nicht für ein bestimmtes Zimmer ----------
      Jedes Kramding gehört nach seiner Art zu genau einer Kategorie (Texte in zonen.js). Eine Stelle ist eine Kategorie
      an einem Ort im Bild (z. B. Bücher im Regal). Die Tippfläche liegt immer auf einem sichtbaren Ding. */
-  const KIDS=["kleidung","buecher","papier","erinnerung","kueche","technik","deko","verpackung","hobby"];
+  const KIDS=["kleidung","buecher","papier","erinnerung","kueche","technik","deko","verpackung","hobby","moebel"];
   function katOf(p){ const k=p.k;
     if(["jeans","pullb","shirtb","tuchb","socke","rucksack","schuhe","kleidhaufen","pulli","waeschekorb"].includes(k)) return "kleidung";
     if(["buch","buchq","buchq3","stapelbuch","buecherstapel"].includes(k)) return "buecher";
@@ -81,6 +81,7 @@ const Bild=(function(){
     if(["kabel","lader","kabelknaeuel","controller"].includes(k)) return "technik";
     if(["versand","versandtuete","tuete"].includes(k)||(k==="karton"&&(p.z==="floor"||p.z==="under"))) return "verpackung";
     if(k==="lego"||k==="ball") return "hobby";
+    if(k==="kommode"||k==="klappstuhl"||(k==="kiste"&&p.x>=318&&p.z==="floor")) return "moebel";
     return "deko";
   }
   function ortOf(p){ const z=p.z;
@@ -94,7 +95,7 @@ const Bild=(function(){
      sonst in der festen Reihenfolge des Bildes (Gruppen, oben auf dem Stapel zuerst). "_alt" räumt in der festen Reihenfolge
      über alle Kategorien (Fortschritt aus früheren Fassungen und „Irgendwo abräumen“). Ein Ding geht, sobald das Guthaben
      seiner Kategorie mindestens die Hälfte seiner Fläche deckt. */
-  const EINH=210;
+  const EINH=210; let FOCUS=[];
   /* Wie viel Fläche bei R eingesetzten Handbreit insgesamt fort ist: Anteil (R/210)^0,6. Am Anfang räumt eine Handbreit
      mehr als später (3 Handbreit: etwa 8 %, Hälfte bei etwa 66 Handbreit), ohne eine Sorte auf einen Schlag zu leeren. */
   function areaAt(R){ if(R<=0) return 0; const A=build().reduce((s,p)=>s+p.a,0); return A*Math.min(1,Math.pow(R/EINH,0.6)) }
@@ -154,7 +155,8 @@ const Bild=(function(){
     const okPt=([cx,cy])=>{ const x=cx*u, y=cy*u; return x>=22&&x<=W-22&&y>=22&&y<=H-22&&!keep.some(([a,b])=>Math.hypot(a-x,b-y)<S) };
     const V=Z.map(z=>({z,c:z.cand.filter(okPt).map(([x,y])=>[x*u,y*u])}));
     const seen=new Set(), firsts=[], others=[];
-    V.forEach(v=>{ if(!seen.has(v.z.kat)){ seen.add(v.z.kat); firsts.push(v) } else others.push(v) });
+    const FO=FOCUS||[], fr=k=>FO.includes(k)?0:1;
+    V.slice().sort((a,b)=>fr(a.z.kat)-fr(b.z.kat)).forEach(v=>{ if(!seen.has(v.z.kat)){ seen.add(v.z.kat); firsts.push(v) } else others.push(v) });
     let best=null;
     [[firsts.slice().sort((a,b)=>a.c.length-b.c.length),others],[firsts,others]].forEach(([A,Bo])=>{ const taken=[], got={};
       [...A,...Bo].forEach(({z,c})=>{ if(Object.keys(got).length>=14) return; const p=c.find(([x,y])=>!taken.some(([a,b])=>Math.hypot(a-x,b-y)<S)); if(p){ taken.push(p); got[z.id]=p } });
@@ -239,6 +241,11 @@ const Bild=(function(){
     add({k:"pulli",z:"floor",x:50,y:290-30,w:30,h:14,c:4,g:1,flat:1,stackOn:1});
     add({k:"blatt",z:"floor",x:276,y:292-22,w:22,h:5,c:10,g:1,stackOn:1});
     add({k:"lego",z:"floor",x:110,y:286-30,w:10,h:6,c:6,g:1,stackOn:1});
+    /* h) Möbel, die vor allem aufbewahren (Sorte „Möbel und Stauraum“): eine Kommode vor der Tür, ein Klappstuhl unter dem Tisch.
+       Am Ende angehängt, mit festem u, damit die übrigen Dinge unverändert bleiben. */
+    add({k:"kommode",z:"floor",x:314,y:238,w:38,h:30,c:0,g:9,u:0.6});
+    add({k:"kiste",z:"floor",x:320,y:238-30,w:20,h:9,c:6,g:9,u:0.2,stackOn:1});
+    add({k:"klappstuhl",z:"under",x:119,y:232,w:17,h:52,c:3,g:8,u:0.5});
     // Stapel: oben geht zuerst
     const st={}; P.forEach(p=>{ if(p.stack!=null)(st[p.stack]=st[p.stack]||[]).push(p) });
     Object.values(st).forEach(L=>{ const us=L.map(p=>p.u).sort((a,b)=>a-b); L.sort((a,b)=>b.lvl-a.lvl).forEach((p,i)=>p.u=us[i]) });
@@ -271,6 +278,15 @@ const Bild=(function(){
       case "buchq3": for(let i=0;i<3;i++){ g.fillStyle=J(p.c+i*4); rr(g,x+(i%2)*2,y-(i+1)*3,w-2,3,0.6); g.fill() } break;
       case "ordner": g.fillStyle=c; rr(g,x,y-h,w,h,1); g.fill(); g.fillStyle=pap; rr(g,x+1.5,y-h+5,w-3,9,1); g.fill(); g.fillStyle=d; ell(g,x+w/2,y-10,2,2); g.fill(); break;
       case "dose": g.fillStyle=c; rr(g,x,y-h,w,h,1.5); g.fill(); g.fillStyle=d; g.fillRect(x,y-h,w,2); g.fillStyle=l; g.fillRect(x+1,y-h*0.62,w-2,h*0.3); break;
+      case "kommode": { const wd=mix(dark?"#7A5A3E":"#B98A5A",T.calm,calm*0.6), wl=mix(wd,"#ffffff",0.18), wk=mix(wd,"#000000",0.3);
+        g.fillStyle=wk; g.fillRect(x+3,y-3,3,3); g.fillRect(x+w-6,y-3,3,3);
+        g.fillStyle=wd; rr(g,x,y-h,w,h-3,1.5); g.fill(); g.fillStyle=wl; g.fillRect(x-1,y-h,w+2,2.5);
+        for(let i=0;i<3;i++){ const yy=y-h+4+i*8; g.fillStyle=wl; rr(g,x+2.5,yy,w-5,6.5,1); g.fill(); g.fillStyle=wk; ell(g,x+w/2,yy+3.2,1.6,1.1); g.fill() }
+        break }
+      case "klappstuhl": { const fr=mix(dark?"#9AA3A8":"#7E8A90",T.calm,calm*0.6), st=mix(dark?"#8A6A4A":"#C08D5A",T.calm,calm*0.6);
+        g.save(); g.translate(x+w,y); g.rotate(-0.16); g.strokeStyle=fr; g.lineWidth=1.6; g.lineCap="round";
+        g.beginPath(); g.moveTo(-w,0); g.lineTo(-2,-h); g.moveTo(-2,0); g.lineTo(-w+2,-h*0.55); g.stroke();
+        g.fillStyle=st; for(let i=0;i<4;i++){ rr(g,-w+1,-h*0.42-i*4.4,w-2,3,0.8); g.fill() } g.restore(); break }
       case "kiste": g.fillStyle=c; rr(g,x,y-h,w,h,2); g.fill(); g.fillStyle=d; rr(g,x+w/2-4,y-h+3,8,3,1.5); g.fill(); break;
       case "karton": g.fillStyle=kraft; rr(g,x,y-h,w,h,1); g.fill(); g.fillStyle="rgba(0,0,0,.10)"; g.fillRect(x,y-h,w,Math.max(2,h*0.14)); g.fillStyle="rgba(255,255,255,.30)"; g.fillRect(x+w/2-2.5,y-h,5,h*0.6);
         if(w>24){ g.fillStyle=pap; g.fillRect(x+w*0.62,y-h*0.55,w*0.22,h*0.22) } break;
@@ -479,7 +495,9 @@ const Bild=(function(){
     const K=(m.keep||[]).slice(0,MAXK), B=blockedSet(K), TT=times(m.spend,B);
     const vis=p=>c<TT[p.i]&&!B.has(p.i);
     const J=z=>P.filter(p=>p.z===z&&vis(p));
-    const dj=p=>drawJunk(g,p,T,calm,dark);
+    // Schwerpunkt aus der Bestandsaufnahme: Diese Sorten behalten ihre Farbe, der übrige Kram wird etwas ruhiger
+    const FO=m.focus&&m.focus.length?m.focus:null;
+    const dj=p=>drawJunk(g,p,T,FO&&!FO.includes(p.kat)?Math.min(0.9,calm+0.3):calm,dark);
 
     // Wand: wird mit dem Fortschritt heller
     const wall=mix(T.wall0,T.wall1,Math.pow(k,0.7));
@@ -738,14 +756,14 @@ const Bild=(function(){
   }
   function size(){ const W=cv.clientWidth||360; return {W,H:Math.round(W*VH/VW),dpr:Math.min(3,window.devicePixelRatio||1)} }
   const cache=new Map();
-  function keyOf(m,W,dpr){ const e=env(m); return JSON.stringify([W,dpr,e.dark,e.night,e.se,clearing(m).toFixed(4),m.keep,(m.bags||[]).map(b=>b.n),m.paths,(m.wishes||[]).map(w=>[w.cat,Math.round(w.p*10)]),m.spend||[]]) }
+  function keyOf(m,W,dpr){ const e=env(m); return JSON.stringify([(m.focus||[]).join(),W,dpr,e.dark,e.night,e.se,clearing(m).toFixed(4),m.keep,(m.bags||[]).map(b=>b.n),m.paths,(m.wishes||[]).map(w=>[w.cat,Math.round(w.p*10)]),m.spend||[]]) }
   function layerFor(W,H,dpr,m){ const k=keyOf(m,W,dpr); let L=cache.get(k); if(!L){ L=layer(W,H,dpr,m); cache.set(k,L); if(cache.size>4) cache.delete(cache.keys().next().value) } return L }
   function mount(canvas,m,fromModel){
     cv=canvas; ctx=cv.getContext("2d"); model=m; m.dark=document.documentElement.dataset.dark==="1";
     const {W,H,dpr}=size(); cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.height=H+"px";
     const t1=performance.now(); cur=layerFor(W,H,dpr,m); Bild.lastBuild=performance.now()-t1; const u=W/VW;
     info={hits:cur.hits.map(h=>({id:h.id,hx:h.x*u,hy:h.y*u,hr:22,cat:h.cat,why:h.why,ding:h.ding})),cx:180*u,cy:190*u,rx:120*u,ry:80*u,ph:dayPhase(m.date||new Date()),W,H};
-    info.zones=placeZones(zonesOf(m),info.hits,u,W,H);
+    FOCUS=m.focus||[]; info.zones=placeZones(zonesOf(m),info.hits,u,W,H);
     prev=null; fadeT0=0; ringAt=null; full=true;
     if(fromModel&&!RMq()){ fromModel.dark=m.dark; fromModel.date=m.date; prev=layerFor(W,H,dpr,fromModel); fadeT0=performance.now()+(m.delay||250) }
     if(m.ringKeep&&!RMq()){ const hk=info.hits.find(x=>x.id===m.ringKeep); if(hk) ringAt={x:hk.hx,y:hk.hy,r:hk.hr} }
@@ -773,7 +791,8 @@ const Bild=(function(){
       else ctx.drawImage(cur.top,0,0);
       full=!!prev;
       if(ringAt){ const dur=ringAt.dur||1600, q=still&&(ringAt.box||ringAt.dots)?0.5:(t-ringT0)/dur; if(q>0&&q<1){ ctx.setTransform(dpr,0,0,dpr,0,0); ctx.save(); ctx.strokeStyle=model.dark?"#E8826A":"#B4472E"; ctx.globalAlpha=Math.sin(q*Math.PI)*0.85; ctx.setLineDash([4,3.5]); ctx.lineWidth=1.6;
-          if(ringAt.boxes){ const e=still?0:(1-q)*3; ringAt.boxes.forEach(([bx,by,bw,bh])=>{ ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,5); ctx.stroke() }) }
+          if(ringAt.boxes&&ringAt.soft){ ctx.setLineDash([]); ctx.strokeStyle=model.dark?"#F2C463":"#E9B53F"; ctx.lineWidth=3; ctx.shadowColor=ctx.strokeStyle; ctx.shadowBlur=8; ctx.globalAlpha=Math.sin(q*Math.PI)*0.7; ringAt.boxes.forEach(([bx,by,bw,bh])=>{ ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,6); ctx.stroke() }) }
+          else if(ringAt.boxes){ const e=still?0:(1-q)*3; ringAt.boxes.forEach(([bx,by,bw,bh])=>{ ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,5); ctx.stroke() }) }
           else if(ringAt.box){ const [bx,by,bw,bh]=ringAt.box, e=still?0:(1-q)*3; ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,6); ctx.stroke() }
           else if(ringAt.dots){ ctx.setLineDash([3,3]); ringAt.dots.forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(x,y,13+(still?0:q*3),0,7); ctx.stroke() }) }
           else { ctx.beginPath(); ctx.arc(ringAt.x,ringAt.y,ringAt.r*(0.9+q*0.25),0,7); ctx.stroke() } ctx.restore() } else if(q>=1){ ringAt=null; full=true } }
@@ -801,6 +820,10 @@ const Bild=(function(){
     const g0=goneSet(fromM.spend,Bf), g1=goneSet(toM.spend,blockedSet((toM.keep||[]).slice(0,MAXK))), P=build();
     const L=P.filter(p=>g1.has(p.i)&&!g0.has(p.i)&&!Bf.has(p.i)); if(!L.length) return;
     ring({boxes:L.slice(0,12).map(p=>rectOf(p).map((v,i)=>i<2?(v-2)*u:(v+4)*u)),dur:2000},delay||0) }
+  /* Nach der Bestandsaufnahme: die Dinge der Schwerpunkt-Sorten kurz umranden */
+  function markFocus(m,delay){ if(!cv||!info||!m.focus) return; const u=info.W/VW, K=(m.keep||[]).slice(0,MAXK), B=blockedSet(K), G=goneSet(m.spend,B);
+    const L=build().filter(p=>m.focus.includes(p.kat)&&!G.has(p.i)&&!B.has(p.i)).sort((a,b)=>b.a-a.a).slice(0,14); if(!L.length) return;
+    ring({boxes:L.map(p=>rectOf(p).map((v,i)=>i<2?(v-2)*u:(v+4)*u)),dur:2600,soft:1},delay||0) }
   /* Ausschnitt um eine Zone für das Blatt: aus dem Standbild, mit gestricheltem Rahmen */
   function crop(el,id){ if(!cur||!info||!el) return false; const z=(info.zones||[]).find(x=>x.id===id); if(!z) return false;
     const {W,H,dpr}=size(), ew=el.clientWidth||320, eh=el.clientHeight||120, A=ew/eh, [bx,by,bw,bh]=z.box;
@@ -822,5 +845,5 @@ const Bild=(function(){
   function flaeche(spend,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)), G=goneSet(spend,B); return build().filter(p=>!G.has(p.i)&&!B.has(p.i)).reduce((s,p)=>s+p.a,0) }
   function gone(spend,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)); return [...goneSet(spend,B)] }
   function restKat(spend,kat,keep){ return restOf(spend,kat,blockedSet((keep||[]).slice(0,MAXK))) }
-  return {placed:()=>info&&info.zones||[],zonesOf,restKat,KIDS,EINH,gone,mark,markFrom,markGone,zoneAt,crop,times,mount,stop,paint,draw,season,dayPhase,clearing,flaeche,SLOTS,DING,MOTIVE,motifOf,guessMotif,motifIcon,VW,VH,hitY,lastBuild:0,lastFrame:0,_build:build};
+  return {placed:()=>info&&info.zones||[],zonesOf,restKat,KIDS,EINH,gone,mark,markFrom,markGone,markFocus,zoneAt,crop,times,mount,stop,paint,draw,season,dayPhase,clearing,flaeche,SLOTS,DING,MOTIVE,motifOf,guessMotif,motifIcon,VW,VH,hitY,lastBuild:0,lastFrame:0,_build:build};
 })();

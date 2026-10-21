@@ -458,6 +458,8 @@ ul.steps li{margin:6px 0}
 .box.tun{margin-top:16px}
 .box.tun .btn{width:auto;padding:0 20px}
 .row.chal.hl{background:var(--sel);border-radius:12px;padding-left:10px;padding-right:10px}
+.box.schwer{margin-top:14px}
+.fokus-z{font:400 14px/1.4 var(--f-ui);color:var(--muted);margin:6px 2px 0}
 </style>
 <div id="app">
   <header class="top">
@@ -701,7 +703,18 @@ const KATEGORIEN=[
    ch:[
     {id:"c-ho1",t:"Ehrlich beim Hobby",min:10,w:3,x:"Nimm ein Gerät, das lange nicht benutzt wurde. Frag: Will ich es in den nächsten drei Monaten benutzen? Wenn ja, trag dir einen Termin ein. Wenn nein, darf es zu jemandem, der es nutzt."},
     {id:"c-ho2",t:"Spielzeug tauschen",min:15,w:4,x:"Pack einen Teil des Spielzeugs in eine Kiste und stell sie weg. In einigen Wochen wird getauscht. Kinder entscheiden über ihre eigenen Sachen mit.",s:"Pack einen Teil deiner Spielsachen in eine Kiste und stell sie weg. In ein paar Wochen tauschst du."},
-    {id:"c-ho3",t:"Leihen statt besitzen",min:5,w:2,x:"Schau nach, ob es in deiner Nähe eine Bibliothek der Dinge, eine Bücherei mit Geräten oder eine Tauschgruppe gibt."}]}
+    {id:"c-ho3",t:"Leihen statt besitzen",min:5,w:2,x:"Schau nach, ob es in deiner Nähe eine Bibliothek der Dinge, eine Bücherei mit Geräten oder eine Tauschgruppe gibt."}]},
+  {id:"moebel",n:"Möbel und Stauraum",kurz:"Schränke, Kommoden, Regale, Extra-Stühle",cat:"wo",name:"Möbel",imp:"i59",
+   fakt:[
+    {t:"In Deutschland hat jede Person im Schnitt 49 Quadratmeter Wohnfläche, 1990 waren es 35. Jeder Quadratmeter will geheizt, beleuchtet und gepflegt werden. Nach dem Weltklimarat hat der Zuwachs an Fläche die Fortschritte beim Heizen etwa aufgezehrt. Er nennt dafür mittlere Belege.",ev:2,q:"Umweltbundesamt 2025; IPCC AR6 WGIII Kap. 9",u:"https://www.umweltbundesamt.de/daten/private-haushalte-konsum/wohnen/wohnflaeche"},
+    {t:"In einer US-Befragung älterer Menschen sagten die mit mehr Zimmern häufiger, sie hätten mehr Dinge als nötig. Die Zahl stammt aus einem kurzen Fachbeitrag, nicht aus einer begutachteten Studie. Ob der Platz die Dinge anzieht, ist nicht geklärt.",ev:1,q:"Ekerdt 2012 (Newsletter-Beitrag); Hintergrund: Ekerdt & Baker 2014",u:"https://doi.org/10.1093/geronb/gbu003"},
+    {t:"In der EU wird der größte Teil alter Möbel verbrannt oder deponiert. Die Schätzung stammt aus einer Studie für einen Umweltverband. Gebraucht weitergegebene Möbel helfen vor allem dann, wenn dafür kein neues gekauft wird.",ev:1,q:"Eunomia für das EEB; Rebound-Studie Dänemark"}],
+   halten:"Möbel, die du jede Woche nutzt, Möbel für seltene, aber sichere Anlässe wie Gästebett oder Ausziehtisch, Erbstücke, die dir etwas bedeuten, und alles, was dir Halt und Sicherheit gibt. In kleinen Wohnungen fehlt eher Stauraum, als dass es zu viel gibt.",
+   los:"Ein Schrank, der nur aufbewahrt, was du nicht mehr nutzt, und dessen Inhalt woanders Platz hätte. Möbel, die einen Weg versperren, und doppelte Möbel nach einem Zusammenzug oder Erbe.",
+   ch:[
+    {id:"c-mo1",t:"Ein Schrank im Kopf",min:10,w:3,x:"Wähl einen Schrank oder eine Kommode. Geh Fach für Fach durch und frag: Habe ich das im letzten Jahr benutzt, und wo hätte es sonst Platz? Nimm nichts heraus. Am Ende steht einer von drei Sätzen: Der Schrank wird gebraucht, ein Fach ist frei, oder der Schrank könnte gehen. Alle drei sind gut.",s:"Geh ein Fach in deinem Zimmer durch und frag: Habe ich das im letzten Jahr benutzt? Nimm nichts heraus."},
+    {id:"c-mo2",t:"Der Wochen-Rundgang",min:10,w:3,x:"Geh durch die Wohnung. Leg auf jedes Möbel, das du diese Woche benutzt hast, einen Zettel. Schau, wo keiner liegt, und frag: Brauche ich es für einen seltenen Anlass, oder steht es nur? Heute entscheidest du nichts.",s:"Schau in deinem Zimmer, welche Möbel und Kisten du diese Woche benutzt hast. Heute entscheidest du nichts."},
+    {id:"c-mo3",t:"Bevor ein neues Regal kommt",min:5,w:2,x:"Schreib auf, was in ein neues Regal oder einen neuen Schrank soll und wie oft du es nutzt. Warte zwei Wochen. Brauchst du die Dinge regelmäßig, ist das neue Möbel eine gute Entscheidung. Wenn nicht, mach zuerst „Ein Schrank im Kopf“."}]}
 ];
 
 const IMPULSE_A=[
@@ -1371,6 +1384,16 @@ const IMPULSE_B=[
   ev:2, typ:"Übersicht",
   tip:"Das kann heißen: Bevor du ein Ding durch ein sparsameres ersetzt, lohnt die Frage, ob du es überhaupt brauchst. Ein Gerät weniger oder ein Fach, das leer bleiben darf, ist Suffizienz im Kleinen.",
   s:"Das kann heißen: Über die Wohnung entscheiden deine Eltern, über deine eigenen Dinge du. Ein Wunsch, der verblasst, oder ein Fach, das leer bleiben darf, ist Suffizienz im Kleinen.",
+  myth:false },
+{ id:"i59", cat:"wo",
+  t:"Mehr Zimmer, mehr Dinge?",
+  x:"In einer großen US-Befragung sagten 60 Prozent der Menschen ab 60 Jahren, sie hätten mehr Dinge, als sie brauchen. Wer mehr Zimmer hatte, sagte das häufiger. Fast die Hälfte wäre sehr ungern bereit, die eigenen Dinge in eine andere Wohnung zu bringen. Ob der Platz die Dinge anzieht oder ob es andere Gründe gibt, etwa Alter, Einkommen oder lange Wohndauer, zeigt die Studie nicht.",
+  c:"Das ist ein Zusammenhang aus einer Befragung, berichtet in einem kurzen, nicht begutachteten Beitrag, keine Ursache. Die begutachtete Folgestudie hat die Zimmerzahl nicht gemessen. Der Spruch, Dinge füllten jeden Platz, ist nicht geprüft. Platz, den du nutzt, ist kein Problem: Freie Zimmer werden oft für Besuch, Hobbys oder Pflege gebraucht. Wer sehr wenig Platz hat, hat eher zu wenig Stauraum als zu viel. In Deutschland wohnten 2025 etwa 12 Prozent der Menschen zu eng.",
+  src:"Ekerdt, D. J. (2012). Kurzer Beitrag im Newsletter Consumers, Commodities & Consumption, 13(2), nicht begutachtet (Daten: Health and Retirement Study 2010). Ekerdt, D. J., & Baker, L. A. (2014). The material convoy after age 50. Journals of Gerontology, Series B, 69(3), 442–450. Destatis, EU-SILC 2025.",
+  u:"https://doi.org/10.1093/geronb/gbu003",
+  ev:1, typ:"Beobachtung",
+  tip:"Das kann heißen: Ein Schrank, der zugeht, sagt noch nicht, ob du ihn brauchst. Die Frage ist, was darin liegt und ob du es nutzt.",
+  s:"Das kann heißen: Über Möbel entscheiden meist deine Eltern. Du kannst bei deinen eigenen Fächern anfangen.",
   myth:false }
 ];
 
@@ -1872,7 +1895,8 @@ const CHECK=[
   o:["Fast nie.","Ein paar Mal im Monat.","Ungefähr jede Woche.","Fast jeden Tag."] },
 { id:"c04", cat:"wo", q:"Wie viele Flächen in deinem Zimmer oder deiner Wohnung sind gerade so zugestellt, dass du sie nicht benutzen kannst?",
   o:["Keine.","Eine.","Zwei oder drei.","Mehr als drei."] },
-{ id:"c05", cat:"pa", q:"Wie sieht es mit Papieren aus, um die du dich kümmern müsstest, zum Beispiel Briefe, Formulare oder Zettel aus der Schule?",
+{ id:"c05", cat:"pa", q:"Wie sieht es mit Papieren aus, um die du dich kümmern müsstest, zum Beispiel Briefe, Formulare oder Rechnungen?",
+  s:"Wie sieht es mit Papieren aus, um die du dich kümmern müsstest, zum Beispiel Briefe, Formulare oder Zettel aus der Schule?",
   o:["Es liegt nichts herum.","Es gibt einen kleinen Stapel, den ich im Blick habe.","Es gibt einen Stapel, bei dem ich nicht genau weiß, was darin ist.","Ich habe schon einmal etwas verpasst, weil es in einem Stapel untergegangen ist."] },
 { id:"c06", cat:"pa", q:"Wie oft meldet dein Handy oder Computer, dass der Speicher fast voll ist?",
   o:["Nie.","Selten.","Ab und zu, dann lösche ich schnell etwas.","Ständig, ich klicke die Meldung meistens weg."] },
@@ -1883,7 +1907,10 @@ const CHECK=[
 { id:"c09", cat:"ko", q:"Wie oft kaufst du etwas, das du kurz danach bereust oder kaum benutzt?",
   o:["Fast nie.","Ein paar Mal im Jahr.","Ungefähr jeden Monat.","Mehrmals im Monat."] },
 { id:"c10", cat:"ko", q:"Wie oft schaust du dir Shops oder Angebote an, ohne etwas Bestimmtes zu brauchen?",
-  o:["Fast nie.","Ab und zu.","Mehrmals pro Woche.","Fast jeden Tag."] }
+  o:["Fast nie.","Ab und zu.","Mehrmals pro Woche.","Fast jeden Tag."] },
+{ id:"c11", cat:"wo", fokus:true, q:"Hast du Möbel, die vor allem Dinge aufbewahren, die du kaum nutzt?",
+  s:"Gibt es in deinem Zimmer Fächer oder Kisten, in denen vor allem Dinge liegen, die du kaum nutzt?",
+  o:["Nein, meine Möbel werden genutzt.","Ich weiß es nicht genau.","Ja, ein oder zwei.","Ja, mehrere Schränke oder ein ganzes Zimmer."] }
 ];
 
 /* Kleine Aufgaben: antippen, wenn erledigt. ids ändern sich nie.
@@ -1990,6 +2017,7 @@ const TUN={
   i55:{tun:"Nimm heute ein Ding, das dir keine Freude macht, und prüf es mit den anderen Gründen: Nutze ich es oft, macht es mich fähig, trägt es Bedeutung?",a:"open",v:"keep",b:"Mit Grund behalten"},
   i56:{tun:"Lass ein frei gewordenes Fach zwei Wochen lang leer. Parke jeden Wunsch, der dafür auftaucht.",s:"Lass ein freies Fach in deinem Zimmer zwei Wochen lang leer. Parke jeden Wunsch, der dafür auftaucht.",a:"open",v:"wish",b:"Wunsch parken"},
   i57:{tun:"Schau dir diese Woche drei Abraten-Videos an. Notiere bei jedem, ob am Ende ein Produkt, ein Link oder ein Rabattcode kommt.",a:"ueb",v:"u35",b:"Übung ansehen"},
+  i59:{tun:"Öffne heute einen Schrank, den du selten öffnest, und geh ihn Fach für Fach durch. Frag nur: Habe ich das im letzten Jahr benutzt, und wo hätte es sonst Platz?",s:"Geh heute ein Fach in deinem Zimmer durch. Frag nur: Habe ich das im letzten Jahr benutzt?",a:"chal",v:"c-mo1",b:"Zur Aufgabe"},
   i58:{tun:"Such heute in einem Bereich nach Doppeltem, etwa Scheren oder Vasen. Lass das Fach, das dadurch frei wird, leer bleiben.",s:"Such in deinem Zimmer nach Doppeltem, etwa Stiften oder Scheren. Lass das Fach, das dadurch frei wird, leer bleiben.",a:"open",v:"timer",b:"Zeitgeber starten"}
 };
 
@@ -2162,7 +2190,7 @@ const Bild=(function(){
   /* ---------- Kategorien: Das Bild steht für Sorten von Dingen, nicht für ein bestimmtes Zimmer ----------
      Jedes Kramding gehört nach seiner Art zu genau einer Kategorie (Texte in zonen.js). Eine Stelle ist eine Kategorie
      an einem Ort im Bild (z. B. Bücher im Regal). Die Tippfläche liegt immer auf einem sichtbaren Ding. */
-  const KIDS=["kleidung","buecher","papier","erinnerung","kueche","technik","deko","verpackung","hobby"];
+  const KIDS=["kleidung","buecher","papier","erinnerung","kueche","technik","deko","verpackung","hobby","moebel"];
   function katOf(p){ const k=p.k;
     if(["jeans","pullb","shirtb","tuchb","socke","rucksack","schuhe","kleidhaufen","pulli","waeschekorb"].includes(k)) return "kleidung";
     if(["buch","buchq","buchq3","stapelbuch","buecherstapel"].includes(k)) return "buecher";
@@ -2172,6 +2200,7 @@ const Bild=(function(){
     if(["kabel","lader","kabelknaeuel","controller"].includes(k)) return "technik";
     if(["versand","versandtuete","tuete"].includes(k)||(k==="karton"&&(p.z==="floor"||p.z==="under"))) return "verpackung";
     if(k==="lego"||k==="ball") return "hobby";
+    if(k==="kommode"||k==="klappstuhl"||(k==="kiste"&&p.x>=318&&p.z==="floor")) return "moebel";
     return "deko";
   }
   function ortOf(p){ const z=p.z;
@@ -2185,7 +2214,7 @@ const Bild=(function(){
      sonst in der festen Reihenfolge des Bildes (Gruppen, oben auf dem Stapel zuerst). "_alt" räumt in der festen Reihenfolge
      über alle Kategorien (Fortschritt aus früheren Fassungen und „Irgendwo abräumen“). Ein Ding geht, sobald das Guthaben
      seiner Kategorie mindestens die Hälfte seiner Fläche deckt. */
-  const EINH=210;
+  const EINH=210; let FOCUS=[];
   /* Wie viel Fläche bei R eingesetzten Handbreit insgesamt fort ist: Anteil (R/210)^0,6. Am Anfang räumt eine Handbreit
      mehr als später (3 Handbreit: etwa 8 %, Hälfte bei etwa 66 Handbreit), ohne eine Sorte auf einen Schlag zu leeren. */
   function areaAt(R){ if(R<=0) return 0; const A=build().reduce((s,p)=>s+p.a,0); return A*Math.min(1,Math.pow(R/EINH,0.6)) }
@@ -2245,7 +2274,8 @@ const Bild=(function(){
     const okPt=([cx,cy])=>{ const x=cx*u, y=cy*u; return x>=22&&x<=W-22&&y>=22&&y<=H-22&&!keep.some(([a,b])=>Math.hypot(a-x,b-y)<S) };
     const V=Z.map(z=>({z,c:z.cand.filter(okPt).map(([x,y])=>[x*u,y*u])}));
     const seen=new Set(), firsts=[], others=[];
-    V.forEach(v=>{ if(!seen.has(v.z.kat)){ seen.add(v.z.kat); firsts.push(v) } else others.push(v) });
+    const FO=FOCUS||[], fr=k=>FO.includes(k)?0:1;
+    V.slice().sort((a,b)=>fr(a.z.kat)-fr(b.z.kat)).forEach(v=>{ if(!seen.has(v.z.kat)){ seen.add(v.z.kat); firsts.push(v) } else others.push(v) });
     let best=null;
     [[firsts.slice().sort((a,b)=>a.c.length-b.c.length),others],[firsts,others]].forEach(([A,Bo])=>{ const taken=[], got={};
       [...A,...Bo].forEach(({z,c})=>{ if(Object.keys(got).length>=14) return; const p=c.find(([x,y])=>!taken.some(([a,b])=>Math.hypot(a-x,b-y)<S)); if(p){ taken.push(p); got[z.id]=p } });
@@ -2330,6 +2360,11 @@ const Bild=(function(){
     add({k:"pulli",z:"floor",x:50,y:290-30,w:30,h:14,c:4,g:1,flat:1,stackOn:1});
     add({k:"blatt",z:"floor",x:276,y:292-22,w:22,h:5,c:10,g:1,stackOn:1});
     add({k:"lego",z:"floor",x:110,y:286-30,w:10,h:6,c:6,g:1,stackOn:1});
+    /* h) Möbel, die vor allem aufbewahren (Sorte „Möbel und Stauraum“): eine Kommode vor der Tür, ein Klappstuhl unter dem Tisch.
+       Am Ende angehängt, mit festem u, damit die übrigen Dinge unverändert bleiben. */
+    add({k:"kommode",z:"floor",x:314,y:238,w:38,h:30,c:0,g:9,u:0.6});
+    add({k:"kiste",z:"floor",x:320,y:238-30,w:20,h:9,c:6,g:9,u:0.2,stackOn:1});
+    add({k:"klappstuhl",z:"under",x:119,y:232,w:17,h:52,c:3,g:8,u:0.5});
     // Stapel: oben geht zuerst
     const st={}; P.forEach(p=>{ if(p.stack!=null)(st[p.stack]=st[p.stack]||[]).push(p) });
     Object.values(st).forEach(L=>{ const us=L.map(p=>p.u).sort((a,b)=>a-b); L.sort((a,b)=>b.lvl-a.lvl).forEach((p,i)=>p.u=us[i]) });
@@ -2362,6 +2397,15 @@ const Bild=(function(){
       case "buchq3": for(let i=0;i<3;i++){ g.fillStyle=J(p.c+i*4); rr(g,x+(i%2)*2,y-(i+1)*3,w-2,3,0.6); g.fill() } break;
       case "ordner": g.fillStyle=c; rr(g,x,y-h,w,h,1); g.fill(); g.fillStyle=pap; rr(g,x+1.5,y-h+5,w-3,9,1); g.fill(); g.fillStyle=d; ell(g,x+w/2,y-10,2,2); g.fill(); break;
       case "dose": g.fillStyle=c; rr(g,x,y-h,w,h,1.5); g.fill(); g.fillStyle=d; g.fillRect(x,y-h,w,2); g.fillStyle=l; g.fillRect(x+1,y-h*0.62,w-2,h*0.3); break;
+      case "kommode": { const wd=mix(dark?"#7A5A3E":"#B98A5A",T.calm,calm*0.6), wl=mix(wd,"#ffffff",0.18), wk=mix(wd,"#000000",0.3);
+        g.fillStyle=wk; g.fillRect(x+3,y-3,3,3); g.fillRect(x+w-6,y-3,3,3);
+        g.fillStyle=wd; rr(g,x,y-h,w,h-3,1.5); g.fill(); g.fillStyle=wl; g.fillRect(x-1,y-h,w+2,2.5);
+        for(let i=0;i<3;i++){ const yy=y-h+4+i*8; g.fillStyle=wl; rr(g,x+2.5,yy,w-5,6.5,1); g.fill(); g.fillStyle=wk; ell(g,x+w/2,yy+3.2,1.6,1.1); g.fill() }
+        break }
+      case "klappstuhl": { const fr=mix(dark?"#9AA3A8":"#7E8A90",T.calm,calm*0.6), st=mix(dark?"#8A6A4A":"#C08D5A",T.calm,calm*0.6);
+        g.save(); g.translate(x+w,y); g.rotate(-0.16); g.strokeStyle=fr; g.lineWidth=1.6; g.lineCap="round";
+        g.beginPath(); g.moveTo(-w,0); g.lineTo(-2,-h); g.moveTo(-2,0); g.lineTo(-w+2,-h*0.55); g.stroke();
+        g.fillStyle=st; for(let i=0;i<4;i++){ rr(g,-w+1,-h*0.42-i*4.4,w-2,3,0.8); g.fill() } g.restore(); break }
       case "kiste": g.fillStyle=c; rr(g,x,y-h,w,h,2); g.fill(); g.fillStyle=d; rr(g,x+w/2-4,y-h+3,8,3,1.5); g.fill(); break;
       case "karton": g.fillStyle=kraft; rr(g,x,y-h,w,h,1); g.fill(); g.fillStyle="rgba(0,0,0,.10)"; g.fillRect(x,y-h,w,Math.max(2,h*0.14)); g.fillStyle="rgba(255,255,255,.30)"; g.fillRect(x+w/2-2.5,y-h,5,h*0.6);
         if(w>24){ g.fillStyle=pap; g.fillRect(x+w*0.62,y-h*0.55,w*0.22,h*0.22) } break;
@@ -2570,7 +2614,9 @@ const Bild=(function(){
     const K=(m.keep||[]).slice(0,MAXK), B=blockedSet(K), TT=times(m.spend,B);
     const vis=p=>c<TT[p.i]&&!B.has(p.i);
     const J=z=>P.filter(p=>p.z===z&&vis(p));
-    const dj=p=>drawJunk(g,p,T,calm,dark);
+    // Schwerpunkt aus der Bestandsaufnahme: Diese Sorten behalten ihre Farbe, der übrige Kram wird etwas ruhiger
+    const FO=m.focus&&m.focus.length?m.focus:null;
+    const dj=p=>drawJunk(g,p,T,FO&&!FO.includes(p.kat)?Math.min(0.9,calm+0.3):calm,dark);
 
     // Wand: wird mit dem Fortschritt heller
     const wall=mix(T.wall0,T.wall1,Math.pow(k,0.7));
@@ -2829,14 +2875,14 @@ const Bild=(function(){
   }
   function size(){ const W=cv.clientWidth||360; return {W,H:Math.round(W*VH/VW),dpr:Math.min(3,window.devicePixelRatio||1)} }
   const cache=new Map();
-  function keyOf(m,W,dpr){ const e=env(m); return JSON.stringify([W,dpr,e.dark,e.night,e.se,clearing(m).toFixed(4),m.keep,(m.bags||[]).map(b=>b.n),m.paths,(m.wishes||[]).map(w=>[w.cat,Math.round(w.p*10)]),m.spend||[]]) }
+  function keyOf(m,W,dpr){ const e=env(m); return JSON.stringify([(m.focus||[]).join(),W,dpr,e.dark,e.night,e.se,clearing(m).toFixed(4),m.keep,(m.bags||[]).map(b=>b.n),m.paths,(m.wishes||[]).map(w=>[w.cat,Math.round(w.p*10)]),m.spend||[]]) }
   function layerFor(W,H,dpr,m){ const k=keyOf(m,W,dpr); let L=cache.get(k); if(!L){ L=layer(W,H,dpr,m); cache.set(k,L); if(cache.size>4) cache.delete(cache.keys().next().value) } return L }
   function mount(canvas,m,fromModel){
     cv=canvas; ctx=cv.getContext("2d"); model=m; m.dark=document.documentElement.dataset.dark==="1";
     const {W,H,dpr}=size(); cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); cv.style.height=H+"px";
     const t1=performance.now(); cur=layerFor(W,H,dpr,m); Bild.lastBuild=performance.now()-t1; const u=W/VW;
     info={hits:cur.hits.map(h=>({id:h.id,hx:h.x*u,hy:h.y*u,hr:22,cat:h.cat,why:h.why,ding:h.ding})),cx:180*u,cy:190*u,rx:120*u,ry:80*u,ph:dayPhase(m.date||new Date()),W,H};
-    info.zones=placeZones(zonesOf(m),info.hits,u,W,H);
+    FOCUS=m.focus||[]; info.zones=placeZones(zonesOf(m),info.hits,u,W,H);
     prev=null; fadeT0=0; ringAt=null; full=true;
     if(fromModel&&!RMq()){ fromModel.dark=m.dark; fromModel.date=m.date; prev=layerFor(W,H,dpr,fromModel); fadeT0=performance.now()+(m.delay||250) }
     if(m.ringKeep&&!RMq()){ const hk=info.hits.find(x=>x.id===m.ringKeep); if(hk) ringAt={x:hk.hx,y:hk.hy,r:hk.hr} }
@@ -2864,7 +2910,8 @@ const Bild=(function(){
       else ctx.drawImage(cur.top,0,0);
       full=!!prev;
       if(ringAt){ const dur=ringAt.dur||1600, q=still&&(ringAt.box||ringAt.dots)?0.5:(t-ringT0)/dur; if(q>0&&q<1){ ctx.setTransform(dpr,0,0,dpr,0,0); ctx.save(); ctx.strokeStyle=model.dark?"#E8826A":"#B4472E"; ctx.globalAlpha=Math.sin(q*Math.PI)*0.85; ctx.setLineDash([4,3.5]); ctx.lineWidth=1.6;
-          if(ringAt.boxes){ const e=still?0:(1-q)*3; ringAt.boxes.forEach(([bx,by,bw,bh])=>{ ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,5); ctx.stroke() }) }
+          if(ringAt.boxes&&ringAt.soft){ ctx.setLineDash([]); ctx.strokeStyle=model.dark?"#F2C463":"#E9B53F"; ctx.lineWidth=3; ctx.shadowColor=ctx.strokeStyle; ctx.shadowBlur=8; ctx.globalAlpha=Math.sin(q*Math.PI)*0.7; ringAt.boxes.forEach(([bx,by,bw,bh])=>{ ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,6); ctx.stroke() }) }
+          else if(ringAt.boxes){ const e=still?0:(1-q)*3; ringAt.boxes.forEach(([bx,by,bw,bh])=>{ ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,5); ctx.stroke() }) }
           else if(ringAt.box){ const [bx,by,bw,bh]=ringAt.box, e=still?0:(1-q)*3; ctx.beginPath(); ctx.roundRect(bx-e,by-e,bw+2*e,bh+2*e,6); ctx.stroke() }
           else if(ringAt.dots){ ctx.setLineDash([3,3]); ringAt.dots.forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(x,y,13+(still?0:q*3),0,7); ctx.stroke() }) }
           else { ctx.beginPath(); ctx.arc(ringAt.x,ringAt.y,ringAt.r*(0.9+q*0.25),0,7); ctx.stroke() } ctx.restore() } else if(q>=1){ ringAt=null; full=true } }
@@ -2892,6 +2939,10 @@ const Bild=(function(){
     const g0=goneSet(fromM.spend,Bf), g1=goneSet(toM.spend,blockedSet((toM.keep||[]).slice(0,MAXK))), P=build();
     const L=P.filter(p=>g1.has(p.i)&&!g0.has(p.i)&&!Bf.has(p.i)); if(!L.length) return;
     ring({boxes:L.slice(0,12).map(p=>rectOf(p).map((v,i)=>i<2?(v-2)*u:(v+4)*u)),dur:2000},delay||0) }
+  /* Nach der Bestandsaufnahme: die Dinge der Schwerpunkt-Sorten kurz umranden */
+  function markFocus(m,delay){ if(!cv||!info||!m.focus) return; const u=info.W/VW, K=(m.keep||[]).slice(0,MAXK), B=blockedSet(K), G=goneSet(m.spend,B);
+    const L=build().filter(p=>m.focus.includes(p.kat)&&!G.has(p.i)&&!B.has(p.i)).sort((a,b)=>b.a-a.a).slice(0,14); if(!L.length) return;
+    ring({boxes:L.map(p=>rectOf(p).map((v,i)=>i<2?(v-2)*u:(v+4)*u)),dur:2600,soft:1},delay||0) }
   /* Ausschnitt um eine Zone für das Blatt: aus dem Standbild, mit gestricheltem Rahmen */
   function crop(el,id){ if(!cur||!info||!el) return false; const z=(info.zones||[]).find(x=>x.id===id); if(!z) return false;
     const {W,H,dpr}=size(), ew=el.clientWidth||320, eh=el.clientHeight||120, A=ew/eh, [bx,by,bw,bh]=z.box;
@@ -2913,11 +2964,11 @@ const Bild=(function(){
   function flaeche(spend,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)), G=goneSet(spend,B); return build().filter(p=>!G.has(p.i)&&!B.has(p.i)).reduce((s,p)=>s+p.a,0) }
   function gone(spend,keep){ const B=blockedSet((keep||[]).slice(0,MAXK)); return [...goneSet(spend,B)] }
   function restKat(spend,kat,keep){ return restOf(spend,kat,blockedSet((keep||[]).slice(0,MAXK))) }
-  return {placed:()=>info&&info.zones||[],zonesOf,restKat,KIDS,EINH,gone,mark,markFrom,markGone,zoneAt,crop,times,mount,stop,paint,draw,season,dayPhase,clearing,flaeche,SLOTS,DING,MOTIVE,motifOf,guessMotif,motifIcon,VW,VH,hitY,lastBuild:0,lastFrame:0,_build:build};
+  return {placed:()=>info&&info.zones||[],zonesOf,restKat,KIDS,EINH,gone,mark,markFrom,markGone,markFocus,zoneAt,crop,times,mount,stop,paint,draw,season,dayPhase,clearing,flaeche,SLOTS,DING,MOTIVE,motifOf,guessMotif,motifIcon,VW,VH,hitY,lastBuild:0,lastFrame:0,_build:build};
 })();
 
 /* ===== Freiraum: Zustand, Logik, Ansichten ===== */
-const BUILD="21.10.2026, 15:42";
+const BUILD="21.10.2026, 23:28";
 const KEY="lichtung-v1";
 try{ history.scrollRestoration="manual" }catch(e){}
 const DAY=864e5;
@@ -2940,6 +2991,14 @@ const KAT=Object.fromEntries(KATEGORIEN.map(k=>[k.id,k]));
 const CHAL=Object.fromEntries(KATEGORIEN.flatMap(k=>k.ch.map(c=>[c.id,Object.assign({kat:k.id,cat:k.cat},c)])));
 const CHALCAP=8;
 const ORT={regal:"im Regal",oben:"oben auf dem Regal",wand:"an der Wand",pinn:"an der Pinnwand",fenster:"auf der Fensterbank",tisch:"auf dem Tisch",stuhl:"auf dem Stuhl",unter:"unter dem Tisch",vorn:"vorn am Boden",boden:"am Boden"};
+/* Schwerpunkt aus der Bestandsaufnahme: welche Sorten im Bild nach vorn treten. Die Menge im Bild ändert sich nicht. */
+const Q2K={c01:["kleidung"],c02:["kleidung"],c03:["deko","moebel"],c04:["moebel","kueche"],c05:["papier"],c06:["technik"],c07:["erinnerung","deko"],c08:["erinnerung"],c09:["verpackung"],c10:["verpackung"],c11:["moebel"]};
+function focusKats(ans){ if(!ans&&S.settings&&S.settings.nofocus) return []; ans=ans||(S.check&&S.check.ans); if(!ans) return []; const sc={};
+  Object.entries(ans).forEach(([q,v])=>(Q2K[q]||[]).forEach(k=>sc[k]=(sc[k]||0)+(+v||0)));
+  let F=Object.keys(sc).filter(k=>sc[k]>=2&&KAT[k]).sort((a,b)=>sc[b]-sc[a]||KATEGORIEN.findIndex(x=>x.id===a)-KATEGORIEN.findIndex(x=>x.id===b)).slice(0,3);
+  // Wer bei der Möbelfrage „ein oder zwei“ oder mehr sagt, bekommt Möbel sicher in den Schwerpunkt
+  if((+ans.c11||0)>=2&&!F.includes("moebel")){ F=F.slice(0,2); F.push("moebel") }
+  return F }
 const katOfStelle=id=>String(id||"").split("@")[0];
 const AUFCAP=6;
 
@@ -3071,7 +3130,7 @@ function nextStep(){
   const kd=keepAskDue(); if(kd.length) return {m:"Nachfrage",t:"Stimmt der Grund noch?",x:"Du hast „"+kd[0].name+"“ bewusst behalten. Gilt dein Grund noch?",a:"open",v:"keepask",w:kd[0].id,b:"Nachsehen"};
   const ee=exEvalDue(); if(ee.length) return {m:"Übung vorbei",t:UEB[ee[0][0]].t,x:"Das war der letzte Tag. Wie ist es gelaufen?",a:"open",v:"ueb",w:ee[0][0],b:"Auswerten"};
   const et=exTodayOpen(); if(et.length) return {m:"Übung läuft",t:UEB[et[0][0]].t,x:"Tag "+exDay(et[0][1])+" von "+UEB[et[0][0]].d+". Wie lief es heute?",a:"open",v:"ueb",w:et[0][0],b:"Eintragen"};
-  if(!S.check) return {m:"Zum Anfang",t:"Mach die Bestandsaufnahme",x:"Zehn kurze Fragen zeigen, wo Besitz dir gerade am meisten Druck macht. Das dauert etwa zwei Minuten.",a:"open",v:"check",b:"Beginnen"};
+  if(!S.check) return {m:"Zum Anfang",t:"Mach die Bestandsaufnahme",x:"Kurze Fragen zeigen, wo Besitz dir gerade am meisten Druck macht. Das dauert etwa zwei Minuten.",a:"open",v:"check",b:"Beginnen"};
   for(const a of areaOrder()){
     const st=stations(a), i=st.indexOf(false); if(i<0) continue;
     const n=AREA[a].n;
@@ -3149,7 +3208,7 @@ function bildModel(R,keepL,bags,spend){
   const Wt=waiting();
   return {r:rOf(R),w:R,stage:st,keep:keepL.map(k=>Object.assign({id:k.id,cat:k.cat,why:k.why},k.motif?{motif:k.motif}:{})),paths:B.length,bags:B,
     wishes:Wt.map(w=>({cat:w.cat,p:Math.max(0,Math.min(1,(now()-w.ts)/Math.max(1,w.due-w.ts)))})),motes:faded,date:new Date(now()),
-    spend:(spend||S.spend||[]).map(x=>Object.assign({k:x.k,z:x.z,n:x.n},x.alt?{alt:1}:{}))};
+    focus:focusKats(),spend:(spend||S.spend||[]).map(x=>Object.assign({k:x.k,z:x.z,n:x.n},x.alt?{alt:1}:{}))};
 }
 /* Hinweis auf die Stellen: beim ersten Besuch (gestrichelte Kreise und ein Etikett am oberen Bildrand).
    Er geht beim ersten Antippen, beim ersten Eintrag oder nach 8 s weg. */
@@ -3163,13 +3222,15 @@ function autoSpend(){ if(!S.settings.auto) return; const G=guthaben(); if(G>0) S
 function mountBild(){
   const cv=$("#bild"); if(!cv) return; autoSpend();
   const R=raum(), K=keepers(), st=stageOf(R);
-  const BL=bagList(), sig={w:R,ns:S.spend.length,k:K.map(k=>k.id).join(","),p:BL.length,s:waiting().length};
+  const BL=bagList(), sig={w:R,ns:S.spend.length,k:K.map(k=>k.id).join(","),p:BL.length,s:waiting().length,f:focusKats().join()};
   const sh=S.shown;
   let from=null;
-  if(sh&&(sh.w!==R||sh.k!==sig.k||sh.p!==sig.p)){
+  const fChange=sh&&sh.f!=null&&sh.f!==sig.f;
+  if(sh&&(sh.w!==R||sh.k!==sig.k||sh.p!==sig.p||fChange)){
     const oldK=K.filter(k=>sh.k.split(",").includes(k.id)), ns=sh.ns==null?S.spend.length:Math.min(sh.ns,S.spend.length);
     const oldSp=sh.w<R?S.spend.slice(0,ns):S.spend, oldR=oldSp.reduce((s,x)=>s+x.n,0);
     from=bildModel(oldR,oldK,BL.slice(BL.length-Math.min(sh.p,sig.p)),oldSp);
+    if(fChange) from.focus=sh.f?sh.f.split(","):[];
   }
   const m=bildModel(R,K,BL);
   const newK=from?K.filter(k=>!sh.k.split(",").includes(k.id)):[];
@@ -3183,12 +3244,12 @@ function mountBild(){
   const stUp=from&&st>stageOf(from.w);
   S.shown=sig;
   // Liste „Was liegt hier?“: die Kategorien, die im Bild noch etwas haben, je mit ihrer größten Stelle
-  const zl=$(".zliste"); if(zl){ const seen=new Set(), Z=(info.zones||[]).filter(z=>KAT[z.kat]&&!seen.has(z.kat)&&seen.add(z.kat));
-    zl.hidden=!Z.length; zl.querySelector(".list").innerHTML=Z.map(z=>`<button class="row" data-a="zone" data-v="${z.id}"><i class="dot ${KAT[z.kat].cat}"></i><span class="t"><b>${esc(KAT[z.kat].n)}</b><span>${esc(KAT[z.kat].kurz)}</span></span>${chev}</button>`).join("") }
+  const zl=$(".zliste"); if(zl){ const seen=new Set(), F=m.focus||[], Z=(info.zones||[]).filter(z=>KAT[z.kat]&&!seen.has(z.kat)&&seen.add(z.kat)).sort((a,b)=>(F.includes(a.kat)?0:1)-(F.includes(b.kat)?0:1));
+    zl.hidden=!Z.length; zl.querySelector(".list").innerHTML=Z.map(z=>`<button class="row" data-a="zone" data-v="${z.id}"><i class="dot ${KAT[z.kat].cat}"></i><span class="t"><b>${esc(KAT[z.kat].n)}</b><span>${F.includes(z.kat)?"Dein Schwerpunkt · ":""}${esc(KAT[z.kat].kurz)}</span></span>${chev}</button>`).join("") }
   const zp=$(".zhint"); if(zp&&!(info.zones||[]).length) zp.remove();
   if(!S.mom["zonen-tipp"]&&!SH&&(info.zones||[]).length){ S.mom["zonen-tipp"]=now(); zHintNow=true; setTimeout(zHintOff,8000) }
   // Nach dem Abräumen: die Stelle während der Überblendung markieren
-  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } zMarkNext=null;
+  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } else if(fChange&&m.focus.length) Bild.markFocus(m,FADE_DELAY+1000); zMarkNext=null;
   save();
   later(()=>maybeMoment(),from?(stUp?2600:1500)+FADE_DELAY-250:700);
 }
@@ -3199,7 +3260,7 @@ let NXALT=0;
    Die Sorte des Tages folgt den Bereichen aus der Bestandsaufnahme; „Andere Sorte“ wechselt. */
 const KAT_AREA=k=>({kl:0,pa:1,er:2,wo:3,ko:4})[KAT[k].cat];
 function heuteKat(n){ const L=katOffen(); if(!L.length) return null; const ord=areaOrder();
-  const sc=k=>ord.indexOf(k.cat)*10+(S.log.some(e=>e.k==="chal"&&e.kat===k.id&&now()-e.ts<3*DAY)?50:0)+hsh(k.id+dkey())%7;
+  const F=focusKats(), sc=k=>(F.includes(k.id)?F.indexOf(k.id)*3-100:0)+ord.indexOf(k.cat)*10+(S.log.some(e=>e.k==="chal"&&e.kat===k.id&&now()-e.ts<3*DAY)?50:0)+hsh(k.id+dkey())%7;
   const A=L.slice().sort((a,b)=>sc(a)-sc(b)); return A[(n||0)%A.length].id }
 function heute(){ const d=dkey();
   if(!S.heute||S.heute.day!==d||!KAT[S.heute.kat]) S.heute={day:d,n:0,kat:heuteKat(0)};
@@ -3259,11 +3320,12 @@ function vHome(){
     <button class="img-hit" data-a="imgtap" aria-label="Was in deinem Zimmer zu sehen ist"></button><div id="hits"></div>
     ${!S.mom["zonen-tipp"]||zHintNow?`<p class="zhint" aria-hidden="true">Tipp auf etwas im Bild</p>`:""}</div>
   ${leg?`<div class="legende" aria-hidden="true">${leg}</div>`:""}
+  ${focusKats().length?`<p class="fokus-z">Schwerpunkt: ${focusKats().map(k=>esc(KAT[k].n)).join(", ")} <button class="lnk inl" data-a="fokus-off">ausblenden</button></p>`:S.settings.nofocus&&S.check?`<p class="fokus-z"><button class="lnk inl" data-a="fokus-off">Schwerpunkt wieder zeigen</button></p>`:""}
   ${heuteHTML()}
   <button class="stufe" data-a="open" data-v="stufen" aria-label="Stufe ${st+1} von 10: ${esc(S1.n)}. ${G} ${EIN} zum Einsetzen. Alle Stufen ansehen">
     <span class="stufe-kopf"><span class="stufe-n"><small>Stufe ${st+1} von 10</small><b>${esc(S1.n)}</b></span>${st>=9?`<span class="weite">Zimmer frei</span>`:`<span class="weite${G>=1?" voll":""}"><b>${G}</b> ${EIN}</span>`}</span>
     <span class="raster" aria-hidden="true">${STUFEN.map((x,i)=>`<i class="${i<=st?"v":i===st+1?"j":""}"${i===st+1?` style="--p:${Math.max(0,Math.min(100,pct))}%"`:""}></i>`).join("")}</span></button>
-  <p class="stufe-p">${G>=PREIS&&st<9?`<b>Du hast ${hb(G)}.</b> Tipp im Bild auf etwas, das gehen darf, und räum es dort ab.`:`${esc(S1.x)} ${st>=9?"Handbreit zählen jetzt nur noch für dich. ":""}${S2?`Noch <b>${hb(S2.w-W)}</b> einsetzen bis „${esc(S2.n)}“.`:"Was du jetzt tust, hält es so."}`}${weite()<1&&!S.spend.length?` Handbreit bekommst du für Aufgaben und Entscheidungen: Loslassen, Behalten, Vielleicht-Kiste.`:""}</p>
+  <p class="stufe-p">${G>=PREIS&&st<9?`<b>Du hast ${hb(G)}.</b> Tipp im Bild auf etwas, das du abräumen willst. Was bleibt, entscheidest du.`:`${esc(S1.x)} ${st>=9?"Handbreit zählen jetzt nur noch für dich. ":""}${S2?`Noch <b>${hb(S2.w-W)}</b> einsetzen bis „${esc(S2.n)}“.`:"Was du jetzt tust, hält es so."}`}${weite()<1&&!S.spend.length?` Handbreit bekommst du für Aufgaben und Entscheidungen: Loslassen, Behalten, Vielleicht-Kiste.`:""}</p>
   ${st<9?`<details class="zliste" hidden><summary>Was liegt hier?</summary>
     <p class="small muted" style="margin:0 0 6px">Jedes Ding im Bild steht für eine Sorte, die es fast überall gibt. Tipp auf eine, um zu sehen, was du in deinem Zuhause tun kannst.</p>
     <div class="list"></div></details>`:""}
@@ -3481,11 +3543,11 @@ function sheetHTML(){
     <div class="chips">${[["school","Ich gehe zur Schule"],["adult","Ich bin erwachsen"]].map(([v,n])=>`<button class="chip${S.settings.mode===v?" on":""}" aria-pressed="${S.settings.mode===v}" data-a="mode" data-v="${v}">${n}</button>`).join("")}</div>
     <p class="note">Für die Schule gibt es eigene Fassungen der Übungen. Ohne Auswahl siehst du die Fassung für Erwachsene. Du kannst das jederzeit unter „Dein Weg“ ändern.</p>
     <div class="btns"><button class="btn" data-a="open" data-v="check">Bestandsaufnahme machen</button><button class="btn sec2" data-a="close">Erst umsehen</button></div>
-    <p class="note">Die Bestandsaufnahme hat zehn Fragen und dauert etwa zwei Minuten.</p>`;
+    <p class="note">Die Bestandsaufnahme hat ${CHECK.length} Fragen und dauert etwa zwei Minuten.</p>`;
   case "check": { const i=SH.step, ans=d.ans||(d.ans={});
     if(i>=CHECK.length) return checkResult();
     const q=CHECK[i];
-    return `${shTop("Bestandsaufnahme","Frage "+(i+1)+" von "+CHECK.length)}${prog(i,CHECK.length)}<p class="meta"><i class="dot ${q.cat}"></i> ${esc(AREA[q.cat].n)}</p><h3 style="margin:6px 0 14px">${esc(q.q)}</h3>
+    return `${shTop("Bestandsaufnahme","Frage "+(i+1)+" von "+CHECK.length)}${prog(i,CHECK.length)}<p class="meta"><i class="dot ${q.cat}"></i> ${esc(AREA[q.cat].n)}</p><h3 style="margin:6px 0 14px">${esc(school()&&q.s?q.s:q.q)}</h3>
     <div class="opts">${q.o.map((o,k)=>`<button class="opt${ans[q.id]===k?" on":""}" aria-pressed="${ans[q.id]===k}" data-a="checkans" data-v="${k}">${esc(o)}</button>`).join("")}</div>
     <div class="btns">${i>0?`<button class="btn sec2" data-a="step" data-v="-1">Zurück</button>`:""}</div>` }
   case "los": { const v=d.size&&d.weg?losGain(d.size,d.weg):0, nominal=d.weg?(d.weg==="mue"||d.weg==="rec"?1:2):0, ask=d.ask!==false;
@@ -3658,17 +3720,19 @@ function sheetHTML(){
     const chs=k.ch.map((c,ci)=>{ const dn=S.log.some(e=>e.k==="chal"&&e.cid===c.id&&dkey(e.ts)===dkey()), n=S.log.filter(e=>e.k==="chal"&&e.cid===c.id).length;
       return `<div class="row chal${SH.d&&SH.d.hl===c.id?" hl":""}" style="align-items:flex-start"><span class="t">${ci===0?`<span class="anf">Fang hiermit an</span>`:""}<b>${esc(c.t)}</b><span class="cx">${esc(school()&&c.s?c.s:c.x)}</span><span>${c.min}\u00a0Min. · +${hb(c.w)}${n?" · schon "+n+"×":""}</span></span>
         <span>${dn?`<span class="stat on" aria-label="heute erledigt">✓</span>`:`<button class="chip" data-a="chal" data-v="${c.id}" aria-label="${esc(c.t)}: erledigt">Erledigt</button>`}</span></div>` }).join("");
-    return `${shTop(esc(k.n),`<i class="dot ${k.cat}"></i> ${esc(k.kurz)}`)}
-    ${zi?`<canvas class="zcrop" data-z="${esc(SH.arg)}" role="img" aria-label="Ausschnitt aus dem Bild, markiert: ${esc(k.n)}"></canvas>`:""}
-    <h3 class="zh">Aufgaben für dein Zuhause</h3>
-    <div class="list">${chs}</div>
-    <div class="box abr">${rest<=0?`<b>Im Bild ist hier alles abgeräumt.</b>`:G>=cost?`<div class="abr-z"><span><b>${kid==="erinnerung"?"Im Bild in eine Kiste räumen":"Im Bild abräumen"}</b><span class="small">Du hast ${hb(G)}.${S.spend.some(x=>!x.alt)?"":" Das Bild ist nicht dein echtes Zimmer. Was du abräumst, steht für das, was du getan hast."}</span></span><button class="btn" data-a="spend" data-v="${esc(SH.arg)}">${kid==="erinnerung"?"Wegräumen":"Abräumen"} · ${hb(cost)}</button></div>`
+    const ABR=`<div class="box abr">${rest<=0?`<b>Im Bild ist hier alles abgeräumt.</b>`:G>=cost?`<div class="abr-z"><span><b>${kid==="erinnerung"?"Im Bild in eine Kiste räumen":"Im Bild abräumen"}</b><span class="small">Du hast ${hb(G)}.${S.spend.some(x=>!x.alt)?"":" Das Bild ist nicht dein echtes Zimmer. Was du abräumst, steht für das, was du getan hast."}</span></span><button class="btn" data-a="spend" data-v="${esc(SH.arg)}">${kid==="erinnerung"?"Wegräumen":"Abräumen"} · ${hb(cost)}</button></div>`
       :`<b>Im Bild abräumen · ${hb(cost)}</b><p class="small" style="margin:4px 0 0">${G?"Du hast "+hb(G)+". Dir "+(cost-G===1?"fehlt":"fehlen")+" noch "+hb(cost-G)+".":"Du hast noch keine Handbreit."} Handbreit bekommst du für die Aufgaben unten und für jeden Eintrag.</p>`}</div>
-    <p class="small muted zw">Behalten ist dabei genauso gut wie Weggeben. Es zählt, dass du hingesehen und entschieden hast.</p>
+`, WAYS=kid=>`<p class="small muted zw">Behalten ist dabei genauso gut wie Weggeben. Es zählt, dass du hingesehen und entschieden hast.</p>
      <p class="small zw2"><b class="ui">Hast du schon entschieden?</b> Trag es ein, das bringt auch Handbreit.</p>
      <div class="opts drei"><button class="opt" data-a="zone-go" data-v="keep" data-w="${kid}"><span>Mit Grund behalten</span></button>
       <button class="opt" data-a="zone-go" data-v="kiste" data-w="${kid}"><span>In die Vielleicht-Kiste</span></button>
       <button class="opt" data-a="zone-go" data-v="los" data-w="${kid}"><span>Weiter&shy;geben</span></button></div>
+`;
+    return `${shTop(esc(k.n),`<i class="dot ${k.cat}"></i> ${esc(k.kurz)}`)}
+    ${zi?`<canvas class="zcrop" data-z="${esc(SH.arg)}" role="img" aria-label="Ausschnitt aus dem Bild, markiert: ${esc(k.n)}"></canvas>`:""}
+    <h3 class="zh">Aufgaben für dein Zuhause</h3>
+    <div class="list">${chs}</div>
+    ${kid==="moebel"?WAYS(kid)+ABR:ABR+WAYS(kid)}
     <div class="box zs"><b>Was die Forschung sagt</b>${k.fakt.slice(0,1).map(f=>`<p class="small" style="margin:4px 0 0">${esc(f.t)} ${evDots(f.ev)}</p>`).join("")}
       ${k.halten?`<p class="small" style="margin:8px 0 0"><b class="ui">Eher aufheben:</b> ${esc(k.halten)}</p>`:""}${k.los?`<p class="small" style="margin:6px 0 0"><b class="ui">Gut loslassen:</b> ${esc(k.los)}</p>`:""}</div>
     <details class="mehr"><summary>Mehr dazu</summary>
@@ -3851,15 +3915,15 @@ function bildHTML(){ const W=raum(), st=stageOf(W), K=keepers(), nW=waiting().le
     return dk?"Im dunklen Modus ist im Bild Abend: Die Lampe brennt, und gegenüber sind die Fenster hell."+(nacht?"":" Im hellen Modus folgt das Licht der Tageszeit.")
       :nacht?"Jetzt ist im Bild Abend: Die Lampe brennt, und gegenüber sind die Fenster hell. Tagsüber scheint die Sonne herein."
       :"Jetzt scheint die Sonne herein. Abends brennt die Lampe, und gegenüber gehen die Fenster an." })()} Über der Tasse steigt Dampf auf. Nichts, was du dir erarbeitet hast, verschwindet aus dem Bild.</p>
-  <p class="note">Das Bild ist nicht dein echtes Zimmer. Es zeigt, wie viele Handbreit du eingesetzt hast, und was du abräumst, wählst du selbst.</p>
+  ${focusKats().length?`<p class="note">Nach deiner Bestandsaufnahme haben ${focusKats().map(k=>"„"+esc(KAT[k].n)+"“").join(", ")} im Bild volle Farbe, der übrige Kram ist etwas ruhiger. Das ist dein Schwerpunkt.</p>`:""}<p class="note">Das Bild ist nicht dein echtes Zimmer. Es zeigt, wie viele Handbreit du eingesetzt hast, und was du abräumst, wählst du selbst.</p>
   <div class="btns"><button class="btn sec2" data-a="open" data-v="stufen">Alle Stufen</button></div>` }
 
 /* ---------- Bestandsaufnahme ---------- */
 function checkResult(){
   const d=SH.d, ans=d.ans, sum={};
-  AREAS.forEach(a=>sum[a.id]=0); CHECK.forEach(c=>{ sum[c.cat]+=ans[c.id]||0 });
+  AREAS.forEach(a=>sum[a.id]=0); CHECK.forEach(c=>{ if(!c.fokus) sum[c.cat]+=ans[c.id]||0 }); /* Fragen mit fokus zählen nur für den Schwerpunkt im Bild */
   const top3=AREAS.map(a=>a.id).sort((x,y)=>sum[y]-sum[x]||AREAS.findIndex(a=>a.id===x)-AREAS.findIndex(a=>a.id===y)).slice(0,3);
-  if(!d.saved){ d.saved=true; S.check={ts:now(),ans:Object.assign({},ans),top:top3,sum}; save() }
+  if(!d.saved){ d.saved=true; S.check={ts:now(),ans:Object.assign({},ans),top:top3,sum}; S.settings.nofocus=false; save() }
   const names=top3.map(a=>"„"+AREA[a].n+"“");
   const max=Math.max(...Object.values(sum));
   return `${shTop("Deine Bestandsaufnahme","Ergebnis")}
@@ -3870,7 +3934,10 @@ function checkResult(){
      return "Gleich stark drücken gerade "+list(G)+". Wir fangen mit "+names[0]+" an." })()}</p>
    <div class="list" style="margin-top:12px">${AREAS.map(a=>a.id).sort((x,y)=>sum[y]-sum[x]).map(a=>`<div class="row"><i class="dot ${a}"></i><span class="t"><b style="font-weight:500">${esc(AREA[a].n)}</b></span><span class="weg" style="width:auto;border:0;min-height:0;padding:0"><span class="st">${[0,1,2,3,4,5].map(k=>`<i class="${k<sum[a]?"on":""}" style="width:12px"></i>`).join("")}</span></span></div>`).join("")}</div>
    ${Object.values(ans).filter(v=>v===3).length>=4?`<div class="box"><p class="small" style="margin:0">Wenn dich das stark belastet, findest du unter „Wenn es schwer wird“ Anlaufstellen.</p><button class="lnk" data-a="open" data-v="hilfe">Wenn es schwer wird</button></div>`:""}
-   <p class="small muted" style="margin-top:12px">Dein nächster Schritt richtet sich jetzt nach diesen Bereichen. In drei Monaten kannst du die Bestandsaufnahme wiederholen und vergleichen.</p>
+   ${(()=>{ const F=focusKats(ans); return F.length?`<div class="box schwer"><b>Dein Zimmer bekommt einen Schwerpunkt</b><p class="small" style="margin:4px 0 0">Gleich treten im Bild ${F.map(k=>"„"+esc(KAT[k].n)+"“"+(AREA[KAT[k].cat].n!==KAT[k].n?" ("+esc(AREA[KAT[k].cat].n)+")":"")).join(F.length>2?", ":" und ").replace(/, (?=[^,]*$)/," und ")} nach vorn, der übrige Kram wird etwas ruhiger. ${F.includes("moebel")?"„Möbel und Stauraum“ kommt aus deiner Antwort zu Möbeln, die vor allem aufbewahren. ":""}Dein Fortschritt bleibt, wie er ist. Unter dem Bild kannst du den Schwerpunkt ausblenden.</p></div>`:"" })()}
+   ${(+ans.c11||0)>=1?`<p class="small muted" style="margin-top:8px">Deine Antwort zu Möbeln zählt nicht in die Balken. Sie bestimmt, ob „Möbel und Stauraum“ im Bild nach vorn tritt.</p>`:""}
+   ${ans.c11===3&&Object.values(ans).filter(v=>v===3).length<4?`<p class="small" style="margin-top:10px">Wenn ganze Zimmer nicht mehr nutzbar sind oder Loslassen dir große Angst macht, findest du unter „Wenn es schwer wird“ Anlaufstellen.</p>`:""}
+   <p class="small muted" style="margin-top:12px">Dein nächster Schritt richtet sich jetzt nach diesen Bereichen. In drei Monaten kannst du die Bestandsaufnahme wiederholen.${focusKats(ans).length?" Dann verschiebt sich höchstens der Schwerpunkt im Bild, dein Fortschritt bleibt.":""}</p>
    <div class="btns"><button class="btn" data-a="close">Zum Zimmer</button></div>`;
 }
 
@@ -3881,7 +3948,7 @@ const MOM=[
   {k:"first-box",pri:5,c:()=>S.box.some(b=>b.st!=="in"),t:"Die erste Kiste ist offen",x:"Du hast nach dreißig Tagen nachgesehen. Was du nicht gebraucht hast, weißt du jetzt aus eigener Erfahrung."},
   {k:"first-ex",pri:6,c:()=>Object.values(S.ex).some(e=>e.st==="done"&&e.lived),t:"Eine Übung durchgezogen",x:"Du hast eine Übung an genug Tagen gemacht. Aus einem Vorsatz ist etwas geworden, das du kennst."},
   {k:"first-teil",pri:4,c:()=>S.log.some(e=>e.k==="teil"),t:"Die erste Tasche an der Tür",x:"Du hast etwas bekommen, ohne dass es neu hergestellt wurde. In deinem Zimmer hängt jetzt eine Tasche an der Tür."},
-  {k:"neu-d",pri:9,c:()=>S.spend.some(x=>x.alt),t:"Neu: Du räumst selbst ab",x:"Deine bisherigen Handbreit stecken schon im Bild, es sieht aus wie vorher. Ab jetzt sammelst du neue Handbreit für Aufgaben und Entscheidungen und setzt sie selbst ein: Tipp im Bild auf etwas, das gehen darf. Jedes Ding steht für eine Sorte, die es fast überall gibt."},
+  {k:"neu-d",pri:9,c:()=>S.spend.some(x=>x.alt),t:"Neu: Du räumst selbst ab",x:"Deine bisherigen Handbreit stecken schon im Bild, es sieht aus wie vorher. Ab jetzt sammelst du neue Handbreit für Aufgaben und Entscheidungen und setzt sie selbst ein: Tipp im Bild auf etwas, das du abräumen willst. Jedes Ding steht für eine Sorte, die es fast überall gibt."},
   {k:"nomiss",pri:5,c:()=>{ const s=stats(); return s.asked.length>=5 },t:"Dein eigener Beleg",x:null}
 ];
 function maybeMoment(){
@@ -3950,7 +4017,7 @@ const A={
     closeSheet(); act(g=>{ const bag=e.who?"Die Tasche für "+e.who+" hängt an der Tür. ":"";
       if(g<=0) return "Eingetragen. "+bag+"Für heute kommen keine Handbreit mehr dazu.";
       if(g<full) return "Eingetragen. "+bag+"Heute zählen davon noch "+hb(g)+".";
-      return "Eingetragen, +"+hb(g)+". "+bag+"Tipp im Bild auf etwas, das gehen darf." },()=>{ S.log.push(e) }); render() },
+      return "Eingetragen, +"+hb(g)+". "+bag+"Im Bild kannst du jetzt etwas abräumen." },()=>{ S.log.push(e) }); render() },
   "set-motif"(el){ readFields(); SH.d.motif=el.dataset.v; drawSheet() },
   "set-kmotif"(el){ const k=S.keep.find(x=>x.id===SH.arg); if(!k) return; k.motif=el.dataset.v; save(); drawSheet(); const dd=document.querySelector(".mot-d"); if(dd) dd.open=true; toast("Im Bild steht es jetzt als "+el.dataset.v+".") },
   "set-ask"(){ readFields(); SH.d.ask=SH.d.ask===false; drawSheet() },
@@ -4038,6 +4105,7 @@ const A={
     closeSheet(); zMarkNext=id; goTop=true; buzz("ok");
     act("Abgeräumt: "+KAT[k].n+", "+hb(cost)+".",()=>{ S.spend.push({k,z:id,n:cost,ts:now()}) }); render() },
   "heute-go"(){ const h=heute(); if(!h) return; openSheet("timer",String(h.c.min),{cid:h.c.id,end:now()+h.c.min*60000}); timerTick() },
+  "fokus-off"(){ S.settings.nofocus=!S.settings.nofocus; save(); render(); toast(S.settings.nofocus?"Schwerpunkt ausgeblendet. Alle Sorten sehen gleich aus.":"Schwerpunkt wird wieder gezeigt.") },
   "urg-later"(){ S.urgLater=dkey(); save(); render(); const b=document.querySelector(".next .btn"); if(b) b.focus({preventScroll:true}) },
   "heute-alt"(){ S.heute.n=(S.heute.n||0)+1; S.heute.kat=heuteKat(S.heute.n); S.heute.fertig=false; save(); render(); const b=document.querySelector(".heute .btn"); if(b) b.focus({preventScroll:true}) },
   "heute-fertig"(){ S.heute.fertig=true; save(); buzz("ok"); render(); toast("Gut. Alles darf bleiben, das war eine Entscheidung.") },

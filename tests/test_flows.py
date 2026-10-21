@@ -45,7 +45,7 @@ with sync_playwright() as p:
     tap(pg, '.chip[data-v="school"]')
     ok(S(pg)["settings"]["mode"] == "school", "Modus Schule gespeichert")
     tap(pg, '.btn[data-v="check"]')
-    for i in range(10):
+    for i in range(pg.evaluate("CHECK.length")):
         tap(pg, f'.opt[data-v="{i % 4}"]', 450)
     ok("Bestandsaufnahme" in pg.locator("#sheet-in").inner_text(), "Ergebnis der Bestandsaufnahme")
     ok(S(pg)["check"] and len(S(pg)["check"]["top"]) == 3, "drei Hebel gespeichert")
@@ -727,6 +727,28 @@ with sync_playwright() as p:
     pg.evaluate("A.chal({dataset:{v:'c-pa2'}})"); pg.wait_for_timeout(400)
     ok(S(pg)["settings"].get("auto") is False and pg.evaluate("[guthaben(),raum()]") == [3, ra + ga + 2], "wieder aus: Guthaben bleibt zum Selbstwählen: " + str(pg.evaluate("[guthaben(),raum()]")))
     ok(not errs, "Selbst abräumen ohne Fehler: " + "; ".join(errs[:2]))
+    ctx.close()
+
+    # 13x. Möbel und Stauraum; Schwerpunkt nach der Bestandsaufnahme
+    ctx, pg, errs = new({"seen": True, "gv": 3, "spend": [], "settings": {"theme": "system", "vib": True, "mode": None}, "mom": {"zonen-tipp": 1}})
+    if pg.locator("#layer:not([hidden])").count(): pg.evaluate("closeSheet()"); pg.wait_for_timeout(300)
+    mz = pg.evaluate("Bild.placed().filter(z=>z.kat==='moebel').map(z=>z.id)")
+    ok(len(mz) >= 1 and pg.evaluate("Bild._build().filter(p=>p.kat==='moebel').map(p=>p.k).sort().join()") == "kiste,klappstuhl,kommode", "Möbel im Bild: Kommode mit Kiste, Klappstuhl: " + str(mz))
+    pg.evaluate(f"A.zone({{dataset:{{v:'{mz[0]}'}}}})"); pg.wait_for_timeout(400)
+    t = pg.locator("#sheet-in").inner_text()
+    ok("Möbel und Stauraum" in t and "Ein Schrank im Kopf" in t and "Eher aufheben" in t and "Gut loslassen" in t, "Blatt Möbel und Stauraum mit Aufgaben und Hinweisen")
+    pg.evaluate("closeSheet()"); pg.wait_for_timeout(300)
+    ok(pg.evaluate("CHECK.length") == 11 and pg.evaluate("CHECK.find(c=>c.id==='c11').fokus") is True, "Bestandsaufnahme fragt nach Möbeln, die nur aufbewahren")
+    ok(pg.evaluate("focusKats({c01:3,c02:3,c11:3,c09:0,c10:0})") == ["kleidung", "moebel"], "Schwerpunkt aus den Antworten: " + str(pg.evaluate("focusKats({c01:3,c02:3,c11:3,c09:0,c10:0})")))
+    ok(pg.evaluate("focusKats({c01:0,c02:1})") == [], "kein Schwerpunkt bei wenig Druck")
+    g0 = pg.evaluate("[raum(),Bild.gone(S.spend,keepers()).length]")
+    pg.evaluate("openSheet('check',null,{ans:{c01:3,c02:3,c03:0,c04:1,c05:0,c06:0,c07:0,c08:0,c09:2,c10:2,c11:3}}); SH.step=CHECK.length; drawSheet()"); pg.wait_for_timeout(300)
+    ok("Schwerpunkt" in pg.locator("#sheet-in").inner_text() and "Möbel und Stauraum" in pg.locator("#sheet .box.schwer").inner_text(), "Ergebnis kündigt den Schwerpunkt im Bild an")
+    pg.evaluate("closeSheet()"); pg.wait_for_timeout(2600)
+    ok(pg.evaluate("bildModel(raum(),keepers()).focus").__contains__("moebel") and pg.evaluate("[raum(),Bild.gone(S.spend,keepers()).length]") == g0, "Schwerpunkt ändert nur die Betonung, nicht die Menge oder den Fortschritt")
+    ok(pg.evaluate("heute().k.id") in pg.evaluate("focusKats()"), "Tageskarte beginnt mit einer Schwerpunkt-Sorte: " + pg.evaluate("heute().k.id"))
+    ok("Dein Schwerpunkt" in pg.locator(".zliste").text_content(), "Liste „Was liegt hier?“ nennt den Schwerpunkt")
+    ok(not errs, "Möbel und Schwerpunkt ohne Fehler: " + "; ".join(errs[:2]))
     ctx.close()
 
     # 14. Breiten
