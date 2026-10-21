@@ -1,4 +1,4 @@
-"""App-Icons und Logo-Proben aus dem Logo „Ein Buch steht, eines lehnt“ (Büro H, mit Auflagen).
+"""App-Icons und Logo-Proben aus dem Logo „Bogen“ (Runde 8, Büro K, Blindtest-Sieger).
 python3 icons.py            -> repo/icon-512.png, icon-512-maskable.png, icon-192.png, apple-touch-icon.png
 python3 icons.py proben DIR -> zusätzlich Logo-Proben (PNG) und die SVG-Fassungen nach DIR
 
@@ -8,20 +8,20 @@ import sys, os
 from playwright.sync_api import sync_playwright
 BRAND, CREAM, LIGHT = "#B4472E", "#FFF4E6", "#F7C548"
 
-def logo(size="gross", bg=BRAND, a=CREAM, b=LIGHT, rx=116, scale=None):
-    """Zwei Bücher stehen, ein drittes lehnt am zweiten: ein Regalboden, auf dem wieder Platz ist.
-    Rückenbänder in der Grundfarbe machen die Formen auch klein als Bücher lesbar (nicht als Buchstaben).
-    size „klein“ (20–32 px) hat dieselbe Form, nur ohne die feinen Bänder des lehnenden Buchs."""
-    r = f'<rect width="512" height="512" rx="{rx}" fill="{bg}"/>' if bg else ""
-    band = bg or "none"
+def logo(size="gross", bg=BRAND, a=CREAM, b=LIGHT, rx=114, scale=None):
+    """Runde 8, Büro K, Entwurf A „Bogen“ (Blindtest-Sieger): ein offenes Bogenfenster, in dem auf dem Fensterbrett die Sonne aufgeht.
+    rx=0 für Apple-Touch und maskierbar; scale verkleinert das Zeichen in der sicheren Zone."""
     s = scale or 1.0
-    lean_band = "" if size == "klein" else f'<rect x="0" y="120" width="76" height="14" fill="{band}"/>'
-    g = (f'<g transform="translate(256 256) scale({s}) translate(-256 -274)">'
-         f'<rect x="92" y="120" width="82" height="260" rx="12" fill="{a}"/><rect x="92" y="246" width="82" height="16" fill="{band}"/>'
-         f'<rect x="188" y="170" width="74" height="210" rx="12" fill="{a}"/><rect x="188" y="320" width="74" height="14" fill="{band}"/>'
-         f'<g transform="translate(362 380) rotate(-27) translate(0 -190)"><rect x="0" y="0" width="76" height="190" rx="12" fill="{b}"/>{lean_band}</g>'
-         f'<rect x="70" y="372" width="372" height="56" rx="14" fill="{a}"/></g>')
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">{r}{g}</svg>'
+    if bg == BRAND:
+        defs = '<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C0533A"/><stop offset="1" stop-color="#A84029"/></linearGradient></defs>'
+        r = f'<rect width="512" height="512" rx="{rx}" fill="url(#bg)"/>'
+    else:
+        defs = ""; r = f'<rect width="512" height="512" rx="{rx}" fill="{bg}"/>' if bg else ""
+    g = (f'<g transform="translate(256 256) scale({s}) translate(-256 -256)">'
+         f'<path d="M164 392 V244 A92 92 0 0 1 348 244 V392" fill="none" stroke="{a}" stroke-width="40" stroke-linejoin="round"/>'
+         f'<clipPath id="w"><rect x="184" y="150" width="144" height="232"/></clipPath><circle cx="256" cy="374" r="72" fill="{b}" clip-path="url(#w)"/>'
+         f'<rect x="112" y="374" width="288" height="40" rx="20" fill="{a}"/></g>')
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">{defs}{r}{g}</svg>'
 
 def render(pg, svg, px, path, bgpage="transparent"):
     pg.set_viewport_size({"width": px, "height": px})
