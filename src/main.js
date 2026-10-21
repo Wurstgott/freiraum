@@ -250,26 +250,39 @@ function katRest(k){ return Bild.restKat(bildModel(raum(),keepers()).spend,k,kee
 function katOffen(){ return KATEGORIEN.filter(k=>katRest(k.id)>0) }
 /* Wer nicht wählen will: alles Bekommene wird in der festen Reihenfolge des Bildes eingesetzt */
 function autoSpend(){ if(!S.settings.auto) return; const G=guthaben(); if(G>0) S.spend.push({k:"_alt",n:G,ts:now(),auto:1}) }
+/* Vor der Bestandsaufnahme zeigt das Bild das Ziel: ein ruhiges Zimmer. Danach zieht der Kram ein (dein Stand gerade). */
+const vorher=()=>!S.check&&!S.spend.length&&weite()===0&&!S.skipCheck;
+function cleanModel(K,BL){ const m=bildModel(210,K,BL,[{k:"_alt",n:210,alt:1}]); m.focus=[]; return m }
+function capt(cv,txt,ms){ const st=cv.parentNode; if(!st) return; st.querySelectorAll(".zverw").forEach(e=>e.remove()); const o=document.createElement("p"); o.className="zverw"; o.setAttribute("aria-live","polite"); o.textContent=txt; st.appendChild(o);
+  if(ms){ setTimeout(()=>o.classList.add("weg"),ms); setTimeout(()=>o.remove(),ms+800) } }
 function mountBild(){
   const cv=$("#bild"); if(!cv) return; autoSpend();
   const R=raum(), K=keepers(), st=stageOf(R);
-  const BL=bagList(), sig={w:R,ns:S.spend.length,k:K.map(k=>k.id).join(","),p:BL.length,s:waiting().length,f:focusKats().join(),c:S.check?S.check.ts:0};
+  const BL=bagList(), V=vorher(), sig={w:R,ns:S.spend.length,k:K.map(k=>k.id).join(","),p:BL.length,s:waiting().length,f:focusKats().join(),c:S.check?S.check.ts:0,v:V?1:0};
   const sh=S.shown;
+  if(V){ const mc=cleanModel(K,BL); mc.delay=0; Bild.mount(cv,mc,null); const ov=$("#hits"); if(ov) ov.innerHTML=""; const zl=$(".zliste"); if(zl) zl.hidden=true; const zp=$(".zhint"); if(zp) zp.remove();
+    capt(cv,"So kann es bei dir aussehen. Die Bestandsaufnahme zeigt, wo du gerade stehst.",0); S.shown=sig; save(); return }
   let from=null;
   // Verwandlung nach einer (neuen) Bestandsaufnahme oder geändertem Schwerpunkt. Ältere Stände ohne f/c gelten als „vorher ohne Schwerpunkt“.
-  const fChange=!!(sh&&(((sh.c||0)!==sig.c&&sig.f)||(sh.f!=null&&sh.f!==sig.f)));
+  // Einzug: nach jeder neuen Bestandsaufnahme (oder wenn man sie überspringt) vom ruhigen Ziel-Zimmer zum Stand gerade
+  const einzug=!!(sh&&(sh.v===1||((sh.c||0)!==sig.c&&sig.c)));
+  const fChange=einzug||!!(sh&&sh.f!=null&&sh.f!==sig.f);
   if(sh&&(sh.w!==R||sh.k!==sig.k||sh.p!==sig.p||fChange)){
     const oldK=K.filter(k=>sh.k.split(",").includes(k.id)), ns=sh.ns==null?S.spend.length:Math.min(sh.ns,S.spend.length);
     const oldSp=sh.w<R?S.spend.slice(0,ns):S.spend, oldR=oldSp.reduce((s,x)=>s+x.n,0);
     from=bildModel(oldR,oldK,BL.slice(BL.length-Math.min(sh.p,sig.p)),oldSp);
     if(fChange) from.focus=sh.f&&(sh.c||0)===sig.c?sh.f.split(","):[];
   }
+  if(einzug){ from=cleanModel(K,BL) }
   const m=bildModel(R,K,BL);
   const newK=from?K.filter(k=>!sh.k.split(",").includes(k.id)):[];
   if(from){ if(newK.length) m.ringKeep=newK[newK.length-1].id; else if(st>stageOf(from.w)) m.ringStage=true }
   m.delay=FADE_DELAY;
   // Neuer Schwerpunkt: langsame, gut sichtbare Verwandlung, das Bild steht dafür oben im Blick
-  if(fChange){ m.delay=900; m.fadeDur=2600; if(scrollY>0) scrollTo({top:0,behavior:"auto"});
+  if(einzug){ m.delay=1100; m.fadeDur=3400; if(scrollY>0) scrollTo({top:0,behavior:"auto"});
+    capt(cv,"So ruhig kann es werden",1000);
+    setTimeout(()=>{ if(cv.isConnected) capt(cv,m.focus.length?"Dein Zimmer gerade. Schwerpunkt: "+m.focus.map(k=>KAT[k].n).join(", "):"Dein Zimmer gerade. Stück für Stück wird es wieder ruhig.",5200) },1300) }
+  else if(fChange){ m.delay=900; m.fadeDur=2600; if(scrollY>0) scrollTo({top:0,behavior:"auto"});
     // Etikett im Bild, damit man den Zusammenhang sieht
     const st=cv.parentNode; if(st&&m.focus.length){ const o=document.createElement("p"); o.className="zverw"; o.setAttribute("aria-live","polite");
       o.textContent="Dein Schwerpunkt: "+m.focus.map(k=>KAT[k].n).join(", "); st.appendChild(o); setTimeout(()=>o.classList.add("weg"),5200); setTimeout(()=>o.remove(),6000) }
@@ -280,17 +293,19 @@ function mountBild(){
     const hintOn=!S.mom["zonen-tipp"]||zHintNow;
     ov.innerHTML=(info.zones||[]).filter(z=>z.dot&&KAT[z.kat]).map(z=>`<button class="zone-hit${hintOn?" zeig":""}" tabindex="-1" data-a="zone" data-v="${z.id}" style="left:${z.hx/Wc*100}%;top:${z.hy/Hc*100}%" aria-label="${esc(KAT[z.kat].n)}, ${esc(ORT[z.id.split("@")[1]]||"im Zimmer")}"></button>`).join("")+info.hits.map(k=>{ const kk=S.keep.find(x=>x.id===k.id)||{};
       return `<button class="ding-hit" data-a="open" data-v="keepview" data-w="${k.id}" style="left:${k.hx/Wc*100}%;top:${k.hy/Hc*100}%;width:${Math.round(k.hr*2)}px;height:${Math.round(k.hr*2)}px" aria-label="${esc(kk.name||k.ding||"Behaltenes Ding")}, ${esc(AREA[k.cat]?AREA[k.cat].n:"")}, ${esc(GRUND[k.why]?GRUND[k.why].n:"bewusst behalten")}"></button>` }).join("") }
+  if(fChange&&ov){ ov.style.transition="opacity .5s"; ov.style.opacity="0"; const zp0=$(".zhint"); if(zp0) zp0.style.visibility="hidden";
+    setTimeout(()=>{ ov.style.opacity="1"; const z=$(".zhint"); if(z) z.style.visibility="" },einzug?5200:3800) }
   const stUp=from&&st>stageOf(from.w);
   S.shown=sig;
   // Liste „Was liegt hier?“: die Kategorien, die im Bild noch etwas haben, je mit ihrer größten Stelle
   const zl=$(".zliste"); if(zl){ const seen=new Set(), F=m.focus||[], Z=(info.zones||[]).filter(z=>KAT[z.kat]&&!seen.has(z.kat)&&seen.add(z.kat)).sort((a,b)=>(F.includes(a.kat)?0:1)-(F.includes(b.kat)?0:1));
     zl.hidden=!Z.length; zl.querySelector(".list").innerHTML=Z.map(z=>`<button class="row" data-a="zone" data-v="${z.id}"><i class="dot ${KAT[z.kat].cat}"></i><span class="t"><b>${esc(KAT[z.kat].n)}</b><span>${F.includes(z.kat)?"Dein Schwerpunkt · ":""}${esc(KAT[z.kat].kurz)}</span></span>${chev}</button>`).join("") }
   const zp=$(".zhint"); if(zp&&!(info.zones||[]).length) zp.remove();
-  if(!S.mom["zonen-tipp"]&&!SH&&(info.zones||[]).length){ S.mom["zonen-tipp"]=now(); zHintNow=true; setTimeout(zHintOff,8000) }
+  if(!S.mom["zonen-tipp"]&&!SH&&(info.zones||[]).length){ S.mom["zonen-tipp"]=now(); zHintNow=true; setTimeout(zHintOff,fChange?13000:8000) }
   // Nach dem Abräumen: die Stelle während der Überblendung markieren
-  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } else if(fChange&&m.focus.length) Bild.markFocus(m,900+2600); zMarkNext=null;
+  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } else if(fChange&&m.focus.length) Bild.markFocus(m,einzug?1100+3400:900+2600); zMarkNext=null;
   save();
-  later(()=>maybeMoment(),fChange?6200:from?(stUp?2600:1500)+FADE_DELAY-250:700);
+  later(()=>maybeMoment(),fChange?7200:from?(stUp?2600:1500)+FADE_DELAY-250:700);
 }
 
 let NXALT=0;
@@ -318,7 +333,7 @@ function heuteHTML(){
   if(URGENT.includes(eng.m)&&!(S.urgLater===dkey()&&eng.m!=="Zum Anfang")) return `<section class="next" aria-labelledby="nx-t">
     <div class="next-h">${MARK}Zuerst das · ${esc(eng.m)}</div>
     <h3 id="nx-t">${esc(eng.t)}</h3><p>${esc(eng.x)}</p>
-    <div class="next-b"><button class="btn" data-a="${eng.a}" data-v="${eng.v}" data-w="${esc(eng.w||"")}">${esc(eng.b)}</button>${eng.m!=="Zum Anfang"?`<button class="btn quiet" data-a="urg-later">Später</button>`:""}</div></section>`;
+    <div class="next-b"><button class="btn" data-a="${eng.a}" data-v="${eng.v}" data-w="${esc(eng.w||"")}">${esc(eng.b)}</button>${eng.m!=="Zum Anfang"?`<button class="btn quiet" data-a="urg-later">Später</button>`:`<button class="btn quiet" data-a="check-skip">Ohne Bestandsaufnahme starten</button>`}</div></section>`;
   const h=heute(); if(!h) return `<section class="next"><div class="next-h">${MARK}Heute</div><h3 id="nx-t">Im Bild ist alles abgeräumt</h3><p>Was du jetzt tust, hält es so. Parke den nächsten Kaufwunsch, bevor du kaufst.</p><div class="next-b"><button class="btn" data-a="open" data-v="wish">Wunsch parken</button></div></section>`;
   const {k,c,step,cost,G}=h, dots=`<span class="hdots" aria-hidden="true">${[0,1,2].map(i=>`<i class="${i<step?"on":i===step?"cur":""}"></i>`).join("")}</span>`;
   const head=t=>`<div class="next-h">${MARK}<span>${t}</span>${dots}</div>`;
@@ -364,7 +379,7 @@ function vHome(){
   <button class="stufe" data-a="open" data-v="stufen" aria-label="Stufe ${st+1} von 10: ${esc(S1.n)}. ${G} ${EIN} zum Einsetzen. Alle Stufen ansehen">
     <span class="stufe-kopf"><span class="stufe-n"><small>Stufe ${st+1} von 10</small><b>${esc(S1.n)}</b></span>${st>=9?`<span class="weite">Zimmer frei</span>`:`<span class="weite${G>=1?" voll":""}"><b>${G}</b> ${EIN}</span>`}</span>
     <span class="raster" aria-hidden="true">${STUFEN.map((x,i)=>`<i class="${i<=st?"v":i===st+1?"j":""}"${i===st+1?` style="--p:${Math.max(0,Math.min(100,pct))}%"`:""}></i>`).join("")}</span></button>
-  <p class="stufe-p">${G>=PREIS&&st<9?`<b>Du hast ${hb(G)}.</b> Tipp im Bild auf etwas, das du abräumen willst. Was bleibt, entscheidest du.`:`${esc(S1.x)} ${st>=9?"Handbreit zählen jetzt nur noch für dich. ":""}${S2?`Noch <b>${hb(S2.w-W)}</b> einsetzen bis „${esc(S2.n)}“.`:"Was du jetzt tust, hält es so."}`}${weite()<1&&!S.spend.length?` Handbreit bekommst du für Aufgaben und Entscheidungen: Loslassen, Behalten, Vielleicht-Kiste.`:""}</p>
+  <p class="stufe-p">${vorher()?`So kann dein Zimmer aussehen, wenn du fertig bist. Mach die Bestandsaufnahme, dann siehst du dein Zimmer, wie es gerade ist.`:G>=PREIS&&st<9?`<b>Du hast ${hb(G)}.</b> Tipp im Bild auf etwas, das du abräumen willst. Was bleibt, entscheidest du.`:`${esc(S1.x)} ${st>=9?"Handbreit zählen jetzt nur noch für dich. ":""}${S2?`Noch <b>${hb(S2.w-W)}</b> einsetzen bis „${esc(S2.n)}“.`:"Was du jetzt tust, hält es so."}`}${weite()<1&&!S.spend.length?` Handbreit bekommst du für Aufgaben und Entscheidungen: Loslassen, Behalten, Vielleicht-Kiste.`:""}</p>
   ${st<9?`<details class="zliste" hidden><summary>Was liegt hier?</summary>
     <p class="small muted" style="margin:0 0 6px">Jedes Ding im Bild steht für eine Sorte, die es fast überall gibt. Tipp auf eine, um zu sehen, was du in deinem Zuhause tun kannst.</p>
     <div class="list"></div></details>`:""}
@@ -1177,6 +1192,7 @@ const A={
     act("Abgeräumt: "+KAT[k].n+", "+hb(cost)+".",()=>{ S.spend.push({k,z:id,n:cost,ts:now()}) }); render() },
   "heute-go"(){ const h=heute(); if(!h) return; openSheet("timer",String(h.c.min),{cid:h.c.id,end:now()+h.c.min*60000}); timerTick() },
   "fokus-off"(){ S.settings.nofocus=!S.settings.nofocus; save(); render(); toast(S.settings.nofocus?"Schwerpunkt ausgeblendet. Alle Sorten sehen gleich aus.":"Schwerpunkt wird wieder gezeigt.") },
+  "check-skip"(){ S.skipCheck=true; save(); render() },
   "urg-later"(){ S.urgLater=dkey(); save(); render(); const b=document.querySelector(".next .btn"); if(b) b.focus({preventScroll:true}) },
   "heute-alt"(){ S.heute.n=(S.heute.n||0)+1; S.heute.kat=heuteKat(S.heute.n); S.heute.fertig=false; save(); render(); const b=document.querySelector(".heute .btn"); if(b) b.focus({preventScroll:true}) },
   "heute-fertig"(){ S.heute.fertig=true; save(); buzz("ok"); render(); toast("Gut. Alles darf bleiben, das war eine Entscheidung.") },

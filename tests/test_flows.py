@@ -29,6 +29,7 @@ with sync_playwright() as p:
         pg.add_init_script("window.__vib=[];navigator.vibrate=(p)=>{window.__vib.push(p);return true}")
         if state is not None and not keepmom:
             state = json.loads(json.dumps(state)); state.setdefault("mom", {}); state["mom"]["neu-d"] = 1
+            if "check" not in state: state.setdefault("skipCheck", True)
         if state is not None:
             pg.add_init_script("if(!sessionStorage.getItem('x')){sessionStorage.setItem('x',1);localStorage.setItem('lichtung-v1', %s)}" % json.dumps(json.dumps(state)))
         pg.goto(URL); pg.wait_for_timeout(500)
