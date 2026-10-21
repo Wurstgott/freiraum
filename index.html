@@ -2616,7 +2616,7 @@ const Bild=(function(){
     const J=z=>P.filter(p=>p.z===z&&vis(p));
     // Schwerpunkt aus der Bestandsaufnahme: Diese Sorten behalten ihre Farbe, der übrige Kram wird etwas ruhiger
     const FO=m.focus&&m.focus.length?m.focus:null;
-    const dj=p=>drawJunk(g,p,T,FO&&!FO.includes(p.kat)?Math.min(0.9,calm+0.3):calm,dark);
+    const dj=p=>drawJunk(g,p,T,FO&&!FO.includes(p.kat)?Math.min(0.92,calm+0.4):calm,dark);
 
     // Wand: wird mit dem Fortschritt heller
     const wall=mix(T.wall0,T.wall1,Math.pow(k,0.7));
@@ -2900,7 +2900,7 @@ const Bild=(function(){
     const {W,dpr}=size(), u=W/VW, still=RMq(), tm=still?2:(t-t0)/1000+2;
     const t1=performance.now();
     if(prev||ringAt||full){
-      let k=1; if(prev){ k=fadeT0?Math.min(1,Math.max(0,(t-fadeT0)/1200)):0; if(k>=1){ prev=null; k=1 } }
+      let k=1; if(prev){ k=fadeT0?Math.min(1,Math.max(0,(t-fadeT0)/(model.fadeDur||1200))):0; if(k>=1){ prev=null; k=1 } }
       ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.clearRect(0,0,cv.width,cv.height);
       ctx.drawImage(cur.base,0,0);
       if(prev){ ctx.globalAlpha=1-k; ctx.drawImage(prev.base,0,0); ctx.globalAlpha=1 }
@@ -2968,7 +2968,7 @@ const Bild=(function(){
 })();
 
 /* ===== Freiraum: Zustand, Logik, Ansichten ===== */
-const BUILD="21.10.2026, 23:28";
+const BUILD="22.10.2026, 00:00";
 const KEY="lichtung-v1";
 try{ history.scrollRestoration="manual" }catch(e){}
 const DAY=864e5;
@@ -3235,7 +3235,10 @@ function mountBild(){
   const m=bildModel(R,K,BL);
   const newK=from?K.filter(k=>!sh.k.split(",").includes(k.id)):[];
   if(from){ if(newK.length) m.ringKeep=newK[newK.length-1].id; else if(st>stageOf(from.w)) m.ringStage=true }
-  m.delay=FADE_DELAY; const info=Bild.mount(cv,m,from);
+  m.delay=FADE_DELAY;
+  // Neuer Schwerpunkt: langsame, gut sichtbare Verwandlung, das Bild steht dafür oben im Blick
+  if(fChange){ m.delay=700; m.fadeDur=2600; if(scrollY>0) scrollTo({top:0,behavior:"auto"}) }
+  const info=Bild.mount(cv,m,from);
   const ov=$("#hits"); if(ov){ const Wc=cv.clientWidth, Hc=cv.clientHeight;
     // Tastatur: Die Flächen im Bild sind aus der Tab-Reihenfolge genommen (tabindex -1). Die Liste „Was liegt hier?“ führt zu denselben Blättern.
     const hintOn=!S.mom["zonen-tipp"]||zHintNow;
@@ -3249,7 +3252,7 @@ function mountBild(){
   const zp=$(".zhint"); if(zp&&!(info.zones||[]).length) zp.remove();
   if(!S.mom["zonen-tipp"]&&!SH&&(info.zones||[]).length){ S.mom["zonen-tipp"]=now(); zHintNow=true; setTimeout(zHintOff,8000) }
   // Nach dem Abräumen: die Stelle während der Überblendung markieren
-  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } else if(fChange&&m.focus.length) Bild.markFocus(m,FADE_DELAY+1000); zMarkNext=null;
+  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } else if(fChange&&m.focus.length) Bild.markFocus(m,700+2600); zMarkNext=null;
   save();
   later(()=>maybeMoment(),from?(stUp?2600:1500)+FADE_DELAY-250:700);
 }

@@ -497,7 +497,7 @@ const Bild=(function(){
     const J=z=>P.filter(p=>p.z===z&&vis(p));
     // Schwerpunkt aus der Bestandsaufnahme: Diese Sorten behalten ihre Farbe, der übrige Kram wird etwas ruhiger
     const FO=m.focus&&m.focus.length?m.focus:null;
-    const dj=p=>drawJunk(g,p,T,FO&&!FO.includes(p.kat)?Math.min(0.9,calm+0.3):calm,dark);
+    const dj=p=>drawJunk(g,p,T,FO&&!FO.includes(p.kat)?Math.min(0.92,calm+0.4):calm,dark);
 
     // Wand: wird mit dem Fortschritt heller
     const wall=mix(T.wall0,T.wall1,Math.pow(k,0.7));
@@ -781,7 +781,7 @@ const Bild=(function(){
     const {W,dpr}=size(), u=W/VW, still=RMq(), tm=still?2:(t-t0)/1000+2;
     const t1=performance.now();
     if(prev||ringAt||full){
-      let k=1; if(prev){ k=fadeT0?Math.min(1,Math.max(0,(t-fadeT0)/1200)):0; if(k>=1){ prev=null; k=1 } }
+      let k=1; if(prev){ k=fadeT0?Math.min(1,Math.max(0,(t-fadeT0)/(model.fadeDur||1200))):0; if(k>=1){ prev=null; k=1 } }
       ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.clearRect(0,0,cv.width,cv.height);
       ctx.drawImage(cur.base,0,0);
       if(prev){ ctx.globalAlpha=1-k; ctx.drawImage(prev.base,0,0); ctx.globalAlpha=1 }

@@ -266,7 +266,10 @@ function mountBild(){
   const m=bildModel(R,K,BL);
   const newK=from?K.filter(k=>!sh.k.split(",").includes(k.id)):[];
   if(from){ if(newK.length) m.ringKeep=newK[newK.length-1].id; else if(st>stageOf(from.w)) m.ringStage=true }
-  m.delay=FADE_DELAY; const info=Bild.mount(cv,m,from);
+  m.delay=FADE_DELAY;
+  // Neuer Schwerpunkt: langsame, gut sichtbare Verwandlung, das Bild steht dafür oben im Blick
+  if(fChange){ m.delay=700; m.fadeDur=2600; if(scrollY>0) scrollTo({top:0,behavior:"auto"}) }
+  const info=Bild.mount(cv,m,from);
   const ov=$("#hits"); if(ov){ const Wc=cv.clientWidth, Hc=cv.clientHeight;
     // Tastatur: Die Flächen im Bild sind aus der Tab-Reihenfolge genommen (tabindex -1). Die Liste „Was liegt hier?“ führt zu denselben Blättern.
     const hintOn=!S.mom["zonen-tipp"]||zHintNow;
@@ -280,7 +283,7 @@ function mountBild(){
   const zp=$(".zhint"); if(zp&&!(info.zones||[]).length) zp.remove();
   if(!S.mom["zonen-tipp"]&&!SH&&(info.zones||[]).length){ S.mom["zonen-tipp"]=now(); zHintNow=true; setTimeout(zHintOff,8000) }
   // Nach dem Abräumen: die Stelle während der Überblendung markieren
-  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } else if(fChange&&m.focus.length) Bild.markFocus(m,FADE_DELAY+1000); zMarkNext=null;
+  if(zMarkNext&&from){ Bild.markGone(from,m,FADE_DELAY) } else if(fChange&&m.focus.length) Bild.markFocus(m,700+2600); zMarkNext=null;
   save();
   later(()=>maybeMoment(),from?(stUp?2600:1500)+FADE_DELAY-250:700);
 }
