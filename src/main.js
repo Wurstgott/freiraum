@@ -1168,7 +1168,7 @@ const A={
   save(el){ const id=el.dataset.v; if(S.saved[id]) delete S.saved[id]; else S.saved[id]=now(); save(); drawSheet() },
   share(el){ shareIt(el.dataset.v) },
   wf(el){ WF=WF===el.dataset.v&&el.dataset.v!=="all"?"all":el.dataset.v; render() },
-  mode(el){ S.settings.mode=el.dataset.v; save(); if(SH) drawSheet(); else render(); toast(el.dataset.v==="school"?"Die Fassungen für die Schule sind aktiv.":"Die Fassungen für Erwachsene sind aktiv.") },
+  mode(el){ S.settings.mode=el.dataset.v; save(); if(SH){ drawSheet(); return } render(); toast(el.dataset.v==="school"?"Die Fassungen für die Schule sind aktiv.":"Die Fassungen für Erwachsene sind aktiv.") },
   theme(el){ S.settings.theme=el.dataset.v; save(); applyTheme(); render() },
   autospend(){ S.settings.auto=!S.settings.auto; autoSpend(); save(); render(); toast(S.settings.auto?"Das Bild räumt jetzt von allein ab.":"Du wählst wieder selbst, was abgeräumt wird.") },
   vib(){ S.settings.vib=S.settings.vib===false; save(); if(S.settings.vib) armHaptics(); else disarmHaptics(); render() },
